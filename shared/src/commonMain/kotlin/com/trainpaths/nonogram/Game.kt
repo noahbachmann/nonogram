@@ -20,7 +20,6 @@ fun Game(
     Column(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.primary)
-            .safeContentPadding()
             .fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally

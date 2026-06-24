@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
 @Suppress("CheckReturnValue")
-public val close: ImageVector
+val close: ImageVector
     get() {
         if (_close != null) {
             return _close!!
@@ -33,7 +33,7 @@ public val close: ImageVector
                         strokeLineCap = StrokeCap.Butt,
                         strokeLineJoin = StrokeJoin.Bevel,
                         strokeLineMiter = 1f,
-                        pathFillType = PathFillType.Companion.NonZero,
+                        pathFillType = PathFillType.NonZero,
                     ) {
                         moveTo(6.4f, 19f)
                         lineTo(5f, 17.6f)
