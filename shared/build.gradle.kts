@@ -9,7 +9,7 @@ plugins {
 }
 
 kotlin {
-    listOf(
+    /*listOf(
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
@@ -17,7 +17,7 @@ kotlin {
             baseName = "Shared"
             isStatic = true
         }
-    }
+    }*/
 
     js {
         browser()
