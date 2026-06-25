@@ -1,7 +1,8 @@
 package com.trainpaths.nonogram
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.material3.MaterialTheme
@@ -16,12 +17,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun App() {
     AppTheme {
         val viewModel = viewModel { GameViewModel() }
-        Column(
+        Row(
             modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
+                .background(MaterialTheme.colorScheme.primary)
                 .safeContentPadding()
                 .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Game(
                 nonogram = viewModel.nonogram,
