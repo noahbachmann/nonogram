@@ -1,4 +1,4 @@
-CREATE TABLE Nonogram (
+CREATE TABLE NonogramData (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     difficulty TEXT NOT NULL,
     solution TEXT NOT NULL
@@ -12,41 +12,39 @@ CREATE TABLE User (
 CREATE TABLE UserProgress (
     userId INTEGER NOT NULL,
     nonogramId INTEGER NOT NULL,
-    status TEXT NOT NULL,
     boardState TEXT,
     updatedAt INTEGER NOT NULL,
     PRIMARY KEY (userId, nonogramId),
     FOREIGN KEY (userId) REFERENCES User(id),
-    FOREIGN KEY (nonogramId) REFERENCES Nonogram(id)
+    FOREIGN KEY (nonogramId) REFERENCES NonogramData(id)
 );
 
 insertNonogram:
-INSERT INTO Nonogram(id, difficulty, solution) VALUES (NULL ,?, ?);
+INSERT INTO NonogramData(id, difficulty, solution) VALUES (NULL, ?, ?);
 
 selectAllNonograms:
-SELECT Nonogram.* FROM Nonogram;
+SELECT NonogramData.* FROM NonogramData;
 
 selectNonogramsByDifficulty:
-SELECT Nonogram.* FROM Nonogram WHERE difficulty = ?;
+SELECT NonogramData.* FROM NonogramData WHERE difficulty = ?;
 
 selectNonogramById:
-SELECT Nonogram.* FROM Nonogram WHERE id = ?;
-
+SELECT NonogramData.* FROM NonogramData WHERE id = ?;
 
 selectRandomNonogram:
-SELECT Nonogram.* FROM Nonogram ORDER BY RANDOM() LIMIT 1;
+SELECT NonogramData.* FROM NonogramData ORDER BY RANDOM() LIMIT 1;
 
 selectRandomNonogramByDifficulty:
-SELECT Nonogram.* FROM Nonogram WHERE difficulty = ? ORDER BY RANDOM() LIMIT 1;
+SELECT NonogramData.* FROM NonogramData WHERE difficulty = ? ORDER BY RANDOM() LIMIT 1;
 
 upsertProgress:
-INSERT OR REPLACE INTO UserProgress(userId, nonogramId, status, boardState, updatedAt)
-VALUES (?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO UserProgress(userId, nonogramId, boardState, updatedAt)
+VALUES (?, ?, ?, ?);
 
 selectProgressForUser:
-SELECT Nonogram.*, UserProgress.status, UserProgress.boardState
-FROM Nonogram
-JOIN UserProgress ON UserProgress.nonogramId = Nonogram.id
+SELECT NonogramData.*, UserProgress.boardState
+FROM NonogramData
+JOIN UserProgress ON UserProgress.nonogramId = NonogramData.id
 WHERE UserProgress.userId = ?;
 
 insertUser:
