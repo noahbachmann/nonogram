@@ -19,6 +19,10 @@ class GameViewModel(private val sdk: AppSDK) : ViewModel() {
         private set
 
     init {
+        loadRandom()
+    }
+
+    fun loadRandom() {
         viewModelScope.launch {
             val loadedNonogram: Nonogram? = withContext(Dispatchers.Default) {
                 sdk.seedIfEmpty()
