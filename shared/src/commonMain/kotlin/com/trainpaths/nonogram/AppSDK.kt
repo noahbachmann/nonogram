@@ -4,10 +4,25 @@ import com.trainpaths.nonogram.cache.Database
 import com.trainpaths.nonogram.cache.DatabaseFactory
 import com.trainpaths.nonogram.cache.NonogramProgress
 import com.trainpaths.nonogram.classes.Nonogram
-import com.trainpaths.nonogram.network.NonogramApi
 
-class AppSDK(databaseFactory: DatabaseFactory, val api: NonogramApi) {
+class AppSDK(databaseFactory: DatabaseFactory) {
     private val database = Database(databaseFactory)
+
+    fun seedIfEmpty() {
+        if (getAllNonograms().isNotEmpty()) return
+        addNonogram("EASY", listOf(
+            listOf(0,0,1,0,0), listOf(0,0,1,0,0), listOf(1,1,1,1,1),
+            listOf(0,0,1,0,0), listOf(0,0,1,0,0)
+        ))
+        addNonogram("MEDIUM", listOf(
+            listOf(1,1,1,1,1), listOf(1,0,0,0,0), listOf(1,1,1,0,0),
+            listOf(1,0,0,0,0), listOf(1,1,1,1,1)
+        ))
+        addNonogram("HARD", listOf(
+            listOf(1,1,0,0,0), listOf(0,1,1,0,0), listOf(0,0,1,1,0),
+            listOf(0,0,0,1,1), listOf(0,0,0,0,1)
+        ))
+    }
 
     fun getAllNonograms(): List<Nonogram> =
         database.getAllNonograms()

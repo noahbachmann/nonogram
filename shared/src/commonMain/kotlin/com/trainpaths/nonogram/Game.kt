@@ -19,11 +19,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileButton
 
 @Composable
 fun Game(
-    nonogram: Nonogram
+    nonogram: Nonogram,
+    tiles: List<List<Tile>>,
 ) {
     Row(
         modifier = Modifier
@@ -44,7 +46,7 @@ fun Game(
                     for (hint in nonogram.rowClues[row].indices) {
                         Text(
                             modifier = Modifier.padding(horizontal = 2.dp),
-                            text = nonogram.colClues[row][hint].toString(),
+                            text = nonogram.rowClues[row][hint].toString(),
                             textAlign = TextAlign.Center
                         )
                     }
@@ -76,7 +78,7 @@ fun Game(
             for (r in 0 until nonogram.height) {
                 Row {
                     for (c in 0 until nonogram.width) {
-                        TileButton(nonogram.tileAt(r, c))
+                        TileButton(tiles[r][c])
                     }
                 }
             }
