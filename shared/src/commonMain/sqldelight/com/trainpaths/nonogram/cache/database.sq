@@ -1,0 +1,59 @@
+CREATE TABLE Nonogram (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    difficulty TEXT NOT NULL,
+    solution TEXT NOT NULL
+);
+
+CREATE TABLE User (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE UserProgress (
+    userId INTEGER NOT NULL,
+    nonogramId INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    boardState TEXT,
+    updatedAt INTEGER NOT NULL,
+    PRIMARY KEY (userId, nonogramId),
+    FOREIGN KEY (userId) REFERENCES User(id),
+    FOREIGN KEY (nonogramId) REFERENCES Nonogram(id)
+);
+
+insertNonogram:
+INSERT INTO Nonogram(id, difficulty, solution) VALUES (NULL ,?, ?);
+
+selectAllNonograms:
+SELECT Nonogram.* FROM Nonogram;
+
+selectNonogramsByDifficulty:
+SELECT Nonogram.* FROM Nonogram WHERE difficulty = ?;
+
+selectNonogramById:
+SELECT Nonogram.* FROM Nonogram WHERE id = ?;
+
+
+selectRandomNonogram:
+SELECT Nonogram.* FROM Nonogram ORDER BY RANDOM() LIMIT 1;
+
+selectRandomNonogramByDifficulty:
+SELECT Nonogram.* FROM Nonogram WHERE difficulty = ? ORDER BY RANDOM() LIMIT 1;
+
+upsertProgress:
+INSERT OR REPLACE INTO UserProgress(userId, nonogramId, status, boardState, updatedAt)
+VALUES (?, ?, ?, ?, ?);
+
+selectProgressForUser:
+SELECT Nonogram.*, UserProgress.status, UserProgress.boardState
+FROM Nonogram
+JOIN UserProgress ON UserProgress.nonogramId = Nonogram.id
+WHERE UserProgress.userId = ?;
+
+insertUser:
+INSERT INTO User(id, name) VALUES (NULL, ?);
+
+lastInsertedId:
+SELECT last_insert_rowid();
+
+selectUserById:
+SELECT User.* FROM User WHERE id = ?;
