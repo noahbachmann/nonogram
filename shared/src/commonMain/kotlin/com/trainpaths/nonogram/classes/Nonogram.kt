@@ -1,5 +1,15 @@
 package com.trainpaths.nonogram.classes
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
 
 enum class Difficulty { EASY, MEDIUM, HARD, HARDCORE }
@@ -37,4 +47,27 @@ private fun computeLineClues(line: List<Int>): List<Int> {
     if (clues.isEmpty())
         return listOf(0)
     return clues
+}
+
+@Composable
+fun DrawNonogram(nonogram: Nonogram) {
+    Canvas(Modifier.fillMaxSize()) {
+        val colWidth = this.size.width / nonogram.width
+        val colHeight = this.size.height / nonogram.height
+        var offsetWidth = 0f
+        var offsetHeight = 0f
+
+        for (row in nonogram.solution) {
+            for (col in row) {
+                drawRect(
+                    color = if (col == 0) Color.White else Color.Black,
+                    topLeft = Offset(offsetWidth, offsetHeight),
+                    size = Size(colWidth, colHeight),
+                )
+                offsetWidth += colWidth
+            }
+            offsetWidth = 0f
+            offsetHeight += colHeight
+        }
+    }
 }

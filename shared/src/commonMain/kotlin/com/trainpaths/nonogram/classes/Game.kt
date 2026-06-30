@@ -1,4 +1,4 @@
-package com.trainpaths.nonogram
+package com.trainpaths.nonogram.classes
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -18,9 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.trainpaths.nonogram.classes.Nonogram
-import com.trainpaths.nonogram.classes.Tile
-import com.trainpaths.nonogram.classes.TileButton
 
 @Composable
 fun Game(

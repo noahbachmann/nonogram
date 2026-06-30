@@ -14,10 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import com.trainpaths.nonogram.Game
 import com.trainpaths.nonogram.icons.arrowBack
 import com.trainpaths.nonogram.icons.settings
 import com.trainpaths.nonogram.GameViewModel
+import com.trainpaths.nonogram.classes.Game
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
