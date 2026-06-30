@@ -47,6 +47,10 @@ kotlin {
             implementation(libs.sqldelight.android.driver)
             implementation(libs.koin.android)
             implementation(libs.koin.androidx.compose)
+
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.auth)
+            implementation(libs.firebase.firestore)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
