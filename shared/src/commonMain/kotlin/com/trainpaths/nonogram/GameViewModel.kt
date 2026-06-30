@@ -18,19 +18,16 @@ class GameViewModel(private val sdk: AppSDK) : ViewModel() {
     var tiles: List<List<Tile>> by mutableStateOf(emptyList())
         private set
 
-    init {
-        loadRandom()
-    }
-
-    fun loadRandom() {
+    fun loadNonogram(id: Long) {
+        nonogram = null
+        tiles = emptyList()
         viewModelScope.launch {
-            val loadedNonogram: Nonogram? = withContext(Dispatchers.Default) {
-                sdk.seedIfEmpty()
-                sdk.getRandomNonogram()
+            val loaded: Nonogram? = withContext(Dispatchers.Default) {
+                sdk.getNonogramById(id)
             }
-            if (loadedNonogram != null) {
-                this@GameViewModel.nonogram = loadedNonogram
-                tiles = List(loadedNonogram.height) { List(loadedNonogram.width) { Tile() } }
+            if (loaded != null) {
+                nonogram = loaded
+                tiles = List(loaded.height) { List(loaded.width) { Tile() } }
             }
         }
     }

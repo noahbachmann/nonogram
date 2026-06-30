@@ -10,18 +10,19 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
 @Suppress("CheckReturnValue")
-public val close: ImageVector
+val arrowBack: ImageVector
     get() {
-        if (_close != null) {
-            return _close!!
+        if (_arrowBack != null) {
+            return _arrowBack!!
         }
-        _close =
+        _arrowBack =
             ImageVector.Builder(
-                name = "close",
+                name = "arrowBack",
                 defaultWidth = 24.dp,
                 defaultHeight = 24.dp,
                 viewportWidth = 24f,
                 viewportHeight = 24f,
+                autoMirror = true,
             )
                 .apply {
                     path(
@@ -33,26 +34,23 @@ public val close: ImageVector
                         strokeLineCap = StrokeCap.Butt,
                         strokeLineJoin = StrokeJoin.Bevel,
                         strokeLineMiter = 1f,
-                        pathFillType = PathFillType.Companion.NonZero,
+                        pathFillType = PathFillType.NonZero,
                     ) {
-                        moveTo(6.4f, 19f)
-                        lineTo(5f, 17.6f)
-                        lineTo(10.6f, 12f)
-                        lineTo(5f, 6.4f)
-                        lineTo(6.4f, 5f)
-                        lineTo(12f, 10.6f)
-                        lineTo(17.6f, 5f)
-                        lineTo(19f, 6.4f)
-                        lineTo(13.4f, 12f)
-                        lineTo(19f, 17.6f)
-                        lineTo(17.6f, 19f)
-                        lineTo(12f, 13.4f)
-                        lineTo(6.4f, 19f)
+                        moveTo(20f, 11f)
+                        horizontalLineTo(7.83f)
+                        lineToRelative(5.59f, -5.59f)
+                        lineTo(12f, 4f)
+                        lineToRelative(-8f, 8f)
+                        lineToRelative(8f, 8f)
+                        lineToRelative(1.41f, -1.41f)
+                        lineTo(7.83f, 13f)
+                        horizontalLineTo(20f)
+                        verticalLineToRelative(-2f)
                         close()
                     }
                 }
                 .build()
-        return _close!!
+        return _arrowBack!!
     }
 
-private var _close: ImageVector? = null
+private var _arrowBack: ImageVector? = null

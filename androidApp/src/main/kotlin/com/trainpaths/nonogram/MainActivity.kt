@@ -12,8 +12,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            val viewModel = koinViewModel<GameViewModel>()
-            App(viewModel)
+            val menuViewModel = koinViewModel<MenuViewModel>()
+            App(
+                menuViewModel = menuViewModel,
+                gameViewModelFactory = { _ -> koinViewModel<GameViewModel>() },
+            )
         }
     }
 }

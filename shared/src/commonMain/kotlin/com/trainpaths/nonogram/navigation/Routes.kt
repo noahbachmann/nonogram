@@ -1,0 +1,18 @@
+package com.trainpaths.nonogram.navigation
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+object MenuRoute
+
+@Serializable
+object SettingsRoute
+
+@Serializable
+object LeaveDialogRoute
+
+@Serializable
+data class GameRoute(val nonogramId: Long)
+
+@Serializable
+data class PlayDialogRoute(val nonogramId: Long)
