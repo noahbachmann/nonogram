@@ -94,7 +94,7 @@ private fun NonogramCard(nonogram: Nonogram, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.fillMaxHeight().padding(8.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {

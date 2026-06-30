@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -22,11 +21,6 @@ kotlin {
     }*/
 
     js {
-        browser()
-    }
-
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
         browser()
     }
 
@@ -71,6 +65,11 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.koin.core)
             implementation(libs.navigation.compose)
+
+            implementation(libs.kmpauth.google)
+            implementation(libs.kmpauth.firebase)
+            implementation(libs.kmpauth.facebook)
+            implementation(libs.kmpauth.uihelper)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
