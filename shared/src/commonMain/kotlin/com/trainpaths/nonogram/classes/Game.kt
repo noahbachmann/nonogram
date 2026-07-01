@@ -81,4 +81,18 @@ fun Game(
             }
         }
     }
+
+    fun checkSolved(): Boolean {
+        val values: List<List<Int>> = tiles.map { row ->
+            row.map { tile ->
+                when (tile.state) {
+                    TileState.FILLED -> 1
+                    else -> 0
+                }
+            }
+        }
+
+        return values == nonogram.solution
+    }
 }
+
