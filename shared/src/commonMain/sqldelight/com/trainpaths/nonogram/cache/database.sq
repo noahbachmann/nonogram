@@ -6,8 +6,11 @@ CREATE TABLE NonogramData (
 
 CREATE TABLE User (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL
+    name TEXT NOT NULL,
+    firebaseUid TEXT
 );
+
+CREATE UNIQUE INDEX idx_user_firebaseUid ON User(firebaseUid);
 
 CREATE TABLE UserProgress (
     userId INTEGER NOT NULL,
@@ -55,3 +58,9 @@ SELECT last_insert_rowid();
 
 selectUserById:
 SELECT User.* FROM User WHERE id = ?;
+
+selectUserByFirebaseUid:
+SELECT User.* FROM User WHERE firebaseUid = ?;
+
+updateUserFirebaseUid:
+UPDATE User SET firebaseUid = ?, name = ? WHERE id = ?;

@@ -5,12 +5,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.classes.Nonogram
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class MenuViewModel(private val sdk: AppSDK) : ViewModel() {
+class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRepository) : ViewModel() {
 
     var nonograms: List<Nonogram> by mutableStateOf(emptyList())
         private set

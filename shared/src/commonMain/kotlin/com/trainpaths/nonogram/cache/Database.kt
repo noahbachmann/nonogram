@@ -46,6 +46,13 @@ internal class Database(databaseFactory: DatabaseFactory) {
     internal fun getUserById(id: Long) =
         dbQuery.selectUserById(id).executeAsOneOrNull()
 
+    internal fun getUserByFirebaseUid(uid: String) =
+        dbQuery.selectUserByFirebaseUid(uid).executeAsOneOrNull()
+
+    internal fun updateUserFirebaseUid(userId: Long, firebaseUid: String, name: String) {
+        dbQuery.updateUserFirebaseUid(firebaseUid, name, userId)
+    }
+
     internal fun saveProgress(
         userId: Long,
         nonogramId: Long,

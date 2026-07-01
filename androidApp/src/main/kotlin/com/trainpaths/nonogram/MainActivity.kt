@@ -11,10 +11,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        AppInitializer.onApplicationStart(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+
         setContent {
             val menuViewModel = koinViewModel<MenuViewModel>()
+            val authViewModel = koinViewModel<AuthViewModel>()
             App(
                 menuViewModel = menuViewModel,
+                authViewModel = authViewModel,
                 gameViewModelFactory = { _ -> koinViewModel<GameViewModel>() },
             )
         }

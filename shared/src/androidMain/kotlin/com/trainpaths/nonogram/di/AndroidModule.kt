@@ -1,5 +1,6 @@
 package com.trainpaths.nonogram.di
 
+import com.trainpaths.nonogram.AuthViewModel
 import com.trainpaths.nonogram.GameViewModel
 import com.trainpaths.nonogram.MenuViewModel
 import com.trainpaths.nonogram.cache.AndroidDatabaseFactory
@@ -10,6 +11,7 @@ import org.koin.dsl.module
 
 val androidModule = module {
     single<DatabaseFactory> { AndroidDatabaseFactory(androidContext()) }
+    viewModelOf(::AuthViewModel)
     viewModelOf(::MenuViewModel)
     viewModelOf(::GameViewModel)
 }

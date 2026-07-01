@@ -45,6 +45,12 @@ class AppSDK(databaseFactory: DatabaseFactory) {
     fun getUserById(id: Long) =
         database.getUserById(id)
 
+    fun getUserByFirebaseUid(uid: String) =
+        database.getUserByFirebaseUid(uid)
+
+    fun updateUserFirebaseUid(userId: Long, firebaseUid: String, name: String) =
+        database.updateUserFirebaseUid(userId, firebaseUid, name)
+
     fun saveProgress(userId: Long, nonogramId: Long, board: List<List<Int>>?) =
         database.saveProgress(userId, nonogramId, board)
 

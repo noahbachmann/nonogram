@@ -1,6 +1,7 @@
 package com.trainpaths.nonogram
 
 import android.app.Application
+import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.di.androidModule
 import com.trainpaths.nonogram.di.appModule
 import org.koin.android.ext.koin.androidContext
@@ -13,6 +14,7 @@ class NonogramApplication : Application() {
             androidContext(this@NonogramApplication)
             modules(androidModule, appModule)
         }
-        AppInitializer.onApplicationStart()
+        val authRepository: AuthRepository = org.koin.java.KoinJavaComponent.getKoin().get()
+        AppInitializer.initializeAuth(authRepository)
     }
 }

@@ -27,20 +27,33 @@ import com.trainpaths.nonogram.screens.SettingsScreen
 @Composable
 fun App(
     menuViewModel: MenuViewModel,
+    authViewModel: AuthViewModel,
     gameViewModelFactory: @Composable (Long) -> GameViewModel,
 ) {
+    val startDestination = if (authViewModel.hasCompletedOnboarding) MenuRoute else LoginRoute
+
     AppTheme {
         val navController = rememberNavController()
         NavHost(
             navController = navController,
-            startDestination = LoginRoute,
+            startDestination = startDestination,
             modifier = Modifier
                 .background(MaterialTheme.colorScheme.primary)
                 .fillMaxSize(),
         ) {
             composable<LoginRoute> {
                 LoginScreen(
-
+                    authViewModel = authViewModel,
+                    onLoginSuccess = {
+                        navController.navigate(MenuRoute) {
+                            popUpTo(LoginRoute) { inclusive = true }
+                        }
+                    },
+                    onContinueAsGuest = {
+                        navController.navigate(MenuRoute) {
+                            popUpTo(LoginRoute) { inclusive = true }
+                        }
+                    },
                 )
             }
             composable<MenuRoute> {
@@ -69,8 +82,14 @@ fun App(
                 }
                 GameScreen(
                     viewModel = viewModel,
-                    onBack = { navController.navigate(LeaveDialogRoute) },
-                    onSettingsClick = { navController.navigate(SettingsRoute) },
+                    onBack = {
+                        viewModel.saveCurrentProgress()
+                        navController.navigate(LeaveDialogRoute)
+                    },
+                    onSettingsClick = {
+                        viewModel.saveCurrentProgress()
+                        navController.navigate(SettingsRoute)
+                    },
                 )
             }
             dialog<LeaveDialogRoute> {
@@ -80,7 +99,11 @@ fun App(
                 )
             }
             composable<SettingsRoute> {
-                SettingsScreen(onBack = { navController.popBackStack() })
+                SettingsScreen(
+                    authViewModel = authViewModel,
+                    onBack = { navController.popBackStack() },
+                    onSignIn = { navController.navigate(LoginRoute) },
+                )
             }
         }
     }
