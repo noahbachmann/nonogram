@@ -32,6 +32,10 @@ fun App(
 ) {
     val startDestination = if (authViewModel.hasCompletedOnboarding) MenuRoute else LoginRoute
 
+    LaunchedEffect(Unit) {
+        authViewModel.syncOnStart()
+    }
+
     AppTheme {
         val navController = rememberNavController()
         NavHost(

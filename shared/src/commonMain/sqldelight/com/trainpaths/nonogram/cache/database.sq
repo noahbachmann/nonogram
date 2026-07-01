@@ -64,3 +64,13 @@ SELECT User.* FROM User WHERE firebaseUid = ?;
 
 updateUserFirebaseUid:
 UPDATE User SET firebaseUid = ?, name = ? WHERE id = ?;
+
+selectProgressForUserWithTimestamp:
+SELECT UserProgress.nonogramId, UserProgress.boardState, UserProgress.updatedAt
+FROM UserProgress
+WHERE UserProgress.userId = ?;
+
+selectSingleProgress:
+SELECT UserProgress.boardState, UserProgress.updatedAt
+FROM UserProgress
+WHERE UserProgress.userId = ? AND UserProgress.nonogramId = ?;

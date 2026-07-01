@@ -69,6 +69,30 @@ internal class Database(databaseFactory: DatabaseFactory) {
     internal fun getProgressForUser(userId: Long): List<NonogramProgress> =
         dbQuery.selectProgressForUser(userId, ::mapProgress).executeAsList()
 
+    internal fun getProgressForUserWithTimestamp(userId: Long): List<ProgressWithTimestamp> =
+        dbQuery.selectProgressForUserWithTimestamp(userId) { nonogramId, boardState, updatedAt ->
+            ProgressWithTimestamp(nonogramId, boardState, updatedAt)
+        }.executeAsList()
+
+    internal fun getSingleProgress(userId: Long, nonogramId: Long): ProgressWithTimestamp? =
+        dbQuery.selectSingleProgress(userId, nonogramId) { boardState, updatedAt ->
+            ProgressWithTimestamp(nonogramId, boardState, updatedAt)
+        }.executeAsOneOrNull()
+
+    internal fun saveProgressWithTimestamp(
+        userId: Long,
+        nonogramId: Long,
+        boardState: String?,
+        updatedAt: Long
+    ) {
+        dbQuery.upsertProgress(
+            userId = userId,
+            nonogramId = nonogramId,
+            boardState = boardState,
+            updatedAt = updatedAt
+        )
+    }
+
     private fun mapNonogram(
         id: Long,
         difficulty: String,
@@ -97,4 +121,10 @@ internal class Database(databaseFactory: DatabaseFactory) {
 data class NonogramProgress(
     val nonogram: Nonogram,
     val board: List<List<Int>>?
+)
+
+data class ProgressWithTimestamp(
+    val nonogramId: Long,
+    val boardState: String?,
+    val updatedAt: Long
 )

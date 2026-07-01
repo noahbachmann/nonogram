@@ -30,7 +30,7 @@ kotlin {
         minSdk = libs.versions.android.minSdk.get().toInt()
 
         compilerOptions {
-            jvmTarget = JvmTarget.JVM_11
+            jvmTarget = JvmTarget.JVM_17
         }
         androidResources {
             enable = true
@@ -75,6 +75,7 @@ kotlin {
             implementation(libs.kmpauth.firebase)
             implementation(libs.kmpauth.facebook)
             implementation(libs.kmpauth.uihelper)
+            implementation(libs.gitlive.firebase.firestore)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

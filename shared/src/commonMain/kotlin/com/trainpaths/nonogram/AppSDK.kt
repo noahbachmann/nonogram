@@ -3,6 +3,7 @@ package com.trainpaths.nonogram
 import com.trainpaths.nonogram.cache.Database
 import com.trainpaths.nonogram.cache.DatabaseFactory
 import com.trainpaths.nonogram.cache.NonogramProgress
+import com.trainpaths.nonogram.cache.ProgressWithTimestamp
 import com.trainpaths.nonogram.classes.Nonogram
 
 class AppSDK(databaseFactory: DatabaseFactory) {
@@ -56,4 +57,13 @@ class AppSDK(databaseFactory: DatabaseFactory) {
 
     fun getProgressForUser(userId: Long): List<NonogramProgress> =
         database.getProgressForUser(userId)
+
+    fun getProgressForUserWithTimestamp(userId: Long): List<ProgressWithTimestamp> =
+        database.getProgressForUserWithTimestamp(userId)
+
+    fun getSingleProgress(userId: Long, nonogramId: Long): ProgressWithTimestamp? =
+        database.getSingleProgress(userId, nonogramId)
+
+    fun saveProgressWithTimestamp(userId: Long, nonogramId: Long, boardState: String?, updatedAt: Long) =
+        database.saveProgressWithTimestamp(userId, nonogramId, boardState, updatedAt)
 }

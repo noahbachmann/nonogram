@@ -6,9 +6,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.auth.AuthRepository
+import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileState
+import com.trainpaths.nonogram.sync.FirestoreSyncService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -16,6 +18,7 @@ import kotlinx.coroutines.withContext
 class GameViewModel(
     private val sdk: AppSDK,
     private val authRepository: AuthRepository,
+    private val syncService: FirestoreSyncService,
 ) : ViewModel() {
 
     var nonogram: Nonogram? by mutableStateOf(null)
@@ -62,6 +65,13 @@ class GameViewModel(
         val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
         viewModelScope.launch(Dispatchers.Default) {
             sdk.saveProgress(userId, nonogramId, board)
+
+            if (authRepository.authState.value == AuthState.SIGNED_IN) {
+                val user = sdk.getUserById(userId)
+                val firebaseUid = user?.firebaseUid ?: return@launch
+                val progress = sdk.getSingleProgress(userId, nonogramId) ?: return@launch
+                syncService.pushProgress(firebaseUid, nonogramId, progress.boardState, progress.updatedAt)
+            }
         }
     }
 }
