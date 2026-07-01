@@ -15,10 +15,12 @@ import com.trainpaths.nonogram.dialogs.LeaveConfirmDialog
 import com.trainpaths.nonogram.dialogs.PlayConfirmDialog
 import com.trainpaths.nonogram.navigation.GameRoute
 import com.trainpaths.nonogram.navigation.LeaveDialogRoute
+import com.trainpaths.nonogram.navigation.LoginRoute
 import com.trainpaths.nonogram.navigation.MenuRoute
 import com.trainpaths.nonogram.navigation.PlayDialogRoute
 import com.trainpaths.nonogram.navigation.SettingsRoute
 import com.trainpaths.nonogram.screens.GameScreen
+import com.trainpaths.nonogram.screens.LoginScreen
 import com.trainpaths.nonogram.screens.MenuScreen
 import com.trainpaths.nonogram.screens.SettingsScreen
 
@@ -31,11 +33,16 @@ fun App(
         val navController = rememberNavController()
         NavHost(
             navController = navController,
-            startDestination = MenuRoute,
+            startDestination = LoginRoute,
             modifier = Modifier
                 .background(MaterialTheme.colorScheme.primary)
                 .fillMaxSize(),
         ) {
+            composable<LoginRoute> {
+                LoginScreen(
+
+                )
+            }
             composable<MenuRoute> {
                 MenuScreen(
                     viewModel = menuViewModel,

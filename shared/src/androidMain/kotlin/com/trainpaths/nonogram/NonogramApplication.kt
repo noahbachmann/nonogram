@@ -13,5 +13,6 @@ class NonogramApplication : Application() {
             androidContext(this@NonogramApplication)
             modules(androidModule, appModule)
         }
+        AppInitializer.onApplicationStart()
     }
 }

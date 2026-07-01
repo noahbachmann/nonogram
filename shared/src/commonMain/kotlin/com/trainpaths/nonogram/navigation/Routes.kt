@@ -3,6 +3,9 @@ package com.trainpaths.nonogram.navigation
 import kotlinx.serialization.Serializable
 
 @Serializable
+object LoginRoute
+
+@Serializable
 object MenuRoute
 
 @Serializable
