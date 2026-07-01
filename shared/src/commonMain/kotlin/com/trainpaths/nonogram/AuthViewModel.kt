@@ -30,7 +30,7 @@ class AuthViewModel(
             authRepository.linkFirebaseUser(firebaseUid, displayName)
             val userId = authRepository.currentUserId.value ?: return@launch
             if (hasRemote) {
-                syncService.pullAndMergeAllProgress(firebaseUid, userId)
+                syncService.pullAllProgress(firebaseUid, userId)
             } else {
                 syncService.uploadAllLocalProgress(firebaseUid, userId)
             }

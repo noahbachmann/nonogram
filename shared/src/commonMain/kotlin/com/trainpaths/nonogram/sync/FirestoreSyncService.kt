@@ -42,6 +42,20 @@ class FirestoreSyncService(private val sdk: AppSDK) {
         }
     }
 
+    suspend fun pullAllProgress(firebaseUid: String, localUserId: Long) {
+        try {
+            val remoteDocuments = progressCollection(firebaseUid).get()
+            for (doc in remoteDocuments.documents) {
+                val nonogramId = doc.id.toLongOrNull() ?: continue
+                val remoteBoardState = doc.get<String?>("boardState")
+                val remoteUpdatedAt = doc.get<Long>("updatedAt")
+                sdk.saveProgressWithTimestamp(localUserId, nonogramId, remoteBoardState, remoteUpdatedAt)
+            }
+        } catch (e: Exception) {
+            println("FirestoreSync: pull all failed: ${e.message}")
+        }
+    }
+
     suspend fun pullAndMergeAllProgress(firebaseUid: String, localUserId: Long) {
         try {
             val remoteDocuments = progressCollection(firebaseUid).get()
