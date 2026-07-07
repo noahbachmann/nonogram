@@ -113,8 +113,10 @@ fun App(
                     },
                     onWin = {
                         viewModel.saveCurrentProgress()
+                        viewModel.incrementBeat()
                         viewModel.currentNonogramId?.let { id ->
                             menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
+                            menuViewModel.incrementBeatCount(id)
                         }
                         navController.navigate(WinDialogRoute)
                     }

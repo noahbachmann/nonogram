@@ -17,6 +17,7 @@ CREATE TABLE UserProgress (
     nonogramId INTEGER NOT NULL,
     boardState TEXT,
     updatedAt INTEGER NOT NULL,
+    beat INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (userId, nonogramId),
     FOREIGN KEY (userId) REFERENCES User(id),
     FOREIGN KEY (nonogramId) REFERENCES NonogramData(id)
@@ -41,11 +42,14 @@ selectRandomNonogramByDifficulty:
 SELECT NonogramData.* FROM NonogramData WHERE difficulty = ? ORDER BY RANDOM() LIMIT 1;
 
 upsertProgress:
-INSERT OR REPLACE INTO UserProgress(userId, nonogramId, boardState, updatedAt)
-VALUES (?, ?, ?, ?);
+INSERT OR REPLACE INTO UserProgress(userId, nonogramId, boardState, updatedAt, beat)
+VALUES (:userId, :nonogramId, :boardState, :updatedAt, COALESCE((SELECT beat FROM UserProgress WHERE userId = :userId AND nonogramId = :nonogramId), 0));
+
+incrementBeat:
+UPDATE UserProgress SET beat = beat + 1 WHERE userId = ? AND nonogramId = ?;
 
 selectProgressForUser:
-SELECT NonogramData.*, UserProgress.boardState
+SELECT NonogramData.*, UserProgress.boardState, UserProgress.beat
 FROM NonogramData
 JOIN UserProgress ON UserProgress.nonogramId = NonogramData.id
 WHERE UserProgress.userId = ?;

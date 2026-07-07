@@ -66,6 +66,10 @@ internal class Database(databaseFactory: DatabaseFactory) {
         )
     }
 
+    internal fun incrementBeat(userId: Long, nonogramId: Long) {
+        dbQuery.incrementBeat(userId, nonogramId)
+    }
+
     internal fun getProgressForUser(userId: Long): List<NonogramProgress> =
         dbQuery.selectProgressForUser(userId, ::mapProgress).executeAsList()
 
@@ -107,20 +111,23 @@ internal class Database(databaseFactory: DatabaseFactory) {
         id: Long,
         difficulty: String,
         solution: String,
-        boardState: String?
+        boardState: String?,
+        beat: Long
     ): NonogramProgress = NonogramProgress(
         nonogram = Nonogram(
             id = id,
             difficulty = Difficulty.valueOf(difficulty),
             solution = json.decodeFromString(solution)
         ),
-        board = boardState?.let { json.decodeFromString(it) }
+        board = boardState?.let { json.decodeFromString(it) },
+        beat = beat
     )
 }
 
 data class NonogramProgress(
     val nonogram: Nonogram,
-    val board: List<List<Int>>?
+    val board: List<List<Int>>?,
+    val beat: Long = 0
 )
 
 data class ProgressWithTimestamp(

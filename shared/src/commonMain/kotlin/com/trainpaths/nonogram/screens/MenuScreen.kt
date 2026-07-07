@@ -1,5 +1,6 @@
 package com.trainpaths.nonogram.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -77,6 +78,7 @@ fun MenuScreen(
                     NonogramCard(
                         nonogram = nonogram,
                         progress = viewModel.getProgress(nonogram.id, nonogram.height, nonogram.width),
+                        beatCount = viewModel.getBeatCount(nonogram.id),
                         onClick = { onNonogramClick(nonogram.id) })
                 }
             }
@@ -85,7 +87,7 @@ fun MenuScreen(
 }
 
 @Composable
-private fun NonogramCard(nonogram: Nonogram, progress: List<List<Int>>, onClick: () -> Unit) {
+private fun NonogramCard(nonogram: Nonogram, progress: List<List<Int>>, beatCount: Long, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -94,7 +96,8 @@ private fun NonogramCard(nonogram: Nonogram, progress: List<List<Int>>, onClick:
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = if (beatCount > 0) BorderStroke(2.dp, MaterialTheme.colorScheme.tertiary) else null
     ) {
         Column(modifier = Modifier.fillMaxHeight().padding(8.dp)) {
             Row(
@@ -102,10 +105,19 @@ private fun NonogramCard(nonogram: Nonogram, progress: List<List<Int>>, onClick:
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "Nonogram #${nonogram.id}",
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                Column {
+                    Text(
+                        text = "Nonogram #${nonogram.id}",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    if (beatCount > 0) {
+                        Text(
+                            text = "beat: $beatCount",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
+                }
                 Box(
                     modifier = Modifier.padding(start = 8.dp),
                     contentAlignment = Alignment.Center

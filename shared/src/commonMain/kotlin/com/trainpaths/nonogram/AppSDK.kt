@@ -55,6 +55,9 @@ class AppSDK(databaseFactory: DatabaseFactory) {
     fun saveProgress(userId: Long, nonogramId: Long, board: List<List<Int>>?) =
         database.saveProgress(userId, nonogramId, board)
 
+    fun incrementBeat(userId: Long, nonogramId: Long) =
+        database.incrementBeat(userId, nonogramId)
+
     fun getProgressForUser(userId: Long): List<NonogramProgress> =
         database.getProgressForUser(userId)
 

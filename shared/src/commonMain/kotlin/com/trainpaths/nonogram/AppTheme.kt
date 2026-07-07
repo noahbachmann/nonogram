@@ -10,6 +10,7 @@ private val Colors: ColorScheme = lightColorScheme(
     primary = Color(0xFF153D36),
     onPrimary = Color.White,
     secondary = Color(0xFFC2EFFF),
+    tertiary = Color(0xFFFFD700),
     background = Color(0xFF153D36),
     onBackground = Color.White,
 )

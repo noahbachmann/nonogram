@@ -82,6 +82,14 @@ class GameViewModel(
         }
     }
 
+    fun incrementBeat() {
+        val userId = authRepository.currentUserId.value ?: return
+        val nonogramId = nonogram?.id ?: return
+        viewModelScope.launch(Dispatchers.Default) {
+            sdk.incrementBeat(userId, nonogramId)
+        }
+    }
+
     fun resetBoard() {
         for (row in tiles) {
             for (tile in row) {

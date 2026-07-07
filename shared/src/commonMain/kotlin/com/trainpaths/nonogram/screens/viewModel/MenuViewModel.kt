@@ -21,6 +21,7 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
         private set
 
     private var progressMap: Map<Long, List<List<Int>>> by mutableStateOf(emptyMap())
+    private var beatMap: Map<Long, Long> by mutableStateOf(emptyMap())
 
     init {
         loadAll()
@@ -41,6 +42,9 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
                 progressMap = allProgress
                     .filter { it.board != null }
                     .associate { it.nonogram.id to it.board!! }
+                beatMap = allProgress
+                    .filter { it.beat > 0 }
+                    .associate { it.nonogram.id to it.beat }
             }
             isLoading = false
         }
@@ -52,6 +56,12 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
 
     fun getProgress(id: Long, height: Int, width: Int): List<List<Int>> {
         return progressMap[id] ?: List(height) { List(width) { 0 } }
+    }
+
+    fun getBeatCount(id: Long): Long = beatMap[id] ?: 0
+
+    fun incrementBeatCount(nonogramId: Long) {
+        beatMap = beatMap + (nonogramId to (beatMap[nonogramId] ?: 0) + 1)
     }
 }
 
