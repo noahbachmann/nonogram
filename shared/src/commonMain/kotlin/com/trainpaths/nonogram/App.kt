@@ -71,9 +71,6 @@ fun App(
                 )
             }
             composable<MenuRoute> {
-                LaunchedEffect(Unit) {
-                    menuViewModel.loadProgress()
-                }
                 MenuScreen(
                     viewModel = menuViewModel,
                     onNonogramClick = { id -> navController.navigate(PlayDialogRoute(id)) },
@@ -102,14 +99,23 @@ fun App(
                     viewModel = viewModel,
                     onBack = {
                         viewModel.saveCurrentProgress()
+                        viewModel.currentNonogramId?.let { id ->
+                            menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
+                        }
                         navController.navigate(LeaveDialogRoute)
                     },
                     onSettingsClick = {
                         viewModel.saveCurrentProgress()
+                        viewModel.currentNonogramId?.let { id ->
+                            menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
+                        }
                         navController.navigate(SettingsRoute)
                     },
                     onWin = {
                         viewModel.saveCurrentProgress()
+                        viewModel.currentNonogramId?.let { id ->
+                            menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
+                        }
                         navController.navigate(WinDialogRoute)
                     }
                 )

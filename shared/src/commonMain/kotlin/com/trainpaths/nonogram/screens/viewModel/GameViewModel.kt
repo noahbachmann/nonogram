@@ -15,6 +15,7 @@ import com.trainpaths.nonogram.sync.FirestoreSyncService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 
 class GameViewModel(
     private val sdk: AppSDK,
@@ -26,7 +27,13 @@ class GameViewModel(
         private set
     var tiles: List<List<Tile>> by mutableStateOf(emptyList())
         private set
-    
+
+    val currentNonogramId: Long?
+        get() = nonogram?.id
+
+    val currentBoardAsInts: List<List<Int>>
+        get() = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
+
     fun loadNonogram(id: Long) {
         nonogram = null
         tiles = emptyList()
@@ -36,26 +43,25 @@ class GameViewModel(
             }
             if (loaded != null) {
                 val userId = authRepository.currentUserId.value
-                val existingProgress = if (userId != null) {
+                val existingProgress: List<List<Int>>? = if (userId != null) {
                     withContext(Dispatchers.Default) {
-                        sdk.getProgressForUser(userId).find { it.nonogram.id == id }
+                        sdk.getSingleProgress(userId, id)
+                            ?.boardState
+                            ?.let { Json.decodeFromString<List<List<Int>>>(it) }
                     }
                 } else null
 
                 nonogram = loaded
-                tiles = if (existingProgress?.board != null) {
-                    existingProgress.board.map { row ->
-                        row.map { value ->
-                            Tile().apply {
-                                if (value == 1) {
-                                    state = TileState.FILLED
-                                }
+                tiles = existingProgress?.map { row ->
+                    row.map { value ->
+                        Tile().apply {
+                            if (value == 1) {
+                                state = TileState.FILLED
                             }
                         }
                     }
-                } else {
-                    List(loaded.height) { List(loaded.width) { Tile() } }
                 }
+                    ?: List(loaded.height) { List(loaded.width) { Tile() } }
             }
         }
     }
