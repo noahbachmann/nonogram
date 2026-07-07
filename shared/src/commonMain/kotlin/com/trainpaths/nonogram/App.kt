@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -40,6 +44,7 @@ fun App(
 
     AppTheme {
         val navController = rememberNavController()
+        var onResetBoard by remember { mutableStateOf<(() -> Unit)?>(null) }
         NavHost(
             navController = navController,
             startDestination = startDestination,
@@ -73,8 +78,8 @@ fun App(
                 val route: PlayDialogRoute = entry.toRoute()
                 PlayConfirmDialog(
                     onConfirm = {
-                        navController.navigate(MenuRoute) {
-                            popUpTo(MenuRoute) { inclusive = true }
+                        navController.navigate(GameRoute(route.nonogramId)) {
+                            popUpTo(MenuRoute)
                         }
                     },
                     onDismiss = { navController.popBackStack() },
@@ -83,6 +88,7 @@ fun App(
             composable<GameRoute> { entry ->
                 val route: GameRoute = entry.toRoute()
                 val viewModel = gameViewModelFactory(route.nonogramId)
+                onResetBoard = { viewModel.resetBoard() }
                 LaunchedEffect(route.nonogramId) {
                     viewModel.loadNonogram(route.nonogramId)
                 }
@@ -104,8 +110,13 @@ fun App(
             }
             dialog<WinDialogRoute> {
                 WinConfirmDialog(
-                    onConfirm = { navController.navigate(MenuRoute) },
+                    onConfirm = {
+                        navController.navigate(MenuRoute) {
+                            popUpTo(MenuRoute) { inclusive = true }
+                        }
+                    },
                     onRestart = {
+                        onResetBoard?.invoke()
                         navController.popBackStack()
                     },
                 )

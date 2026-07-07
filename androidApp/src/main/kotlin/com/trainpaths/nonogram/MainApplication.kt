@@ -16,9 +16,6 @@ class MainApplication : Application() {
             modules(androidModule, appModule)
         }
 
-        // Single, ordered init path. Runs once per process, not per Activity.
-        AppInitializer.onApplicationStart(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-
         val authRepository = koinApp.koin.get<AuthRepository>()
         AppInitializer.initializeAuth(authRepository)
     }
