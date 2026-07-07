@@ -29,6 +29,9 @@ import com.trainpaths.nonogram.screens.GameScreen
 import com.trainpaths.nonogram.screens.LoginScreen
 import com.trainpaths.nonogram.screens.MenuScreen
 import com.trainpaths.nonogram.screens.SettingsScreen
+import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
+import com.trainpaths.nonogram.screens.viewModel.GameViewModel
+import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
 
 @Composable
 fun App(

@@ -1,10 +1,11 @@
-package com.trainpaths.nonogram
+package com.trainpaths.nonogram.screens.viewModel
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.Nonogram

@@ -1,7 +1,8 @@
-package com.trainpaths.nonogram
+package com.trainpaths.nonogram.screens.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.sync.FirestoreSyncService

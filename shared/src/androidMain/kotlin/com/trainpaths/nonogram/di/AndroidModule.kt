@@ -1,8 +1,8 @@
 package com.trainpaths.nonogram.di
 
-import com.trainpaths.nonogram.AuthViewModel
-import com.trainpaths.nonogram.GameViewModel
-import com.trainpaths.nonogram.MenuViewModel
+import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
+import com.trainpaths.nonogram.screens.viewModel.GameViewModel
+import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
 import com.trainpaths.nonogram.cache.AndroidDatabaseFactory
 import com.trainpaths.nonogram.cache.DatabaseFactory
 import org.koin.android.ext.koin.androidContext

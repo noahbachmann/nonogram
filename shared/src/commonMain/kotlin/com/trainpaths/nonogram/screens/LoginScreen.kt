@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mmk.kmpauth.firebase.google.GoogleButtonUiContainerFirebase
 import com.mmk.kmpauth.uihelper.google.GoogleSignInButton
-import com.trainpaths.nonogram.AuthViewModel
+import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import dev.gitlive.firebase.auth.FirebaseUser
 
 @Composable
