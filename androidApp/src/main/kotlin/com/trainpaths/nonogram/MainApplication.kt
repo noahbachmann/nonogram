@@ -6,16 +6,20 @@ import com.trainpaths.nonogram.di.androidModule
 import com.trainpaths.nonogram.di.appModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
-import org.koin.java.KoinJavaComponent
 
-class NonogramApplication : Application() {
+class MainApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        startKoin {
-            androidContext(this@NonogramApplication)
+
+        val koinApp = startKoin {
+            androidContext(this@MainApplication)
             modules(androidModule, appModule)
         }
-        val authRepository: AuthRepository = KoinJavaComponent.getKoin().get()
+
+        // Single, ordered init path. Runs once per process, not per Activity.
+        AppInitializer.onApplicationStart(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+
+        val authRepository = koinApp.koin.get<AuthRepository>()
         AppInitializer.initializeAuth(authRepository)
     }
 }
