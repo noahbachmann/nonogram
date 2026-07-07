@@ -22,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mmk.kmpauth.firebase.google.GoogleButtonUiContainerFirebase
@@ -72,9 +71,9 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(48.dp))
 
         if (isSigningIn) {
-            CircularProgressIndicator(color = Color.White)
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Syncing progress...", color = Color.White)
+            Text("Syncing progress...", color = MaterialTheme.colorScheme.onPrimary)
         } else {
             Column(
                 modifier = Modifier.width(IntrinsicSize.Max),

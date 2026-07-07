@@ -45,14 +45,18 @@ fun MenuScreen(
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("Nonograms", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = {
+                Text("Nonograms", style = MaterialTheme.typography.titleLarge)
+            },
             actions = {
                 IconButton(onClick = onSettingsClick) {
-                    Icon(settings, contentDescription = "Settings", tint = Color.White)
+                    Icon(settings, contentDescription = "Settings")
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
             )
         )
 
@@ -98,9 +102,7 @@ private fun NonogramCard(nonogram: Nonogram, onClick: () -> Unit) {
             ) {
                 Text(
                     text = "Nonogram #${nonogram.id}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
+                    style = MaterialTheme.typography.titleMedium,
                 )
                 Box(
                     modifier = Modifier.padding(start = 8.dp),

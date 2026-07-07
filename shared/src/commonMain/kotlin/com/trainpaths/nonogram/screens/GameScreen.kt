@@ -13,7 +13,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import com.trainpaths.nonogram.icons.arrowBack
 import com.trainpaths.nonogram.icons.settings
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
@@ -36,24 +35,25 @@ fun GameScreen(
                     Icon(
                         arrowBack,
                         contentDescription = "Back",
-                        tint = Color.White
                     )
                 }
             },
             actions = {
                 IconButton(onClick = onSettingsClick) {
-                    Icon(settings, contentDescription = "Settings", tint = Color.White)
+                    Icon(settings, contentDescription = "Settings")
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
             )
         )
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             val nonogram = viewModel.nonogram
             if (nonogram == null) {
-                CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
             } else {
                 Game(nonogram = nonogram, tiles = viewModel.tiles, onWin = onWin)
             }

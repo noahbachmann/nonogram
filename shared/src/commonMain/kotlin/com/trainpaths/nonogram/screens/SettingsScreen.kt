@@ -19,8 +19,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.auth.AuthState
@@ -37,18 +35,21 @@ fun SettingsScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("Settings", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = {
+                Text("Settings", style = MaterialTheme.typography.titleLarge)
+            },
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(
                         arrowBack,
                         contentDescription = "Back",
-                        tint = Color.White
                     )
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
             )
         )
 
@@ -67,7 +68,7 @@ fun SettingsScreen(
                 Text(
                     text = "More settings coming soon",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }
