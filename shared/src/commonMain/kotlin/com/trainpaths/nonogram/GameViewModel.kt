@@ -74,4 +74,12 @@ class GameViewModel(
             }
         }
     }
+
+    fun resetBoard() {
+        for (row in tiles) {
+            for (tile in row) {
+                tile.state = TileState.NONE
+            }
+        }
+    }
 }

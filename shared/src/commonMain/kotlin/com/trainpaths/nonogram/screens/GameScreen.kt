@@ -25,6 +25,7 @@ fun GameScreen(
     viewModel: GameViewModel,
     onBack: () -> Unit,
     onSettingsClick: () -> Unit,
+    onWin: () -> Unit,
 ) {
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -54,7 +55,7 @@ fun GameScreen(
             if (nonogram == null) {
                 CircularProgressIndicator(color = Color.White)
             } else {
-                Game(nonogram = nonogram, tiles = viewModel.tiles)
+                Game(nonogram = nonogram, tiles = viewModel.tiles, onWin = onWin)
             }
         }
     }

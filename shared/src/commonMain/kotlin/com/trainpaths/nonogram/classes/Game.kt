@@ -23,7 +23,21 @@ import androidx.compose.ui.unit.dp
 fun Game(
     nonogram: Nonogram,
     tiles: List<List<Tile>>,
+    onWin: () -> Unit,
 ) {
+    fun checkSolved() {
+        val values: List<List<Int>> = tiles.map { row ->
+            row.map { tile ->
+                when (tile.state) {
+                    TileState.FILLED -> 1
+                    else -> 0
+                }
+            }
+        }
+
+        if (values == nonogram.solution) onWin()
+    }
+
     Row(
         modifier = Modifier
             .safeContentPadding(),
@@ -75,24 +89,11 @@ fun Game(
             for (r in 0 until nonogram.height) {
                 Row {
                     for (c in 0 until nonogram.width) {
-                        TileButton(tiles[r][c])
+                        TileButton(tiles[r][c]) { checkSolved() }
                     }
                 }
             }
         }
-    }
-
-    fun checkSolved(): Boolean {
-        val values: List<List<Int>> = tiles.map { row ->
-            row.map { tile ->
-                when (tile.state) {
-                    TileState.FILLED -> 1
-                    else -> 0
-                }
-            }
-        }
-
-        return values == nonogram.solution
     }
 }
 

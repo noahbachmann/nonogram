@@ -33,7 +33,7 @@ class Tile {
 }
 
 @Composable
-fun TileButton(tile: Tile) {
+fun TileButton(tile: Tile, check: () -> Unit) {
     val color = when (tile.state) {
         TileState.FILLED -> Color.Black
         else -> Color.White
@@ -46,7 +46,10 @@ fun TileButton(tile: Tile) {
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null   // no ripple at all
-            ) { tile.click() },
+            ) {
+                tile.click()
+                check()
+            },
         contentAlignment = Alignment.Center
     ) {
         if (tile.state == TileState.CROSSED) Icon(

@@ -13,12 +13,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.trainpaths.nonogram.dialogs.LeaveConfirmDialog
 import com.trainpaths.nonogram.dialogs.PlayConfirmDialog
+import com.trainpaths.nonogram.dialogs.WinConfirmDialog
 import com.trainpaths.nonogram.navigation.GameRoute
 import com.trainpaths.nonogram.navigation.LeaveDialogRoute
 import com.trainpaths.nonogram.navigation.LoginRoute
 import com.trainpaths.nonogram.navigation.MenuRoute
 import com.trainpaths.nonogram.navigation.PlayDialogRoute
 import com.trainpaths.nonogram.navigation.SettingsRoute
+import com.trainpaths.nonogram.navigation.WinDialogRoute
 import com.trainpaths.nonogram.screens.GameScreen
 import com.trainpaths.nonogram.screens.LoginScreen
 import com.trainpaths.nonogram.screens.MenuScreen
@@ -71,8 +73,8 @@ fun App(
                 val route: PlayDialogRoute = entry.toRoute()
                 PlayConfirmDialog(
                     onConfirm = {
-                        navController.navigate(GameRoute(route.nonogramId)) {
-                            popUpTo(MenuRoute)
+                        navController.navigate(MenuRoute) {
+                            popUpTo(MenuRoute) { inclusive = true }
                         }
                     },
                     onDismiss = { navController.popBackStack() },
@@ -93,6 +95,18 @@ fun App(
                     onSettingsClick = {
                         viewModel.saveCurrentProgress()
                         navController.navigate(SettingsRoute)
+                    },
+                    onWin = {
+                        viewModel.saveCurrentProgress()
+                        navController.navigate(WinDialogRoute)
+                    }
+                )
+            }
+            dialog<WinDialogRoute> {
+                WinConfirmDialog(
+                    onConfirm = { navController.navigate(MenuRoute) },
+                    onRestart = {
+                        navController.popBackStack()
                     },
                 )
             }
