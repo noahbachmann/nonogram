@@ -58,6 +58,9 @@ class AppSDK(databaseFactory: DatabaseFactory) {
     fun incrementBeat(userId: Long, nonogramId: Long) =
         database.incrementBeat(userId, nonogramId)
 
+    fun saveProgressAfterWin(userId: Long, nonogramId: Long) =
+        database.saveProgressAfterWin(userId, nonogramId)
+
     fun getProgressForUser(userId: Long): List<NonogramProgress> =
         database.getProgressForUser(userId)
 

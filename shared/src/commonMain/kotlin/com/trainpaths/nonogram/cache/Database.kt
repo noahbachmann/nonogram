@@ -70,6 +70,14 @@ internal class Database(databaseFactory: DatabaseFactory) {
         dbQuery.incrementBeat(userId, nonogramId)
     }
 
+    internal fun saveProgressAfterWin(userId: Long, nonogramId: Long) {
+        dbQuery.upsertProgressAfterWin(
+            userId = userId,
+            nonogramId = nonogramId,
+            updatedAt = Clock.System.now().toEpochMilliseconds()
+        )
+    }
+
     internal fun getProgressForUser(userId: Long): List<NonogramProgress> =
         dbQuery.selectProgressForUser(userId, ::mapProgress).executeAsList()
 

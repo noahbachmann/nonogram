@@ -54,6 +54,10 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
         progressMap = progressMap + (nonogramId to board)
     }
 
+    fun clearProgress(nonogramId: Long) {
+        progressMap = progressMap - nonogramId
+    }
+
     fun getProgress(id: Long, height: Int, width: Int): List<List<Int>> {
         return progressMap[id] ?: List(height) { List(width) { 0 } }
     }

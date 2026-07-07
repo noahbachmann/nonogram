@@ -48,6 +48,10 @@ VALUES (:userId, :nonogramId, :boardState, :updatedAt, COALESCE((SELECT beat FRO
 incrementBeat:
 UPDATE UserProgress SET beat = beat + 1 WHERE userId = ? AND nonogramId = ?;
 
+upsertProgressAfterWin:
+INSERT OR REPLACE INTO UserProgress(userId, nonogramId, boardState, updatedAt, beat)
+VALUES (:userId, :nonogramId, NULL, :updatedAt, COALESCE((SELECT beat FROM UserProgress WHERE userId = :userId AND nonogramId = :nonogramId), 0) + 1);
+
 selectProgressForUser:
 SELECT NonogramData.*, UserProgress.boardState, UserProgress.beat
 FROM NonogramData

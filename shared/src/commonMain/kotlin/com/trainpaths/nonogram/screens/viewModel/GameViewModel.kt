@@ -66,12 +66,16 @@ class GameViewModel(
         }
     }
 
-    fun saveCurrentProgress() {
+    fun saveCurrentProgress(win: Boolean = false) {
         val userId = authRepository.currentUserId.value ?: return
         val nonogramId = nonogram?.id ?: return
         val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
         viewModelScope.launch(Dispatchers.Default) {
-            sdk.saveProgress(userId, nonogramId, board)
+            if (win) {
+                sdk.saveProgressAfterWin(userId, nonogramId)
+            } else {
+                sdk.saveProgress(userId, nonogramId, board)
+            }
 
             if (authRepository.authState.value == AuthState.SIGNED_IN) {
                 val user = sdk.getUserById(userId)
@@ -79,14 +83,6 @@ class GameViewModel(
                 val progress = sdk.getSingleProgress(userId, nonogramId) ?: return@launch
                 syncService.pushProgress(firebaseUid, nonogramId, progress.boardState, progress.updatedAt)
             }
-        }
-    }
-
-    fun incrementBeat() {
-        val userId = authRepository.currentUserId.value ?: return
-        val nonogramId = nonogram?.id ?: return
-        viewModelScope.launch(Dispatchers.Default) {
-            sdk.incrementBeat(userId, nonogramId)
         }
     }
 

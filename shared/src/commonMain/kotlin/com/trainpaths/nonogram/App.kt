@@ -42,7 +42,7 @@ fun App(
     val startDestination = if (authViewModel.hasCompletedOnboarding) MenuRoute else LoginRoute
 
     LaunchedEffect(Unit) {
-        authViewModel.syncOnStart()
+        authViewModel.syncOnStart { menuViewModel.loadAll() }
     }
 
     AppTheme {
@@ -59,6 +59,7 @@ fun App(
                 LoginScreen(
                     authViewModel = authViewModel,
                     onLoginSuccess = {
+                        menuViewModel.loadAll()
                         navController.navigate(MenuRoute) {
                             popUpTo(LoginRoute) { inclusive = true }
                         }
@@ -112,10 +113,9 @@ fun App(
                         navController.navigate(SettingsRoute)
                     },
                     onWin = {
-                        viewModel.saveCurrentProgress()
-                        viewModel.incrementBeat()
+                        viewModel.saveCurrentProgress(true)
                         viewModel.currentNonogramId?.let { id ->
-                            menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
+                            menuViewModel.clearProgress(id)
                             menuViewModel.incrementBeatCount(id)
                         }
                         navController.navigate(WinDialogRoute)

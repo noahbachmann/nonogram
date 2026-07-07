@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AuthViewModel(
     private val authRepository: AuthRepository,
@@ -39,13 +40,17 @@ class AuthViewModel(
         }
     }
 
-    fun syncOnStart() {
+    fun syncOnStart(onComplete: () -> Unit = {}) {
         viewModelScope.launch(Dispatchers.Default) {
-            if (authRepository.authState.value == AuthState.SIGNED_IN) {
-                val userId = authRepository.currentUserId.value ?: return@launch
-                val user = sdk.getUserById(userId) ?: return@launch
-                val firebaseUid = user.firebaseUid ?: return@launch
-                syncService.pullAndMergeAllProgress(firebaseUid, userId)
+            try {
+                if (authRepository.authState.value == AuthState.SIGNED_IN) {
+                    val userId = authRepository.currentUserId.value ?: return@launch
+                    val user = sdk.getUserById(userId) ?: return@launch
+                    val firebaseUid = user.firebaseUid ?: return@launch
+                    syncService.pullAndMergeAllProgress(firebaseUid, userId)
+                }
+            } finally {
+                withContext(Dispatchers.Main) { onComplete() }
             }
         }
     }
