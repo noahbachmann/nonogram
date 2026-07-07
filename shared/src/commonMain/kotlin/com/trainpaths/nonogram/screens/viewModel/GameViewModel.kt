@@ -26,7 +26,7 @@ class GameViewModel(
         private set
     var tiles: List<List<Tile>> by mutableStateOf(emptyList())
         private set
-
+    
     fun loadNonogram(id: Long) {
         nonogram = null
         tiles = emptyList()

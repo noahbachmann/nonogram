@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
 
 enum class Difficulty { EASY, MEDIUM, HARD, HARDCORE }
@@ -50,17 +48,17 @@ private fun computeLineClues(line: List<Int>): List<Int> {
 }
 
 @Composable
-fun DrawNonogram(nonogram: Nonogram) {
+fun DrawNonogram(progress: List<List<Int>>) {
     Canvas(Modifier.fillMaxSize()) {
-        val colWidth = this.size.width / nonogram.width
-        val colHeight = this.size.height / nonogram.height
+        val colWidth = this.size.width / progress.size
+        val colHeight = this.size.height / progress[0].size
         var offsetWidth = 0f
         var offsetHeight = 0f
 
-        for (row in nonogram.solution) {
-            for (col in row) {
+        for (row in progress) {
+            for (tile in row) {
                 drawRect(
-                    color = if (col == 0) Color.White else Color.Black,
+                    color = if (tile == 0) Color.White else Color.Black,
                     topLeft = Offset(offsetWidth, offsetHeight),
                     size = Size(colWidth, colHeight),
                 )

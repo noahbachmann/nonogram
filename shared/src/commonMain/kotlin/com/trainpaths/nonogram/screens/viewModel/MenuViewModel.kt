@@ -20,6 +20,8 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
     var isLoading: Boolean by mutableStateOf(true)
         private set
 
+    private var progressMap: Map<Long, List<List<Int>>> by mutableStateOf(emptyMap())
+
     init {
         loadAll()
     }
@@ -31,7 +33,20 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
                 sdk.seedIfEmpty()
                 sdk.getAllNonograms()
             }
+            val userId = authRepository.currentUserId.value
+            if (userId != null) {
+                val allProgress = withContext(Dispatchers.Default) {
+                    sdk.getProgressForUser(userId)
+                }
+                progressMap = allProgress
+                    .filter { it.board != null }
+                    .associate { it.nonogram.id to it.board!! }
+            }
             isLoading = false
         }
+    }
+
+    fun getProgress(id: Long, height: Int, width: Int): List<List<Int>> {
+        return progressMap[id] ?: List(height) { List(width) { 0 } }
     }
 }

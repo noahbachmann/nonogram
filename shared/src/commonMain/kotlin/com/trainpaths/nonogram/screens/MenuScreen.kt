@@ -28,9 +28,7 @@ import com.trainpaths.nonogram.icons.settings
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
@@ -62,7 +60,7 @@ fun MenuScreen(
 
         if (viewModel.isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
             }
         } else {
             LazyVerticalGrid(
@@ -75,7 +73,11 @@ fun MenuScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(viewModel.nonograms) { nonogram ->
-                    NonogramCard(nonogram = nonogram, onClick = { onNonogramClick(nonogram.id) })
+
+                    NonogramCard(
+                        nonogram = nonogram,
+                        progress = viewModel.getProgress(nonogram.id, nonogram.height, nonogram.width),
+                        onClick = { onNonogramClick(nonogram.id) })
                 }
             }
         }
@@ -83,7 +85,7 @@ fun MenuScreen(
 }
 
 @Composable
-private fun NonogramCard(nonogram: Nonogram, onClick: () -> Unit) {
+private fun NonogramCard(nonogram: Nonogram, progress: List<List<Int>>, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -121,15 +123,14 @@ private fun NonogramCard(nonogram: Nonogram, onClick: () -> Unit) {
                         Text(
                             text = nonogram.difficulty.name.first().toString(),
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelLarge,
                             color = Color.Black,
                         )
                     }
                 }
             }
             Row(Modifier.fillMaxSize()) {
-                DrawNonogram(nonogram)
+                DrawNonogram(progress)
             }
         }
     }
