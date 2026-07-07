@@ -71,6 +71,9 @@ fun App(
                 )
             }
             composable<MenuRoute> {
+                LaunchedEffect(Unit) {
+                    menuViewModel.loadProgress()
+                }
                 MenuScreen(
                     viewModel = menuViewModel,
                     onNonogramClick = { id -> navController.navigate(PlayDialogRoute(id)) },

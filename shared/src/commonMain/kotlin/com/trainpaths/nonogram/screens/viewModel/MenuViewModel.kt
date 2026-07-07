@@ -24,6 +24,7 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
 
     init {
         loadAll()
+        loadProgress()
     }
 
     fun loadAll() {
@@ -33,6 +34,12 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
                 sdk.seedIfEmpty()
                 sdk.getAllNonograms()
             }
+
+        }
+    }
+
+    fun loadProgress() {
+        viewModelScope.launch {
             val userId = authRepository.currentUserId.value
             if (userId != null) {
                 val allProgress = withContext(Dispatchers.Default) {
@@ -50,3 +57,4 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
         return progressMap[id] ?: List(height) { List(width) { 0 } }
     }
 }
+
