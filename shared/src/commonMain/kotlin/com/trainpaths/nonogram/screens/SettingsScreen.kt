@@ -15,7 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.trainpaths.nonogram.NonogramAppBar
+import com.trainpaths.nonogram.navigation.NonogramAppBar
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.auth.AuthState
 

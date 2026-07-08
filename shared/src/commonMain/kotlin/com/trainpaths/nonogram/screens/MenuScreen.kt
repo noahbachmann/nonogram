@@ -20,8 +20,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import com.trainpaths.nonogram.NonogramAppBar
-import com.trainpaths.nonogram.RootScreenToggle
+import com.trainpaths.nonogram.navigation.AppBarMode
+import com.trainpaths.nonogram.navigation.NonogramAppBar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,9 +40,8 @@ fun MenuScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
             showSettings = true,
-            centerContent = {
-                RootScreenToggle(selectedIndex = 0) { onGenClick() }
-            },
+            mode = AppBarMode.PUZZLE,
+            onSwapMode = { onGenClick() },
         )
 
         if (viewModel.isLoading) {

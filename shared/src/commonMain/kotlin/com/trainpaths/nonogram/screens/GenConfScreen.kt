@@ -23,8 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.trainpaths.nonogram.NonogramAppBar
-import com.trainpaths.nonogram.RootScreenToggle
+import com.trainpaths.nonogram.navigation.AppBarMode
+import com.trainpaths.nonogram.navigation.NonogramAppBar
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 
 @Composable
@@ -38,10 +38,10 @@ fun GenConfScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
+            onBack = if (genViewModel.nonogram != null) onStart else null,
             showSettings = true,
-            centerContent = {
-                RootScreenToggle(selectedIndex = 1) { onMenuClick() }
-            },
+            mode = AppBarMode.GENERATOR,
+            onSwapMode = { onMenuClick() },
         )
 
         Column(

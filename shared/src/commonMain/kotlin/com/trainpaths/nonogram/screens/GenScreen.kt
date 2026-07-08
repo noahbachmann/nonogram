@@ -14,7 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.trainpaths.nonogram.NonogramAppBar
+import com.trainpaths.nonogram.navigation.AppBarMode
+import com.trainpaths.nonogram.navigation.NonogramAppBar
 import com.trainpaths.nonogram.classes.Board
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 
@@ -24,11 +25,14 @@ fun GenScreen(
     genViewModel: GenViewModel,
     onBack: () -> Unit,
     onSave: () -> Unit,
+    onSwapMode: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
             onBack = onBack,
             showSettings = true,
+            mode = AppBarMode.GENERATOR,
+            onSwapMode = onSwapMode,
         )
 
         val nonogram = genViewModel.nonogram
