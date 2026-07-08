@@ -90,14 +90,15 @@ fun Board(
         val cellPx = with(density) { CELL.toPx() }
         val cluePx = with(density) { CLUE_CELL.toPx() }
         val borderPx = with(density) { TILE_BORDER.toPx() }
-        val separatorPx = with(density) { BOARD_SEPARATOR.toPx() }
+        val separatorContentPx = with(density) { BOARD_SEPARATOR.toPx() }
 
         state.updateGeometry(
             viewportW = if (constraints.hasBoundedWidth) constraints.maxWidth.toFloat() else 0f,
             viewportH = if (constraints.hasBoundedHeight) constraints.maxHeight.toFloat() else 0f,
             cellPx = cellPx,
             cluePx = cluePx,
-            separatorPx = separatorPx,
+            tileBorderPx = borderPx,
+            separatorContentPx = separatorContentPx,
             rows = nonogram.height,
             cols = nonogram.width,
             maxRowClues = maxRowClues,
@@ -254,16 +255,19 @@ fun Board(
             // Drawn last, over everything. Two jobs:
             //  1. Mask the corner. With both axes panned the row gutter slides under the column
             //     header and would paint row clues into the corner, and vice versa.
-            //  2. Draw the separators between the gutters and the playing field. Their thickness is
-            //     in viewport px, not content px, so zooming out never thins them away — which is
-            //     why the transform *reserves* the last separatorPx of each gutter window for them
-            //     (see rowClueWindowW) rather than letting them paint over the clues.
+            //  2. Draw the left and top edges of the playing field's frame. These are pinned to the
+            //     gutters, so they live in viewport px — but their *width* still scales with the
+            //     board (state.separatorScreenPx), floored so they never thin away. The transform
+            //     reserves this width at the end of each gutter window (see rowClueWindowW), so the
+            //     frame abuts the clues instead of painting over them. drawTiles draws the matching
+            //     right and bottom edges; drawing all four here would double these two.
             // Reads the transform in the draw phase, and contributes no pointer node.
             Spacer(
                 modifier = Modifier
                     .fillMaxSize()
                     .drawBehind {
                         val s = state.scale
+                        val frame = state.separatorScreenPx
                         val gridLeft = state.rowGutterTx + state.rowGutterWindowW
                         val gridTop = state.colHeaderTy + state.colHeaderWindowH
                         if (gridLeft > 0f && gridTop > 0f) {
@@ -276,15 +280,15 @@ fun Board(
                         if (gridBottom > gridTop) {
                             drawRect(
                                 color = separatorColor,
-                                topLeft = Offset(gridLeft - separatorPx, gridTop - separatorPx),
-                                size = Size(separatorPx, gridBottom - gridTop + separatorPx),
+                                topLeft = Offset(gridLeft - frame, gridTop - frame),
+                                size = Size(frame, gridBottom - gridTop + frame),
                             )
                         }
                         if (gridRight > gridLeft) {
                             drawRect(
                                 color = separatorColor,
-                                topLeft = Offset(gridLeft - separatorPx, gridTop - separatorPx),
-                                size = Size(gridRight - gridLeft + separatorPx, separatorPx),
+                                topLeft = Offset(gridLeft - frame, gridTop - frame),
+                                size = Size(gridRight - gridLeft + frame, frame),
                             )
                         }
                     },
@@ -378,10 +382,8 @@ private fun ClueText(value: Int) {
  * layout nodes a per-tile Box grid would need merely to exist.
  *
  * [scale] is the layer's scale, and drawing depends on it: this node paints in *content* px and the
- * layer matrix scales the result, so a fixed [borderPx] gridline shrinks below one device pixel on a
- * zoomed-out board and antialiases away — unevenly, since whether a line lands on a pixel boundary
- * depends on its index. Strokes are therefore widened to whatever content width renders as at least
- * one device pixel.
+ * layer matrix scales the result, so every stroke is a multiple of [lineUnitPx] — proportional to the
+ * zoom while it can be, one device pixel once it cannot.
  */
 private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx: Float, scale: Float) {
     val rows = tiles.size
@@ -390,10 +392,12 @@ private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx
 
     val width = cols * cellPx
     val height = rows * cellPx
-    val thin = max(borderPx, 1f / scale)
-    val thick = thin * 2f
+    val unit = lineUnitPx(scale, borderPx)
+    val thin = unit
+    val thick = unit * BLOCK_LINE_UNITS
+    val frame = unit * SEPARATOR_UNITS
     val crossInset = cellPx * 0.22f
-    val crossStroke = max(cellPx / 14f, 1f / scale)
+    val crossStroke = max(cellPx / 14f, LINE_MIN_DEVICE_PX / scale)
 
     drawRect(Color.White, Offset.Zero, Size(width, height))
 
@@ -430,17 +434,24 @@ private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx
 
     // Gridlines last, over the tiles. Every fifth is heavy: at fit on a 30x30 a tile is a handful of
     // pixels, and the 5-blocks are the only way to count a clue off against a row.
-    // drawLine centres its stroke, so the outermost lines are nudged inward to stay inside the node.
-    for (column in 0..cols) {
-        val w = if (column % 5 == 0) thick else thin
-        val x = (column * cellPx).coerceIn(w / 2f, width - w / 2f)
+    for (column in 1 until cols) {
+        val w = if (column % BLOCK_SIZE == 0) thick else thin
+        val x = column * cellPx
         drawLine(Color.Black, Offset(x, 0f), Offset(x, height), strokeWidth = w)
     }
-    for (row in 0..rows) {
-        val w = if (row % 5 == 0) thick else thin
-        val y = (row * cellPx).coerceIn(w / 2f, height - w / 2f)
+    for (row in 1 until rows) {
+        val w = if (row % BLOCK_SIZE == 0) thick else thin
+        val y = row * cellPx
         drawLine(Color.Black, Offset(0f, y), Offset(width, y), strokeWidth = w)
     }
+
+    // The playing field's right and bottom edges. Their left and top counterparts are the pinned
+    // divider the overlay draws, at the same weight — the field ends up framed on all four sides.
+    // The strokes straddle the boundary (drawLine centres them) and spill half a stroke outside this
+    // node, which the gesture Box's clipToBounds contains. Insetting them instead would eat a visible
+    // slice of the last row and column when zoomed in.
+    drawLine(Color.Black, Offset(width, 0f), Offset(width, height), strokeWidth = frame)
+    drawLine(Color.Black, Offset(0f, height), Offset(width, height), strokeWidth = frame)
 }
 
 @Composable

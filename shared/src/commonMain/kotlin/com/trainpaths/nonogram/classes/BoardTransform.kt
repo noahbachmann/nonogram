@@ -24,14 +24,31 @@ val CELL = 40.dp
  */
 val CLUE_CELL = 20.dp
 
-/** Black grid line between tiles. */
+/**
+ * Nominal width of the thinnest line on the board — the grid line between two tiles.
+ *
+ * Every other line is a multiple of it, so the hierarchy hairline < block line < separator is stated
+ * once and holds at every zoom. See [lineUnitPx].
+ */
 val TILE_BORDER = 1.dp
+
+/** Rows and columns per block: the interval at which a heavy grid line is drawn. */
+const val BLOCK_SIZE = 5
+
+/** Weight of the heavy grid line drawn every [BLOCK_SIZE] rows and columns, in [lineUnitPx] units. */
+const val BLOCK_LINE_UNITS = 2f
+
+/** Weight of the divider between the clue gutters and the playing field, in [lineUnitPx] units. */
+const val SEPARATOR_UNITS = 4f
+
+/** No line ever renders thinner than this, or it antialiases into nothing. */
+const val LINE_MIN_DEVICE_PX = 1f
 
 /** Breathing room around a clue number inside its cell. */
 val CLUE_PADDING = 1.dp
 
-/** Divider between the clue gutters and the playing field. Screen-space, so zoom never hides it. */
-val BOARD_SEPARATOR = 4.dp
+/** Content-space width the divider reserves between the clue gutters and the playing field. */
+val BOARD_SEPARATOR = TILE_BORDER * SEPARATOR_UNITS
 
 /** Zoom ceiling, as a multiple of the larger of [BoardTransformState.fitScale] and 1x. */
 private const val MAX_ZOOM_MULTIPLE = 3f
@@ -47,6 +64,22 @@ val ZOOM_CONTROLS_MIN_WIDTH = 600.dp
 
 /** A clue gutter may never occupy more than this fraction of the viewport along its own axis. */
 private const val GUTTER_MAX_FRACTION = 0.4f
+
+/**
+ * Width of one line unit, in *content* px, at a given layer [scale].
+ *
+ * A line width that is constant is wrong at some zoom, and wrong in opposite directions depending on
+ * the space the constant lives in. Held constant in screen px it is a slab next to a zoomed-out tile
+ * and a hairline next to a zoomed-in one. Held constant in content px it scales correctly but falls
+ * below one device pixel once `scale < 1 / tileBorderPx` and antialiases away — unevenly, since
+ * whether a line lands on a pixel boundary depends on its index.
+ *
+ * So the width is a function of scale with a floor: proportional above the crossover, exactly
+ * [LINE_MIN_DEVICE_PX] below it. A stroke of `w` content px renders at `w * scale` device px, which
+ * makes `LINE_MIN_DEVICE_PX / scale` precisely the content width of one device pixel.
+ */
+fun lineUnitPx(scale: Float, tileBorderPx: Float): Float =
+    max(tileBorderPx, LINE_MIN_DEVICE_PX / scale)
 
 data class TileCoord(val row: Int, val col: Int)
 
@@ -75,8 +108,11 @@ class BoardTransformState {
     var gridWpx by mutableFloatStateOf(0f); private set
     var gridHpx by mutableFloatStateOf(0f); private set
 
-    /** Thickness of the gutter/grid divider. Screen-space, so zooming out never thins it away. */
-    var separatorPx by mutableFloatStateOf(0f); private set
+    /** Nominal hairline width. Sets the crossover below which lines stop scaling. See [lineUnitPx]. */
+    var tileBorderPx by mutableFloatStateOf(0f); private set
+
+    /** Width the gutter/grid divider reserves in the content plane, so it scales with everything else. */
+    var separatorContentPx by mutableFloatStateOf(0f); private set
 
     private var rows = 0
     private var cols = 0
@@ -108,47 +144,63 @@ class BoardTransformState {
     val visibleGutterWpx: Float get() = min(gutterWpx, gridWpx)
     val visibleGutterHpx: Float get() = min(gutterHpx, gridHpx)
 
-    val contentW: Float get() = visibleGutterWpx + gridWpx
-    val contentH: Float get() = visibleGutterHpx + gridHpx
+    val contentW: Float get() = visibleGutterWpx + separatorContentPx + gridWpx
+    val contentH: Float get() = visibleGutterHpx + separatorContentPx + gridHpx
 
     /**
-     * On-screen extent of each gutter, *including* the separator that terminates it. The
-     * `viewport * GUTTER_MAX_FRACTION` clamp only bites once the gutter is pinned (i.e. the board is
-     * panned or zoomed past fit) — and there the grid already extends underneath it, so narrowing the
-     * window reveals grid rather than opening a gap.
+     * On-screen width of the divider. Scales with the board like every other line, but never thinner
+     * than [SEPARATOR_UNITS] device px — the same floor the grid lines get, so the 1:2:4 hierarchy
+     * survives all the way down to fit on a 50x50.
+     */
+    val separatorScreenPx: Float
+        get() = SEPARATOR_UNITS * max(tileBorderPx * scale, LINE_MIN_DEVICE_PX)
+
+    /**
+     * On-screen extent of each gutter, *including* the separator that terminates it.
+     *
+     * Two bounds. It is never wider than the gutter itself, and never narrower than the distance to
+     * the grid's actual left edge — the latter is what stops the `GUTTER_MAX_FRACTION` clamp from
+     * opening a strip of background between the clues and the grid they label. While the gutter is
+     * unpinned, `gridTx - rowGutterTx` *is* the gutter's own width, so the clamp cannot bite. It
+     * takes over only once the board is panned far enough that the grid slides underneath, and there
+     * narrowing the window reveals grid rather than a gap. The two branches meet continuously.
      */
     val rowGutterWindowW: Float
-        get() = min(visibleGutterWpx * scale + separatorPx, viewportW * GUTTER_MAX_FRACTION)
+        get() = min(
+            (visibleGutterWpx + separatorContentPx) * scale,
+            max(viewportW * GUTTER_MAX_FRACTION, gridTx - rowGutterTx),
+        )
     val colHeaderWindowH: Float
-        get() = min(visibleGutterHpx * scale + separatorPx, viewportH * GUTTER_MAX_FRACTION)
+        get() = min(
+            (visibleGutterHpx + separatorContentPx) * scale,
+            max(viewportH * GUTTER_MAX_FRACTION, gridTy - colHeaderTy),
+        )
 
     /**
-     * The part of the window the clues may actually paint into: the gutter window less the separator.
-     * The separator is *reserved*, not overlaid — at fit on a large board the whole gutter is only a
-     * few pixels wide, and a screen-space divider drawn on top of it would erase the clues entirely.
+     * The part of the window the clues may actually paint into: the gutter window less the divider.
+     * The divider is *reserved*, not overlaid — at fit on a large board the whole gutter is only a few
+     * pixels wide, and a divider drawn on top of it would erase the clues entirely. Below the
+     * crossover the drawn width outruns the reserved `separatorContentPx * scale` by at most
+     * [SEPARATOR_UNITS] px, which this clip absorbs.
      */
-    val rowClueWindowW: Float get() = max(0f, rowGutterWindowW - separatorPx)
-    val colClueWindowH: Float get() = max(0f, colHeaderWindowH - separatorPx)
+    val rowClueWindowW: Float get() = max(0f, rowGutterWindowW - separatorScreenPx)
+    val colClueWindowH: Float get() = max(0f, colHeaderWindowH - separatorScreenPx)
 
     /** Most-negative scroll: the gutter's far end (the clues nearest the grid) flush with the window. */
     private val minClueScrollX: Float get() = min(0f, rowClueWindowW - gutterWpx * scale)
     private val minClueScrollY: Float get() = min(0f, colClueWindowH - gutterHpx * scale)
 
-    /** Viewport left over for the content plane once the separator has taken its screen-space bite. */
-    private val usableW: Float get() = max(0f, viewportW - separatorPx)
-    private val usableH: Float get() = max(0f, viewportH - separatorPx)
-
     /** Scale at which the whole board — grid, both gutters, and the separator — is exactly inscribed. */
     val fitScale: Float
-        get() = if (contentW <= 0f || contentH <= 0f || usableW <= 0f || usableH <= 0f) 1f
-        else min(usableW / contentW, usableH / contentH)
+        get() = if (contentW <= 0f || contentH <= 0f || viewportW <= 0f || viewportH <= 0f) 1f
+        else min(viewportW / contentW, viewportH / contentH)
 
     val minScale: Float get() = fitScale
     val maxScale: Float get() = max(fitScale, 1f) * MAX_ZOOM_MULTIPLE
 
     /** Viewport placement of the tile grid: after the *capped* gutter and its separator. */
-    val gridTx: Float get() = visibleGutterWpx * scale + separatorPx + offsetX
-    val gridTy: Float get() = visibleGutterHpx * scale + separatorPx + offsetY
+    val gridTx: Float get() = (visibleGutterWpx + separatorContentPx) * scale + offsetX
+    val gridTy: Float get() = (visibleGutterHpx + separatorContentPx) * scale + offsetY
 
     /**
      * Viewport placement of the pinned gutters. `max(0f, ...)` is sticky-header behaviour: the
@@ -173,7 +225,8 @@ class BoardTransformState {
         viewportH: Float,
         cellPx: Float,
         cluePx: Float,
-        separatorPx: Float,
+        tileBorderPx: Float,
+        separatorContentPx: Float,
         rows: Int,
         cols: Int,
         maxRowClues: Int,
@@ -186,13 +239,14 @@ class BoardTransformState {
         if (this.viewportW == viewportW && this.viewportH == viewportH &&
             this.gutterWpx == gw && this.gutterHpx == gh &&
             this.gridWpx == grW && this.gridHpx == grH &&
-            this.separatorPx == separatorPx
+            this.tileBorderPx == tileBorderPx && this.separatorContentPx == separatorContentPx
         ) return
 
         this.viewportW = viewportW
         this.viewportH = viewportH
         this.cellPx = cellPx
-        this.separatorPx = separatorPx
+        this.tileBorderPx = tileBorderPx
+        this.separatorContentPx = separatorContentPx
         this.rows = rows
         this.cols = cols
         this.gutterWpx = gw
@@ -216,12 +270,12 @@ class BoardTransformState {
 
     /** An axis that fits entirely is force-centred rather than draggable. */
     private fun clampX(x: Float, s: Float): Float {
-        val w = contentW * s + separatorPx
+        val w = contentW * s
         return if (w <= viewportW) (viewportW - w) / 2f else x.coerceIn(viewportW - w, 0f)
     }
 
     private fun clampY(y: Float, s: Float): Float {
-        val h = contentH * s + separatorPx
+        val h = contentH * s
         return if (h <= viewportH) (viewportH - h) / 2f else y.coerceIn(viewportH - h, 0f)
     }
 
