@@ -14,11 +14,24 @@ import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
-/** Size of a single cell — tile or clue — in content space. Zoom is a transform, not a resize. */
+/** Size of a tile in content space. Zoom is a transform, not a resize. */
 val CELL = 48.dp
 
-/** Seam between cells; the board background shows through. */
-val TILE_PADDING = 1.dp
+/**
+ * Extent of one clue cell along the gutter's own axis — the width of a row-clue cell, the height of
+ * a col-clue cell. Much thinner than [CELL]: a row of width W can hold up to `ceil(W / 2)` clues, so
+ * at 48.dp the gutter would grow to half the grid and squeeze the board off screen.
+ */
+val CLUE_CELL = 24.dp
+
+/** Black grid line between tiles. */
+val TILE_BORDER = 1.dp
+
+/** Breathing room around a clue number inside its cell. */
+val CLUE_PADDING = 1.dp
+
+/** Divider between the clue gutters and the playing field. Screen-space, so zoom never hides it. */
+val BOARD_SEPARATOR = 4.dp
 
 /** Zoom ceiling, as a multiple of the larger of [BoardTransformState.fitScale] and 1x. */
 private const val MAX_ZOOM_MULTIPLE = 3f
@@ -59,6 +72,9 @@ class BoardTransformState {
     private var rows = 0
     private var cols = 0
     private var initialised = false
+
+    /** Set once the user zooms or pans by hand; until then the board re-fits as the gutters grow. */
+    private var userAdjusted = false
 
     val contentW: Float get() = gutterWpx + gridWpx
     val contentH: Float get() = gutterHpx + gridHpx
@@ -101,13 +117,14 @@ class BoardTransformState {
         viewportW: Float,
         viewportH: Float,
         cellPx: Float,
+        cluePx: Float,
         rows: Int,
         cols: Int,
         maxRowClues: Int,
         maxColClues: Int,
     ) {
-        val gw = maxRowClues * cellPx
-        val gh = maxColClues * cellPx
+        val gw = maxRowClues * cluePx
+        val gh = maxColClues * cluePx
         val grW = cols * cellPx
         val grH = rows * cellPx
         if (this.viewportW == viewportW && this.viewportH == viewportH &&
@@ -128,7 +145,10 @@ class BoardTransformState {
         val usable = viewportW > 0f && viewportH > 0f && contentW > 0f && contentH > 0f
         if (!usable) return
 
-        if (!initialised) {
+        if (!initialised || !userAdjusted) {
+            // First layout, or the content grew (a clue gutter widening as the user draws in
+            // GenScreen) while the view is still the untouched default. Re-fit rather than let the
+            // board silently outgrow the viewport.
             initialised = true
             reset()
         } else {
@@ -153,14 +173,18 @@ class BoardTransformState {
         offsetY = clampY(y, s)
     }
 
-    /** Fit and centre. The clamps centre both axes on their own at [fitScale]. */
-    fun reset() = apply(fitScale, 0f, 0f)
+    /** Fit and centre, and hand control of re-fitting back to [updateGeometry]. */
+    fun reset() {
+        userAdjusted = false
+        apply(fitScale, 0f, 0f)
+    }
 
     /** Zoom about [anchor], keeping the content point under it fixed. */
     fun zoomBy(factor: Float, anchor: Offset) {
         val old = scale
         val new = (old * factor).coerceIn(minScale, maxScale)
         if (new == old) return
+        userAdjusted = true
         val k = new / old
         apply(new, anchor.x - (anchor.x - offsetX) * k, anchor.y - (anchor.y - offsetY) * k)
     }
@@ -171,6 +195,7 @@ class BoardTransformState {
     fun applyTransformGesture(centroid: Offset, pan: Offset, zoom: Float) {
         val old = scale
         val new = (old * zoom).coerceIn(minScale, maxScale)
+        if (new != old || pan != Offset.Zero) userAdjusted = true
         val k = new / old
         val px = offsetX + pan.x
         val py = offsetY + pan.y

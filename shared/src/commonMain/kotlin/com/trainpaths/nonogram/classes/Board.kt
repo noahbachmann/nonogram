@@ -9,10 +9,13 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -36,6 +39,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.icons.refresh
 import kotlin.math.pow
@@ -69,21 +73,27 @@ fun Board(
     val currentTiles = rememberUpdatedState(tiles)
     val currentOnTileClick = rememberUpdatedState(onTileClick)
 
-    val gutterW = CELL * maxRowClues
-    val gutterH = CELL * maxColClues
+    // Gutters are sized by the thin CLUE_CELL, not CELL: a 50-wide row can hold 25 clues.
+    val gutterW = CLUE_CELL * maxRowClues
+    val gutterH = CLUE_CELL * maxColClues
     val gridW = CELL * nonogram.width
     val gridH = CELL * nonogram.height
     val background = MaterialTheme.colorScheme.background
+    val separatorColor = MaterialTheme.colorScheme.secondary
 
     // safeContentPadding sits outside the clip, so the safe area is the viewport and the clip rect.
     BoxWithConstraints(modifier.safeContentPadding()) {
-        val cellPx = with(LocalDensity.current) { CELL.toPx() }
-        val padPx = with(LocalDensity.current) { TILE_PADDING.toPx() }
+        val density = LocalDensity.current
+        val cellPx = with(density) { CELL.toPx() }
+        val cluePx = with(density) { CLUE_CELL.toPx() }
+        val borderPx = with(density) { TILE_BORDER.toPx() }
+        val separatorPx = with(density) { BOARD_SEPARATOR.toPx() }
 
         state.updateGeometry(
             viewportW = if (constraints.hasBoundedWidth) constraints.maxWidth.toFloat() else 0f,
             viewportH = if (constraints.hasBoundedHeight) constraints.maxHeight.toFloat() else 0f,
             cellPx = cellPx,
+            cluePx = cluePx,
             rows = nonogram.height,
             cols = nonogram.width,
             maxRowClues = maxRowClues,
@@ -156,7 +166,7 @@ fun Board(
             // these into the value form of graphicsLayer.
             Canvas(
                 modifier = Modifier
-                    .requiredSize(gridW, gridH)
+                    .oversized(gridW, gridH)
                     .graphicsLayer {
                         transformOrigin = TransformOrigin(0f, 0f)
                         scaleX = state.scale
@@ -165,12 +175,12 @@ fun Board(
                         translationY = state.gridTy
                     },
             ) {
-                drawTiles(currentTiles.value, cellPx, padPx)
+                drawTiles(currentTiles.value, cellPx, borderPx)
             }
 
             Column(
                 modifier = Modifier
-                    .requiredSize(gutterW, gridH)
+                    .oversized(gutterW, gridH)
                     .graphicsLayer {
                         transformOrigin = TransformOrigin(0f, 0f)
                         scaleX = state.scale
@@ -180,17 +190,14 @@ fun Board(
                     },
             ) {
                 for (row in 0 until nonogram.height) {
-                    Row(modifier = Modifier.requiredSize(gutterW, CELL)) {
-                        val clues = rowClues[row]
-                        repeat(maxRowClues - clues.size) { ClueCell(null) } // right-align
-                        for (clue in clues) ClueCell(clue)
-                    }
+                    // One tile tall, so clue lines stay flush with the rows they label.
+                    RowClueLine(clues = rowClues[row], slots = maxRowClues, gutterW = gutterW)
                 }
             }
 
             Row(
                 modifier = Modifier
-                    .requiredSize(gridW, gutterH)
+                    .oversized(gridW, gutterH)
                     .graphicsLayer {
                         transformOrigin = TransformOrigin(0f, 0f)
                         scaleX = state.scale
@@ -200,25 +207,44 @@ fun Board(
                     },
             ) {
                 for (column in 0 until nonogram.width) {
-                    Column(modifier = Modifier.requiredSize(CELL, gutterH)) {
-                        val clues = colClues[column]
-                        repeat(maxColClues - clues.size) { ClueCell(null) } // bottom-align
-                        for (clue in clues) ClueCell(clue)
-                    }
+                    // One tile wide, so clue lines stay flush with the columns they label.
+                    ColClueLine(clues = colClues[column], slots = maxColClues, gutterH = gutterH)
                 }
             }
 
-            // When both axes are panned the row gutter slides under the column header and would
-            // paint row clues into the corner, and vice versa. Mask the corner. Drawn last, reads
-            // the transform in the draw phase, and contributes no pointer node.
+            // Drawn last, over everything. Two jobs:
+            //  1. Mask the corner. With both axes panned the row gutter slides under the column
+            //     header and would paint row clues into the corner, and vice versa.
+            //  2. Draw the separators between the gutters and the playing field. Their thickness is
+            //     in viewport px, not content px, so zooming out never thins them away.
+            // Reads the transform in the draw phase, and contributes no pointer node.
             Spacer(
                 modifier = Modifier
                     .fillMaxSize()
                     .drawBehind {
-                        val w = state.rowGutterTx + state.gutterWpx * state.scale
-                        val h = state.colHeaderTy + state.gutterHpx * state.scale
-                        if (w > 0f && h > 0f) {
-                            drawRect(background, Offset.Zero, Size(w, h))
+                        val s = state.scale
+                        val gridLeft = state.rowGutterTx + state.gutterWpx * s
+                        val gridTop = state.colHeaderTy + state.gutterHpx * s
+                        if (gridLeft > 0f && gridTop > 0f) {
+                            drawRect(background, Offset.Zero, Size(gridLeft, gridTop))
+                        }
+
+                        val gridRight = (state.gridTx + state.gridWpx * s).coerceAtMost(size.width)
+                        val gridBottom = (state.gridTy + state.gridHpx * s).coerceAtMost(size.height)
+
+                        if (gridBottom > gridTop) {
+                            drawRect(
+                                color = separatorColor,
+                                topLeft = Offset(gridLeft - separatorPx, gridTop - separatorPx),
+                                size = Size(separatorPx, gridBottom - gridTop + separatorPx),
+                            )
+                        }
+                        if (gridRight > gridLeft) {
+                            drawRect(
+                                color = separatorColor,
+                                topLeft = Offset(gridLeft - separatorPx, gridTop - separatorPx),
+                                size = Size(gridRight - gridLeft + separatorPx, separatorPx),
+                            )
                         }
                     },
             )
@@ -237,20 +263,70 @@ fun Board(
     }
 }
 
-/** A single clue number, or an empty padding cell. Same lattice as a tile. */
+/**
+ * Lays the content out at its true [width] x [height] while reporting a size that fits the incoming
+ * constraints.
+ *
+ * `Box` sizes itself to `max(constraints.minWidth, largestChild.width)` and never coerces back down
+ * to `maxWidth`, so a bare `requiredSize` child would drag the parent out to the full content size —
+ * defeating `clipToBounds`, displacing the parent under any centring alignment, and shifting the
+ * pointer-input coordinate space out from under `hitTest`.
+ */
+private fun Modifier.oversized(width: Dp, height: Dp): Modifier =
+    this.wrapContentSize(Alignment.TopStart, unbounded = true).requiredSize(width, height)
+
+/**
+ * One clue line — a single white block spanning the whole gutter, with the numbers spaced across it.
+ * The seam belongs between *lines*, not between individual numbers.
+ *
+ * Numbers occupy equal weighted slots so they stay column-aligned across lines; short lines are
+ * padded with empty slots at the start, which right-aligns row clues against the grid.
+ */
 @Composable
-private fun ClueCell(value: Int?) {
-    Box(
+private fun RowClueLine(clues: List<Int>, slots: Int, gutterW: Dp) {
+    Row(
         modifier = Modifier
-            .requiredSize(CELL)
-            .padding(TILE_PADDING)
+            .requiredSize(gutterW, CELL)
+            .padding(CLUE_PADDING)
             .background(Color.White),
-        contentAlignment = Alignment.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (value != null) {
-            Text(text = value.toString(), textAlign = TextAlign.Center)
+        repeat(slots - clues.size) { Spacer(Modifier.weight(1f)) }
+        for (clue in clues) {
+            Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                ClueText(clue)
+            }
         }
     }
+}
+
+@Composable
+private fun ColClueLine(clues: List<Int>, slots: Int, gutterH: Dp) {
+    Column(
+        modifier = Modifier
+            .requiredSize(CELL, gutterH)
+            .padding(CLUE_PADDING)
+            .background(Color.White),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        repeat(slots - clues.size) { Spacer(Modifier.weight(1f)) }
+        for (clue in clues) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                ClueText(clue)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ClueText(value: Int) {
+    Text(
+        text = value.toString(),
+        style = MaterialTheme.typography.labelMedium,
+        color = Color.Black,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+    )
 }
 
 /**
@@ -260,19 +336,26 @@ private fun ClueCell(value: Int?) {
  * draw of this single node — no recomposition, no relayout. That is far cheaper than the 2500
  * layout nodes a per-tile Box grid would need merely to exist.
  */
-private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, padPx: Float) {
-    val inner = cellPx - 2f * padPx
+private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx: Float) {
+    val rows = tiles.size
+    val cols = tiles.firstOrNull()?.size ?: 0
+    val inner = cellPx - 2f * borderPx
     val innerSize = Size(inner, inner)
     val crossInset = inner * 0.2f
     val crossStroke = inner / 12f
 
+    // One black field behind the tiles: every inset tile leaves a black gridline around itself, and
+    // filled tiles merge into it.
+    drawRect(Color.Black, Offset.Zero, Size(cols * cellPx, rows * cellPx))
+
     for (row in tiles.indices) {
-        val top = row * cellPx + padPx
+        val top = row * cellPx + borderPx
         for (column in tiles[row].indices) {
-            val left = column * cellPx + padPx
+            val left = column * cellPx + borderPx
             val state = tiles[row][column].state
+            if (state == TileState.FILLED) continue // already black
             drawRect(
-                color = if (state == TileState.FILLED) Color.Black else Color.White,
+                color = Color.White,
                 topLeft = Offset(left, top),
                 size = innerSize,
             )
