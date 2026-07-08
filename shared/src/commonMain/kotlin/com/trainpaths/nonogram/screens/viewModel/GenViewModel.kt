@@ -48,7 +48,7 @@ class GenViewModel(
                 }
             }
         }
-        nonogram.solution = solution
+        nonogram = nonogram.copy(solution = solution)
     }
 
     fun onSave() {
@@ -56,7 +56,7 @@ class GenViewModel(
         val nonogramId = nonogram.id
         val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
         viewModelScope.launch(Dispatchers.Default) {
-            if (nonogramId != 0) {
+            if (nonogramId != 0.toLong()) {
                 sdk.updateNonogram(nonogramId, nonogram)
             } else {
                 val newId = sdk.addNonogram(nonogram.difficulty.toString(), board, userId, 0)

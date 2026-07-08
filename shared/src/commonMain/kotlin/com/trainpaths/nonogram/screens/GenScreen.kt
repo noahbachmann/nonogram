@@ -1,17 +1,17 @@
 package com.trainpaths.nonogram.screens
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.navigation.AppBarMode
@@ -43,30 +43,27 @@ fun GenScreen(
             Board(
                 nonogram = nonogram,
                 tiles = genViewModel.tiles,
-                onTileClick = { genViewModel.updateNonogram() }
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                onTileClick = { genViewModel.updateNonogram() },
             )
+        } else {
+            // Keep the Save button anchored to the bottom while the board is empty.
+            Spacer(modifier = Modifier.weight(1f))
         }
 
-        Column(
+        Button(
+            onClick = { onSave() },
             modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(horizontal = 32.dp, vertical = 16.dp)
+                .height(48.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.primary,
+            ),
         ) {
-            Button(
-                onClick = { onSave() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 32.dp)
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                ),
-            ) {
-                Text("Save", style = MaterialTheme.typography.titleMedium)
-            }
+            Text("Save", style = MaterialTheme.typography.titleMedium)
         }
     }
 }

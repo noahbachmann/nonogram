@@ -1,10 +1,7 @@
 package com.trainpaths.nonogram.classes
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 @Composable
@@ -25,12 +22,12 @@ fun Game(
 
         if (values == nonogram.solution) onWin()
     }
-    Column(
-        Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Board(nonogram, tiles, onTileClick = ::checkSolved)
-    }
-}
 
+    // No centring wrapper: fit-and-centre is the board transform's job now.
+    Board(
+        nonogram = nonogram,
+        tiles = tiles,
+        modifier = Modifier.fillMaxSize(),
+        onTileClick = ::checkSolved,
+    )
+}
