@@ -28,11 +28,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -152,6 +154,16 @@ fun Board(
                         },
                     )
                 }
+                // Final pass, after every other node has had its say: once no pointer is down the
+                // gesture is over, so the next drag re-picks whether it moves the board or a gutter.
+                .pointerInput(state) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Final)
+                            if (event.changes.none { it.pressed }) state.endGesture()
+                        }
+                    }
+                }
                 .pointerInput(state) {
                     detectTransformGestures(panZoomLock = false) { centroid, pan, zoom, _ ->
                         state.applyTransformGesture(centroid, pan, zoom)
@@ -178,37 +190,62 @@ fun Board(
                 drawTiles(currentTiles.value, cellPx, borderPx)
             }
 
-            Column(
+            // The gutters are clipped to a window of at most half the viewport and scroll inside it.
+            // Clipping happens in the draw phase (`clipRect` reads the transform) rather than by
+            // sizing a node, so zooming never triggers a relayout.
+            Box(
                 modifier = Modifier
-                    .oversized(gutterW, gridH)
-                    .graphicsLayer {
-                        transformOrigin = TransformOrigin(0f, 0f)
-                        scaleX = state.scale
-                        scaleY = state.scale
-                        translationX = state.rowGutterTx
-                        translationY = state.gridTy
+                    .fillMaxSize()
+                    .drawWithContent {
+                        val left = state.rowGutterTx
+                        clipRect(left = left, right = left + state.rowGutterWindowW) {
+                            this@drawWithContent.drawContent()
+                        }
                     },
             ) {
-                for (row in 0 until nonogram.height) {
-                    // One tile tall, so clue lines stay flush with the rows they label.
-                    RowClueLine(clues = rowClues[row], slots = maxRowClues, gutterW = gutterW)
+                Column(
+                    modifier = Modifier
+                        .oversized(gutterW, gridH)
+                        .graphicsLayer {
+                            transformOrigin = TransformOrigin(0f, 0f)
+                            scaleX = state.scale
+                            scaleY = state.scale
+                            translationX = state.rowGutterTx + state.clueScrollX
+                            translationY = state.gridTy
+                        },
+                ) {
+                    for (row in 0 until nonogram.height) {
+                        // One tile tall, so clue lines stay flush with the rows they label.
+                        RowClueLine(clues = rowClues[row], slots = maxRowClues, gutterW = gutterW)
+                    }
                 }
             }
 
-            Row(
+            Box(
                 modifier = Modifier
-                    .oversized(gridW, gutterH)
-                    .graphicsLayer {
-                        transformOrigin = TransformOrigin(0f, 0f)
-                        scaleX = state.scale
-                        scaleY = state.scale
-                        translationX = state.gridTx
-                        translationY = state.colHeaderTy
+                    .fillMaxSize()
+                    .drawWithContent {
+                        val top = state.colHeaderTy
+                        clipRect(top = top, bottom = top + state.colHeaderWindowH) {
+                            this@drawWithContent.drawContent()
+                        }
                     },
             ) {
-                for (column in 0 until nonogram.width) {
-                    // One tile wide, so clue lines stay flush with the columns they label.
-                    ColClueLine(clues = colClues[column], slots = maxColClues, gutterH = gutterH)
+                Row(
+                    modifier = Modifier
+                        .oversized(gridW, gutterH)
+                        .graphicsLayer {
+                            transformOrigin = TransformOrigin(0f, 0f)
+                            scaleX = state.scale
+                            scaleY = state.scale
+                            translationX = state.gridTx
+                            translationY = state.colHeaderTy + state.clueScrollY
+                        },
+                ) {
+                    for (column in 0 until nonogram.width) {
+                        // One tile wide, so clue lines stay flush with the columns they label.
+                        ColClueLine(clues = colClues[column], slots = maxColClues, gutterH = gutterH)
+                    }
                 }
             }
 
@@ -223,8 +260,8 @@ fun Board(
                     .fillMaxSize()
                     .drawBehind {
                         val s = state.scale
-                        val gridLeft = state.rowGutterTx + state.gutterWpx * s
-                        val gridTop = state.colHeaderTy + state.gutterHpx * s
+                        val gridLeft = state.rowGutterTx + state.rowGutterWindowW
+                        val gridTop = state.colHeaderTy + state.colHeaderWindowH
                         if (gridLeft > 0f && gridTop > 0f) {
                             drawRect(background, Offset.Zero, Size(gridLeft, gridTop))
                         }
@@ -360,18 +397,17 @@ private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx
                 size = innerSize,
             )
             if (state == TileState.CROSSED) {
-                val near = crossInset
                 val far = inner - crossInset
                 drawLine(
                     color = Color.Black,
-                    start = Offset(left + near, top + near),
+                    start = Offset(left + crossInset, top + crossInset),
                     end = Offset(left + far, top + far),
                     strokeWidth = crossStroke,
                 )
                 drawLine(
                     color = Color.Black,
-                    start = Offset(left + far, top + near),
-                    end = Offset(left + near, top + far),
+                    start = Offset(left + far, top + crossInset),
+                    end = Offset(left + crossInset, top + far),
                     strokeWidth = crossStroke,
                 )
             }

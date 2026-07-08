@@ -45,7 +45,13 @@ const val SCROLL_ZOOM_PER_NOTCH = 1.15f
 /** Material compact -> medium breakpoint. Below this the zoom buttons would cover the board. */
 val ZOOM_CONTROLS_MIN_WIDTH = 600.dp
 
+/** A clue gutter may never occupy more than this fraction of the viewport along its own axis. */
+private const val GUTTER_MAX_FRACTION = 0.4f
+
 data class TileCoord(val row: Int, val col: Int)
+
+/** Which part of the board a viewport position falls in. Drives gesture routing. */
+enum class BoardRegion { GRID, ROW_GUTTER, COL_HEADER, CORNER }
 
 /**
  * Pan/zoom transform for [Board], mapping a content plane larger than the viewport onto it.
@@ -76,12 +82,43 @@ class BoardTransformState {
     /** Set once the user zooms or pans by hand; until then the board re-fits as the gutters grow. */
     private var userAdjusted = false
 
-    val contentW: Float get() = gutterWpx + gridWpx
-    val contentH: Float get() = gutterHpx + gridHpx
+    /** Region the in-flight drag started in, so crossing a boundary mid-drag doesn't switch targets. */
+    private var activeRegion: BoardRegion? = null
 
     var scale by mutableFloatStateOf(1f); private set
     var offsetX by mutableFloatStateOf(0f); private set
     var offsetY by mutableFloatStateOf(0f); private set
+
+    /** Scroll of each gutter within its own window, in viewport px. Always <= 0. */
+    var clueScrollX by mutableFloatStateOf(0f); private set
+    var clueScrollY by mutableFloatStateOf(0f); private set
+
+    /**
+     * Content-space extent the gutters reserve, capped at the grid's own extent.
+     *
+     * A clue-dense board wants `gutterWpx` up to `ceil(width / 2) * CLUE_CELL`, which would shove the
+     * grid off screen. Capping at `gridWpx` bounds the gutter to half the content plane, and since
+     * the content maps into the viewport at [fitScale], that is at most half the viewport — the
+     * requirement — whenever the board is not panned. Clues beyond the cap are reached by scrolling
+     * the gutter ([clueScrollX]).
+     */
+    val visibleGutterWpx: Float get() = min(gutterWpx, gridWpx)
+    val visibleGutterHpx: Float get() = min(gutterHpx, gridHpx)
+
+    val contentW: Float get() = visibleGutterWpx + gridWpx
+    val contentH: Float get() = visibleGutterHpx + gridHpx
+
+    /**
+     * On-screen extent of each gutter. The `viewport / 2` clamp only bites once the gutter is pinned
+     * (i.e. the board is panned or zoomed past fit) — and there the grid already extends underneath
+     * it, so narrowing the window reveals grid rather than opening a gap.
+     */
+    val rowGutterWindowW: Float get() = min(visibleGutterWpx * scale, viewportW * GUTTER_MAX_FRACTION)
+    val colHeaderWindowH: Float get() = min(visibleGutterHpx * scale, viewportH * GUTTER_MAX_FRACTION)
+
+    /** Most-negative scroll: the gutter's far end (the clues nearest the grid) flush with the window. */
+    private val minClueScrollX: Float get() = min(0f, rowGutterWindowW - gutterWpx * scale)
+    private val minClueScrollY: Float get() = min(0f, colHeaderWindowH - gutterHpx * scale)
 
     /** Scale at which the whole board — grid plus both gutters — is exactly inscribed. */
     val fitScale: Float
@@ -91,9 +128,9 @@ class BoardTransformState {
     val minScale: Float get() = fitScale
     val maxScale: Float get() = max(fitScale, 1f) * MAX_ZOOM_MULTIPLE
 
-    /** Viewport placement of the tile grid. */
-    val gridTx: Float get() = gutterWpx * scale + offsetX
-    val gridTy: Float get() = gutterHpx * scale + offsetY
+    /** Viewport placement of the tile grid. Sits after the *capped* gutter, so no gap opens. */
+    val gridTx: Float get() = visibleGutterWpx * scale + offsetX
+    val gridTy: Float get() = visibleGutterHpx * scale + offsetY
 
     /**
      * Viewport placement of the pinned gutters. `max(0f, ...)` is sticky-header behaviour: the
@@ -171,12 +208,34 @@ class BoardTransformState {
         scale = s
         offsetX = clampX(x, s)
         offsetY = clampY(y, s)
+        // The scroll range depends on scale, so re-clamp whenever the transform moves.
+        clueScrollX = clueScrollX.coerceIn(minClueScrollX, 0f)
+        clueScrollY = clueScrollY.coerceIn(minClueScrollY, 0f)
     }
 
     /** Fit and centre, and hand control of re-fitting back to [updateGeometry]. */
     fun reset() {
         userAdjusted = false
         apply(fitScale, 0f, 0f)
+        // Show the clues nearest the grid — the ones you read first.
+        clueScrollX = minClueScrollX
+        clueScrollY = minClueScrollY
+    }
+
+    /** Scrolls the row-clue gutter horizontally within its window. */
+    fun panClueX(dx: Float) {
+        clueScrollX = (clueScrollX + dx).coerceIn(minClueScrollX, 0f)
+    }
+
+    /** Scrolls the column-clue header vertically within its window. */
+    fun panClueY(dy: Float) {
+        clueScrollY = (clueScrollY + dy).coerceIn(minClueScrollY, 0f)
+    }
+
+    private fun panBoard(dx: Float, dy: Float) {
+        if (dx == 0f && dy == 0f) return
+        userAdjusted = true
+        apply(scale, offsetX + dx, offsetY + dy)
     }
 
     /** Zoom about [anchor], keeping the content point under it fixed. */
@@ -191,26 +250,73 @@ class BoardTransformState {
 
     fun zoomAtCenter(factor: Float) = zoomBy(factor, Offset(viewportW / 2f, viewportH / 2f))
 
-    /** Pan, then zoom about the pinch centroid. */
+    /**
+     * Pan, then zoom about the pinch centroid.
+     *
+     * A pure drag starting inside a gutter scrolls *that gutter* along its own axis, and pans the
+     * board along the other — the gutter tracks the grid on its cross-axis, so this stays coherent.
+     * A pinch always transforms the board, wherever it starts.
+     */
     fun applyTransformGesture(centroid: Offset, pan: Offset, zoom: Float) {
         val old = scale
         val new = (old * zoom).coerceIn(minScale, maxScale)
-        if (new != old || pan != Offset.Zero) userAdjusted = true
+
+        if (new == old) {
+            val region = activeRegion ?: regionAt(centroid).also { activeRegion = it }
+            when (region) {
+                BoardRegion.ROW_GUTTER -> {
+                    panClueX(pan.x)
+                    panBoard(0f, pan.y)
+                }
+
+                BoardRegion.COL_HEADER -> {
+                    panClueY(pan.y)
+                    panBoard(pan.x, 0f)
+                }
+
+                BoardRegion.CORNER -> {
+                    panClueX(pan.x)
+                    panClueY(pan.y)
+                }
+
+                BoardRegion.GRID -> panBoard(pan.x, pan.y)
+            }
+            return
+        }
+
+        // A pinch always transforms the board, and pins the rest of the gesture to doing so.
+        activeRegion = BoardRegion.GRID
+        userAdjusted = true
         val k = new / old
         val px = offsetX + pan.x
         val py = offsetY + pan.y
         apply(new, centroid.x - (centroid.x - px) * k, centroid.y - (centroid.y - py) * k)
     }
 
-    /** Maps a viewport-local position to a tile, or null for gutters, corner, or empty space. */
+    /** Called when every pointer has lifted, so the next drag re-picks its region. */
+    fun endGesture() {
+        activeRegion = null
+    }
+
+    /** Classifies a viewport position against the *windowed* gutters. */
+    fun regionAt(v: Offset): BoardRegion {
+        val inRowGutter = v.x < rowGutterTx + rowGutterWindowW
+        val inColHeader = v.y < colHeaderTy + colHeaderWindowH
+        return when {
+            inRowGutter && inColHeader -> BoardRegion.CORNER
+            inRowGutter -> BoardRegion.ROW_GUTTER
+            inColHeader -> BoardRegion.COL_HEADER
+            else -> BoardRegion.GRID
+        }
+    }
+
+    /** Maps a viewport position to a tile, or null for gutters, corner, or empty space. */
     fun hitTest(v: Offset): TileCoord? {
         val s = scale
         if (s <= 0f || cellPx <= 0f || rows == 0 || cols == 0) return null
 
-        // Reject the frozen chrome: the corner, both gutters, and any tile occluded by a pinned
-        // gutter. When an axis is fully visible these reduce to "before the grid starts".
-        if (v.x < rowGutterTx + gutterWpx * s) return null
-        if (v.y < colHeaderTy + gutterHpx * s) return null
+        // Reject the frozen chrome, including any tile occluded by a pinned gutter.
+        if (regionAt(v) != BoardRegion.GRID) return null
 
         val gx = (v.x - gridTx) / s
         val gy = (v.y - gridTy) / s
