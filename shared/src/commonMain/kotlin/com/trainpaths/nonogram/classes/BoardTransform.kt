@@ -20,7 +20,7 @@ val CELL = 48.dp
 /**
  * Extent of one clue cell along the gutter's own axis — the width of a row-clue cell, the height of
  * a col-clue cell. Much thinner than [CELL]: a row of width W can hold up to `ceil(W / 2)` clues, so
- * at 48.dp the gutter would grow to half the grid and squeeze the board off screen.
+ * at 48.dp the gutter would grow to half the grid and squeeze the board off-screen.
  */
 val CLUE_CELL = 20.dp
 
@@ -97,7 +97,7 @@ class BoardTransformState {
      * Content-space extent the gutters reserve, capped at the grid's own extent.
      *
      * A clue-dense board wants `gutterWpx` up to `ceil(width / 2) * CLUE_CELL`, which would shove the
-     * grid off screen. Capping at `gridWpx` bounds the gutter to half the content plane, and since
+     * grid off-screen. Capping at `gridWpx` bounds the gutter to half the content plane, and since
      * the content maps into the viewport at [fitScale], that is at most half the viewport — the
      * requirement — whenever the board is not panned. Clues beyond the cap are reached by scrolling
      * the gutter ([clueScrollX]).
@@ -377,7 +377,7 @@ suspend fun PointerInputScope.detectBoardTaps(
             val u = up
             if (!cancelled && u != null) {
                 val dt = u.uptimeMillis - lastUpTime
-                val isDouble = dt >= doubleTapMinTime && dt < doubleTapTimeout &&
+                val isDouble = dt in doubleTapMinTime..<doubleTapTimeout &&
                         (u.position - lastUpPos).getDistance() <= slop * 2f
                 if (isDouble) {
                     lastUpTime = never
