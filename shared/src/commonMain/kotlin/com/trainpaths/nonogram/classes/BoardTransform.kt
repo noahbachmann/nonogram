@@ -15,7 +15,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 /** Size of a tile in content space. Zoom is a transform, not a resize. */
-val CELL = 48.dp
+val CELL = 40.dp
 
 /**
  * Extent of one clue cell along the gutter's own axis — the width of a row-clue cell, the height of
@@ -75,6 +75,9 @@ class BoardTransformState {
     var gridWpx by mutableFloatStateOf(0f); private set
     var gridHpx by mutableFloatStateOf(0f); private set
 
+    /** Thickness of the gutter/grid divider. Screen-space, so zooming out never thins it away. */
+    var separatorPx by mutableFloatStateOf(0f); private set
+
     private var rows = 0
     private var cols = 0
     private var initialised = false
@@ -109,28 +112,43 @@ class BoardTransformState {
     val contentH: Float get() = visibleGutterHpx + gridHpx
 
     /**
-     * On-screen extent of each gutter. The `viewport / 2` clamp only bites once the gutter is pinned
-     * (i.e. the board is panned or zoomed past fit) — and there the grid already extends underneath
-     * it, so narrowing the window reveals grid rather than opening a gap.
+     * On-screen extent of each gutter, *including* the separator that terminates it. The
+     * `viewport * GUTTER_MAX_FRACTION` clamp only bites once the gutter is pinned (i.e. the board is
+     * panned or zoomed past fit) — and there the grid already extends underneath it, so narrowing the
+     * window reveals grid rather than opening a gap.
      */
-    val rowGutterWindowW: Float get() = min(visibleGutterWpx * scale, viewportW * GUTTER_MAX_FRACTION)
-    val colHeaderWindowH: Float get() = min(visibleGutterHpx * scale, viewportH * GUTTER_MAX_FRACTION)
+    val rowGutterWindowW: Float
+        get() = min(visibleGutterWpx * scale + separatorPx, viewportW * GUTTER_MAX_FRACTION)
+    val colHeaderWindowH: Float
+        get() = min(visibleGutterHpx * scale + separatorPx, viewportH * GUTTER_MAX_FRACTION)
+
+    /**
+     * The part of the window the clues may actually paint into: the gutter window less the separator.
+     * The separator is *reserved*, not overlaid — at fit on a large board the whole gutter is only a
+     * few pixels wide, and a screen-space divider drawn on top of it would erase the clues entirely.
+     */
+    val rowClueWindowW: Float get() = max(0f, rowGutterWindowW - separatorPx)
+    val colClueWindowH: Float get() = max(0f, colHeaderWindowH - separatorPx)
 
     /** Most-negative scroll: the gutter's far end (the clues nearest the grid) flush with the window. */
-    private val minClueScrollX: Float get() = min(0f, rowGutterWindowW - gutterWpx * scale)
-    private val minClueScrollY: Float get() = min(0f, colHeaderWindowH - gutterHpx * scale)
+    private val minClueScrollX: Float get() = min(0f, rowClueWindowW - gutterWpx * scale)
+    private val minClueScrollY: Float get() = min(0f, colClueWindowH - gutterHpx * scale)
 
-    /** Scale at which the whole board — grid plus both gutters — is exactly inscribed. */
+    /** Viewport left over for the content plane once the separator has taken its screen-space bite. */
+    private val usableW: Float get() = max(0f, viewportW - separatorPx)
+    private val usableH: Float get() = max(0f, viewportH - separatorPx)
+
+    /** Scale at which the whole board — grid, both gutters, and the separator — is exactly inscribed. */
     val fitScale: Float
-        get() = if (contentW <= 0f || contentH <= 0f || viewportW <= 0f || viewportH <= 0f) 1f
-        else min(viewportW / contentW, viewportH / contentH)
+        get() = if (contentW <= 0f || contentH <= 0f || usableW <= 0f || usableH <= 0f) 1f
+        else min(usableW / contentW, usableH / contentH)
 
     val minScale: Float get() = fitScale
     val maxScale: Float get() = max(fitScale, 1f) * MAX_ZOOM_MULTIPLE
 
-    /** Viewport placement of the tile grid. Sits after the *capped* gutter, so no gap opens. */
-    val gridTx: Float get() = visibleGutterWpx * scale + offsetX
-    val gridTy: Float get() = visibleGutterHpx * scale + offsetY
+    /** Viewport placement of the tile grid: after the *capped* gutter and its separator. */
+    val gridTx: Float get() = visibleGutterWpx * scale + separatorPx + offsetX
+    val gridTy: Float get() = visibleGutterHpx * scale + separatorPx + offsetY
 
     /**
      * Viewport placement of the pinned gutters. `max(0f, ...)` is sticky-header behaviour: the
@@ -155,6 +173,7 @@ class BoardTransformState {
         viewportH: Float,
         cellPx: Float,
         cluePx: Float,
+        separatorPx: Float,
         rows: Int,
         cols: Int,
         maxRowClues: Int,
@@ -166,12 +185,14 @@ class BoardTransformState {
         val grH = rows * cellPx
         if (this.viewportW == viewportW && this.viewportH == viewportH &&
             this.gutterWpx == gw && this.gutterHpx == gh &&
-            this.gridWpx == grW && this.gridHpx == grH
+            this.gridWpx == grW && this.gridHpx == grH &&
+            this.separatorPx == separatorPx
         ) return
 
         this.viewportW = viewportW
         this.viewportH = viewportH
         this.cellPx = cellPx
+        this.separatorPx = separatorPx
         this.rows = rows
         this.cols = cols
         this.gutterWpx = gw
@@ -195,12 +216,12 @@ class BoardTransformState {
 
     /** An axis that fits entirely is force-centred rather than draggable. */
     private fun clampX(x: Float, s: Float): Float {
-        val w = contentW * s
+        val w = contentW * s + separatorPx
         return if (w <= viewportW) (viewportW - w) / 2f else x.coerceIn(viewportW - w, 0f)
     }
 
     private fun clampY(y: Float, s: Float): Float {
-        val h = contentH * s
+        val h = contentH * s + separatorPx
         return if (h <= viewportH) (viewportH - h) / 2f else y.coerceIn(viewportH - h, 0f)
     }
 

@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.icons.refresh
+import kotlin.math.max
 import kotlin.math.pow
 
 /**
@@ -96,6 +97,7 @@ fun Board(
             viewportH = if (constraints.hasBoundedHeight) constraints.maxHeight.toFloat() else 0f,
             cellPx = cellPx,
             cluePx = cluePx,
+            separatorPx = separatorPx,
             rows = nonogram.height,
             cols = nonogram.width,
             maxRowClues = maxRowClues,
@@ -187,7 +189,7 @@ fun Board(
                         translationY = state.gridTy
                     },
             ) {
-                drawTiles(currentTiles.value, cellPx, borderPx)
+                drawTiles(currentTiles.value, cellPx, borderPx, state.scale)
             }
 
             // The gutters are clipped to a window of at most half the viewport and scroll inside it.
@@ -198,7 +200,7 @@ fun Board(
                     .fillMaxSize()
                     .drawWithContent {
                         val left = state.rowGutterTx
-                        clipRect(left = left, right = left + state.rowGutterWindowW) {
+                        clipRect(left = left, right = left + state.rowClueWindowW) {
                             this@drawWithContent.drawContent()
                         }
                     },
@@ -226,7 +228,7 @@ fun Board(
                     .fillMaxSize()
                     .drawWithContent {
                         val top = state.colHeaderTy
-                        clipRect(top = top, bottom = top + state.colHeaderWindowH) {
+                        clipRect(top = top, bottom = top + state.colClueWindowH) {
                             this@drawWithContent.drawContent()
                         }
                     },
@@ -253,7 +255,9 @@ fun Board(
             //  1. Mask the corner. With both axes panned the row gutter slides under the column
             //     header and would paint row clues into the corner, and vice versa.
             //  2. Draw the separators between the gutters and the playing field. Their thickness is
-            //     in viewport px, not content px, so zooming out never thins them away.
+            //     in viewport px, not content px, so zooming out never thins them away — which is
+            //     why the transform *reserves* the last separatorPx of each gutter window for them
+            //     (see rowClueWindowW) rather than letting them paint over the clues.
             // Reads the transform in the draw phase, and contributes no pointer node.
             Spacer(
                 modifier = Modifier
@@ -372,46 +376,70 @@ private fun ClueText(value: Int) {
  * Reading `tile.state` here registers a *draw-scope* dependency, so filling a tile invalidates the
  * draw of this single node — no recomposition, no relayout. That is far cheaper than the 2500
  * layout nodes a per-tile Box grid would need merely to exist.
+ *
+ * [scale] is the layer's scale, and drawing depends on it: this node paints in *content* px and the
+ * layer matrix scales the result, so a fixed [borderPx] gridline shrinks below one device pixel on a
+ * zoomed-out board and antialiases away — unevenly, since whether a line lands on a pixel boundary
+ * depends on its index. Strokes are therefore widened to whatever content width renders as at least
+ * one device pixel.
  */
-private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx: Float) {
+private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx: Float, scale: Float) {
     val rows = tiles.size
     val cols = tiles.firstOrNull()?.size ?: 0
-    val inner = cellPx - 2f * borderPx
-    val innerSize = Size(inner, inner)
-    val crossInset = inner * 0.2f
-    val crossStroke = inner / 12f
+    if (rows == 0 || cols == 0 || scale <= 0f) return
 
-    // One black field behind the tiles: every inset tile leaves a black gridline around itself, and
-    // filled tiles merge into it.
-    drawRect(Color.Black, Offset.Zero, Size(cols * cellPx, rows * cellPx))
+    val width = cols * cellPx
+    val height = rows * cellPx
+    val thin = max(borderPx, 1f / scale)
+    val thick = thin * 2f
+    val crossInset = cellPx * 0.22f
+    val crossStroke = max(cellPx / 14f, 1f / scale)
+
+    drawRect(Color.White, Offset.Zero, Size(width, height))
 
     for (row in tiles.indices) {
-        val top = row * cellPx + borderPx
+        val top = row * cellPx
         for (column in tiles[row].indices) {
-            val left = column * cellPx + borderPx
-            val state = tiles[row][column].state
-            if (state == TileState.FILLED) continue // already black
-            drawRect(
-                color = Color.White,
-                topLeft = Offset(left, top),
-                size = innerSize,
-            )
-            if (state == TileState.CROSSED) {
-                val far = inner - crossInset
-                drawLine(
-                    color = Color.Black,
-                    start = Offset(left + crossInset, top + crossInset),
-                    end = Offset(left + far, top + far),
-                    strokeWidth = crossStroke,
-                )
-                drawLine(
-                    color = Color.Black,
-                    start = Offset(left + far, top + crossInset),
-                    end = Offset(left + crossInset, top + far),
-                    strokeWidth = crossStroke,
-                )
+            val left = column * cellPx
+            when (tiles[row][column].state) {
+                // Full-cell, so a run of filled tiles reads as one solid block once the gridlines
+                // land on top of it in black.
+                TileState.FILLED -> drawRect(Color.Black, Offset(left, top), Size(cellPx, cellPx))
+
+                TileState.CROSSED -> {
+                    val near = crossInset
+                    val far = cellPx - crossInset
+                    drawLine(
+                        color = Color.Black,
+                        start = Offset(left + near, top + near),
+                        end = Offset(left + far, top + far),
+                        strokeWidth = crossStroke,
+                    )
+                    drawLine(
+                        color = Color.Black,
+                        start = Offset(left + far, top + near),
+                        end = Offset(left + near, top + far),
+                        strokeWidth = crossStroke,
+                    )
+                }
+
+                TileState.NONE -> {}
             }
         }
+    }
+
+    // Gridlines last, over the tiles. Every fifth is heavy: at fit on a 30x30 a tile is a handful of
+    // pixels, and the 5-blocks are the only way to count a clue off against a row.
+    // drawLine centres its stroke, so the outermost lines are nudged inward to stay inside the node.
+    for (column in 0..cols) {
+        val w = if (column % 5 == 0) thick else thin
+        val x = (column * cellPx).coerceIn(w / 2f, width - w / 2f)
+        drawLine(Color.Black, Offset(x, 0f), Offset(x, height), strokeWidth = w)
+    }
+    for (row in 0..rows) {
+        val w = if (row % 5 == 0) thick else thin
+        val y = (row * cellPx).coerceIn(w / 2f, height - w / 2f)
+        drawLine(Color.Black, Offset(0f, y), Offset(width, y), strokeWidth = w)
     }
 }
 
