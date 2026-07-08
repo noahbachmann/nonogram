@@ -9,6 +9,12 @@ object LoginRoute
 object MenuRoute
 
 @Serializable
+object GenConfRoute
+
+@Serializable
+object GeneratorRoute
+
+@Serializable
 object SettingsRoute
 
 @Serializable

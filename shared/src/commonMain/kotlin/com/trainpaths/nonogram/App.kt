@@ -19,6 +19,8 @@ import com.trainpaths.nonogram.dialogs.LeaveConfirmDialog
 import com.trainpaths.nonogram.dialogs.PlayConfirmDialog
 import com.trainpaths.nonogram.dialogs.WinConfirmDialog
 import com.trainpaths.nonogram.navigation.GameRoute
+import com.trainpaths.nonogram.navigation.GenConfRoute
+import com.trainpaths.nonogram.navigation.GeneratorRoute
 import com.trainpaths.nonogram.navigation.LeaveDialogRoute
 import com.trainpaths.nonogram.navigation.LoginRoute
 import com.trainpaths.nonogram.navigation.MenuRoute
@@ -26,17 +28,21 @@ import com.trainpaths.nonogram.navigation.PlayDialogRoute
 import com.trainpaths.nonogram.navigation.SettingsRoute
 import com.trainpaths.nonogram.navigation.WinDialogRoute
 import com.trainpaths.nonogram.screens.GameScreen
+import com.trainpaths.nonogram.screens.GenConfScreen
+import com.trainpaths.nonogram.screens.GenScreen
 import com.trainpaths.nonogram.screens.LoginScreen
 import com.trainpaths.nonogram.screens.MenuScreen
 import com.trainpaths.nonogram.screens.SettingsScreen
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
+import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
 
 @Composable
 fun App(
     menuViewModel: MenuViewModel,
     authViewModel: AuthViewModel,
+    genViewModel: GenViewModel,
     gameViewModelFactory: @Composable (Long) -> GameViewModel,
 ) {
     val startDestination = if (authViewModel.hasCompletedOnboarding) MenuRoute else LoginRoute
@@ -76,6 +82,24 @@ fun App(
                     viewModel = menuViewModel,
                     onNonogramClick = { id -> navController.navigate(PlayDialogRoute(id)) },
                     onSettingsClick = { navController.navigate(SettingsRoute) },
+                )
+            }
+            composable<GenConfRoute> {
+                GenConfScreen(
+                    genViewModel = genViewModel,
+                    onBack = { navController.popBackStack() },
+                    onStart = {
+                        navController.navigate(GeneratorRoute)
+                    },
+                )
+            }
+            composable<GeneratorRoute> {
+                GenScreen(
+                    genViewModel = genViewModel,
+                    onBack = { navController.popBackStack() },
+                    onSave = {
+
+                    },
                 )
             }
             dialog<PlayDialogRoute> { entry ->

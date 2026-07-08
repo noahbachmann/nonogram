@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A Kotlin Multiplatform nonogram puzzle app targeting Android, Web (JS/Wasm), and iOS (currently commented out). Users solve nonogram puzzles, track progress, and optionally sync via Google sign-in with Firebase.
+A Kotlin Multiplatform nonogram puzzle app targeting Android, Web (JS/Wasm), and iOS (currently commented out). Users
+solve nonogram puzzles, track progress, and optionally sync via Google sign-in with Firebase.
 
 ## Build & Run
 
@@ -35,23 +36,32 @@ A Kotlin Multiplatform nonogram puzzle app targeting Android, Web (JS/Wasm), and
 ./gradlew :shared:iosSimulatorArm64Test
 ```
 
-Tests live in `shared/src/commonTest/` (pure-logic tests) and `shared/src/androidHostTest/` (tests that need a SQLDelight driver — uses `TestDatabaseFactory` with the SQLite JVM driver).
+Tests live in `shared/src/commonTest/` (pure-logic tests) and `shared/src/androidHostTest/` (tests that need a
+SQLDelight driver — uses `TestDatabaseFactory` with the SQLite JVM driver).
 
 ## Architecture
 
-All shared code lives in `shared/src/commonMain/`. Platform apps (`androidApp/`, `webApp/`, `iosApp/`) are thin shells that initialize Koin DI and host the Compose UI.
+All shared code lives in `shared/src/commonMain/`. Platform apps (`androidApp/`, `webApp/`, `iosApp/`) are thin shells
+that initialize Koin DI and host the Compose UI.
 
 ### Layers
 
 - **`AppSDK`** — facade over the database. All data access goes through here. ViewModels and sync service depend on it.
-- **`cache/Database`** — internal class wrapping SQLDelight-generated `NonogramDb`. Maps DB rows to domain types. Not accessed directly outside `AppSDK`.
-- **`auth/AuthRepository`** — manages auth state (`GUEST` / `SIGNED_IN`), local user ID, and onboarding flag via `multiplatform-settings`. Links guest accounts to Firebase UIDs on sign-in.
-- **`sync/FirestoreSyncService`** — bidirectional Firestore sync for user progress. Uses `dev.gitlive:firebase-firestore` (KMP wrapper). Merge strategy: last-write-wins by `updatedAt` timestamp.
-- **ViewModels** (`screens/viewModel/`) — Compose state holders using `mutableStateOf`. `GameViewModel` manages the tile board and save/sync. `MenuViewModel` holds the nonogram list and progress preview map. `AuthViewModel` orchestrates login flow and sync-on-start.
+- **`cache/Database`** — internal class wrapping SQLDelight-generated `NonogramDb`. Maps DB rows to domain types. Not
+  accessed directly outside `AppSDK`.
+- **`auth/AuthRepository`** — manages auth state (`GUEST` / `SIGNED_IN`), local user ID, and onboarding flag via
+  `multiplatform-settings`. Links guest accounts to Firebase UIDs on sign-in.
+- **`sync/FirestoreSyncService`** — bidirectional Firestore sync for user progress. Uses
+  `dev.gitlive:firebase-firestore` (KMP wrapper). Merge strategy: last-write-wins by `updatedAt` timestamp.
+- **ViewModels** (`screens/viewModel/`) — Compose state holders using `mutableStateOf`. `GameViewModel` manages the tile
+  board and save/sync. `MenuViewModel` holds the nonogram list and progress preview map. `AuthViewModel` orchestrates
+  login flow and sync-on-start.
 
 ### Navigation
 
-Type-safe navigation via `navigation-compose` with `@Serializable` route objects in `navigation/Routes.kt`. Routes: `LoginRoute`, `MenuRoute`, `GameRoute(nonogramId)`, `SettingsRoute`, `GeneratorRoute`, plus dialog routes (`PlayDialogRoute`, `WinDialogRoute`, `LeaveDialogRoute`).
+Type-safe navigation via `navigation-compose` with `@Serializable` route objects in `navigation/Routes.kt`. Routes:
+`LoginRoute`, `MenuRoute`, `GameRoute(nonogramId)`, `SettingsRoute`, `GeneratorRoute`, plus dialog routes (
+`PlayDialogRoute`, `WinDialogRoute`, `LeaveDialogRoute`).
 
 ### DI (Koin)
 
@@ -60,7 +70,8 @@ Type-safe navigation via `navigation-compose` with `@Serializable` route objects
 
 ### Data Model
 
-- **`Nonogram`** — `id`, `difficulty` (enum: EASY/MEDIUM/HARD/HARDCORE), `solution` (List<List<Int>> stored as JSON), `authorId`, `valid`, `status`. Computes `rowClues`/`colClues` on the fly.
+- **`Nonogram`** — `id`, `difficulty` (enum: EASY/MEDIUM/HARD/HARDCORE), `solution` (List<List<Int>> stored as JSON),
+  `authorId`, `valid`, `status`. Computes `rowClues`/`colClues` on the fly.
 - **`Tile`** — mutable Compose state. Cycles: NONE → FILLED → CROSSED → NONE.
 - Board state is serialized as `List<List<Int>>` (0/1) for persistence and sync.
 
@@ -72,6 +83,20 @@ Database name: `NonogramDb`, package: `com.trainpaths.nonogram.cache`
 
 Tables: `NonogramData`, `User`, `UserProgress` (composite PK: userId + nonogramId).
 
+### AppTheme
+
+Defined in `AppTheme.kt`. Material 3 `lightColorScheme`, dark-teal palette.
+
+- `primary` `#153D36` dark teal — background, TopAppBar, main surface
+- `onPrimary` white — text/icons on primary
+- `secondary` `#C2EFFF` light blue — accents, focused borders, button fills
+- `tertiary` `#FFD700` gold — highlights (beat badges, win borders)
+- `background` `#153D36` — same as primary, full-screen bg
+- `onBackground` white — text on background
+
+Use `MaterialTheme.colorScheme.*`, never hardcode hex. Interactive elements pair `secondary` container + `primary`
+content. Text on main background uses `onPrimary`.
+
 ### Firebase / Auth
 
 - Google sign-in via `kmpauth` (`io.github.mirzemehdi:kmpauth-google/firebase`)
@@ -80,4 +105,5 @@ Tables: `NonogramData`, `User`, `UserProgress` (composite PK: userId + nonogramI
 
 ## Current State
 
-The nonogram generator feature is next. `GeneratorRoute`, `GenConfScreen`, `GenScreen`, and `GenViewModel` exist as scaffolding but are not yet implemented.
+The nonogram generator feature is next. `GeneratorRoute`, `GenConfScreen`, `GenScreen`, and `GenViewModel` exist as
+scaffolding but are not yet implemented.
