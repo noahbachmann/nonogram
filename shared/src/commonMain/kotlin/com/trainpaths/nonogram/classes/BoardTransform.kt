@@ -22,7 +22,7 @@ val CELL = 48.dp
  * a col-clue cell. Much thinner than [CELL]: a row of width W can hold up to `ceil(W / 2)` clues, so
  * at 48.dp the gutter would grow to half the grid and squeeze the board off screen.
  */
-val CLUE_CELL = 24.dp
+val CLUE_CELL = 20.dp
 
 /** Black grid line between tiles. */
 val TILE_BORDER = 1.dp

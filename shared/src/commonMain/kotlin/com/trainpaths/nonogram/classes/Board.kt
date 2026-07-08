@@ -79,7 +79,7 @@ fun Board(
     val gridW = CELL * nonogram.width
     val gridH = CELL * nonogram.height
     val background = MaterialTheme.colorScheme.background
-    val separatorColor = MaterialTheme.colorScheme.secondary
+    val separatorColor = Color.Black
 
     // safeContentPadding sits outside the clip, so the safe area is the viewport and the clip rect.
     BoxWithConstraints(modifier.safeContentPadding()) {
