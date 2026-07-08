@@ -41,6 +41,21 @@ internal class Database(databaseFactory: DatabaseFactory) {
             dbQuery.lastInsertedId().executeAsOne()
         }
 
+    internal fun updateNonogram(
+        id: Long,
+        nonogram: Nonogram,
+    ): Long =
+        dbQuery.transactionWithResult {
+            dbQuery.updateNonogram(
+                nonogram.difficulty.toString(),
+                json.encodeToString(nonogram.solution),
+                nonogram.authorId,
+                nonogram.valid,
+                nonogram.status,
+                id
+            )
+            dbQuery.lastInsertedId().executeAsOne()
+        }
     // ---------- Users ----------
 
     internal fun addUser(name: String): Long =

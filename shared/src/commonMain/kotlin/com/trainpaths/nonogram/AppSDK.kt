@@ -11,18 +11,24 @@ class AppSDK(databaseFactory: DatabaseFactory) {
 
     fun seedIfEmpty() {
         if (getAllNonograms().isNotEmpty()) return
-        addNonogram("EASY", listOf(
-            listOf(0,0,1,0,0), listOf(0,0,1,0,0), listOf(1,1,1,1,1),
-            listOf(0,0,1,0,0), listOf(0,0,1,0,0)
-        ))
-        addNonogram("MEDIUM", listOf(
-            listOf(1,1,1,1,1), listOf(1,0,0,0,0), listOf(1,1,1,0,0),
-            listOf(1,0,0,0,0), listOf(1,1,1,1,1)
-        ))
-        addNonogram("HARD", listOf(
-            listOf(1,1,0,0,0), listOf(0,1,1,0,0), listOf(0,0,1,1,0),
-            listOf(0,0,0,1,1), listOf(0,0,0,0,1)
-        ))
+        addNonogram(
+            "EASY", listOf(
+                listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0), listOf(1, 1, 1, 1, 1),
+                listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0)
+            )
+        )
+        addNonogram(
+            "MEDIUM", listOf(
+                listOf(1, 1, 1, 1, 1), listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 0, 0),
+                listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 1, 1)
+            )
+        )
+        addNonogram(
+            "HARD", listOf(
+                listOf(1, 1, 0, 0, 0), listOf(0, 1, 1, 0, 0), listOf(0, 0, 1, 1, 0),
+                listOf(0, 0, 0, 1, 1), listOf(0, 0, 0, 0, 1)
+            )
+        )
     }
 
     fun getAllNonograms(): List<Nonogram> =
@@ -45,6 +51,12 @@ class AppSDK(databaseFactory: DatabaseFactory) {
         status: Long = 0
     ): Long =
         database.addNonogram(difficulty, solution, authorId, valid, status)
+
+    fun updateNonogram(
+        id: Long,
+        nonogram: Nonogram,
+    ): Long =
+        database.updateNonogram(id, nonogram)
 
     fun addUser(name: String): Long =
         database.addUser(name)

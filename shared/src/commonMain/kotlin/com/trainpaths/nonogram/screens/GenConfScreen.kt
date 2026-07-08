@@ -33,12 +33,12 @@ fun GenConfScreen(
     onMenuClick: () -> Unit,
     onStart: () -> Unit,
 ) {
-    var rows by remember { mutableStateOf("") }
-    var cols by remember { mutableStateOf("") }
+    var rows by remember { mutableStateOf(genViewModel.height.toString()) }
+    var cols by remember { mutableStateOf(genViewModel.width.toString()) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
-            onBack = if (genViewModel.nonogram != null) onStart else null,
+            onBack = onStart,
             showSettings = true,
             mode = AppBarMode.GENERATOR,
             onSwapMode = { onMenuClick() },
@@ -97,7 +97,7 @@ fun GenConfScreen(
                     contentColor = MaterialTheme.colorScheme.primary,
                 ),
             ) {
-                Text("Start", style = MaterialTheme.typography.titleMedium)
+                Text("Generate", style = MaterialTheme.typography.titleMedium)
             }
         }
     }

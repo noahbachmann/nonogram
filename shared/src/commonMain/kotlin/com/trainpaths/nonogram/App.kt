@@ -108,9 +108,6 @@ fun App(
                     GenScreen(
                         genViewModel = genViewModel,
                         onBack = { navController.popBackStack() },
-                        onSave = {
-
-                        },
                         onSwapMode = {
                             navController.navigate(MenuRoute) {
                                 popUpTo(GenConfRoute) { inclusive = true }

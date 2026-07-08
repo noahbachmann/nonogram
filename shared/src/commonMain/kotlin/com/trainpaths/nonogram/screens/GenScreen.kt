@@ -24,9 +24,12 @@ import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 fun GenScreen(
     genViewModel: GenViewModel,
     onBack: () -> Unit,
-    onSave: () -> Unit,
     onSwapMode: () -> Unit,
 ) {
+    fun onSave() {
+        genViewModel.updateNonogram()
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
             onBack = onBack,
@@ -36,7 +39,7 @@ fun GenScreen(
         )
 
         val nonogram = genViewModel.nonogram
-        if (nonogram != null && genViewModel.tiles.isNotEmpty()) {
+        if (genViewModel.tiles.isNotEmpty()) {
             Board(
                 nonogram = nonogram,
                 tiles = genViewModel.tiles,

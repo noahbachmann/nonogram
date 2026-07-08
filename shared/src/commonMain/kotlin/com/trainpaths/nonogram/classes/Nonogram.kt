@@ -16,7 +16,7 @@ enum class Difficulty { EASY, MEDIUM, HARD, HARDCORE }
 data class Nonogram(
     val id: Long,
     val difficulty: Difficulty,
-    val solution: List<List<Int>>,
+    var solution: List<List<Int>>,
     val authorId: Long = 0,
     val valid: Long = 0,
     val status: Long = 0

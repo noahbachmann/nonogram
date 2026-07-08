@@ -29,6 +29,17 @@ CREATE TABLE UserProgress (
 insertNonogram:
 INSERT INTO NonogramData(id, difficulty, solution, authorId, valid, status) VALUES (NULL, ?, ?, ?, ?, ?);
 
+updateNonogram:
+UPDATE NonogramData
+SET
+    difficulty = :difficulty,
+    solution = :solution,
+    authorId = :authorId,
+    valid = :valid,
+    status = :status
+WHERE id = :id;
+
+
 selectAllNonograms:
 SELECT NonogramData.* FROM NonogramData;
 
