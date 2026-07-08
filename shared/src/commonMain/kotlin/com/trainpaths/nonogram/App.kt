@@ -82,12 +82,22 @@ fun App(
                     viewModel = menuViewModel,
                     onNonogramClick = { id -> navController.navigate(PlayDialogRoute(id)) },
                     onSettingsClick = { navController.navigate(SettingsRoute) },
+                    onGenClick = {
+                        navController.navigate(GenConfRoute) {
+                            popUpTo(MenuRoute) { inclusive = true }
+                        }
+                    },
                 )
             }
             composable<GenConfRoute> {
                 GenConfScreen(
                     genViewModel = genViewModel,
-                    onBack = { navController.popBackStack() },
+                    onMenuClick = {
+                        navController.navigate(MenuRoute) {
+                            popUpTo(GenConfRoute) { inclusive = true }
+                        }
+                    },
+                    onSettingsClick = { navController.navigate(SettingsRoute) },
                     onStart = {
                         navController.navigate(GeneratorRoute)
                     },
@@ -97,6 +107,7 @@ fun App(
                 GenScreen(
                     genViewModel = genViewModel,
                     onBack = { navController.popBackStack() },
+                    onSettingsClick = { navController.navigate(SettingsRoute) },
                     onSave = {
 
                     },
