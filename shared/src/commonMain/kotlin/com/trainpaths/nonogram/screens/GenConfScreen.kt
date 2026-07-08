@@ -85,7 +85,7 @@ fun GenConfScreen(
                 onClick = {
                     val h = rows.toIntOrNull() ?: return@Button
                     val w = cols.toIntOrNull() ?: return@Button
-                    genViewModel.setSize(h, w)
+                    genViewModel.setNonogram(h, w)
                     onStart()
                 },
                 modifier = Modifier

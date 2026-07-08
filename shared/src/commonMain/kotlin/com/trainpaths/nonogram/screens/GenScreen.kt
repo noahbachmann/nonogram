@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.NonogramAppBar
+import com.trainpaths.nonogram.classes.Board
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 
 
@@ -29,6 +30,15 @@ fun GenScreen(
             onBack = onBack,
             showSettings = true,
         )
+
+        val nonogram = genViewModel.nonogram
+        if (nonogram != null && genViewModel.tiles.isNotEmpty()) {
+            Board(
+                nonogram = nonogram,
+                tiles = genViewModel.tiles,
+                onTileClick = { genViewModel.updateNonogram() }
+            )
+        }
 
         Column(
             modifier = Modifier
