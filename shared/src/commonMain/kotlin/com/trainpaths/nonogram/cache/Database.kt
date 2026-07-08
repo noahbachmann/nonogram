@@ -29,9 +29,15 @@ internal class Database(databaseFactory: DatabaseFactory) {
                 .executeAsOneOrNull()
         }
 
-    internal fun addNonogram(difficulty: String, solution: List<List<Int>>): Long =
+    internal fun addNonogram(
+        difficulty: String,
+        solution: List<List<Int>>,
+        authorId: Long = 0,
+        valid: Long = 0,
+        status: Long = 0
+    ): Long =
         dbQuery.transactionWithResult {
-            dbQuery.insertNonogram(difficulty, json.encodeToString(solution))
+            dbQuery.insertNonogram(difficulty, json.encodeToString(solution), authorId, valid, status)
             dbQuery.lastInsertedId().executeAsOne()
         }
 
@@ -108,24 +114,36 @@ internal class Database(databaseFactory: DatabaseFactory) {
     private fun mapNonogram(
         id: Long,
         difficulty: String,
-        solution: String
+        solution: String,
+        authorId: Long,
+        valid: Long,
+        status: Long
     ): Nonogram = Nonogram(
         id = id,
         difficulty = Difficulty.valueOf(difficulty),
-        solution = json.decodeFromString(solution)
+        solution = json.decodeFromString(solution),
+        authorId = authorId,
+        valid = valid,
+        status = status
     )
 
     private fun mapProgress(
         id: Long,
         difficulty: String,
         solution: String,
+        authorId: Long,
+        valid: Long,
+        status: Long,
         boardState: String?,
         beat: Long
     ): NonogramProgress = NonogramProgress(
         nonogram = Nonogram(
             id = id,
             difficulty = Difficulty.valueOf(difficulty),
-            solution = json.decodeFromString(solution)
+            solution = json.decodeFromString(solution),
+            authorId = authorId,
+            valid = valid,
+            status = status
         ),
         board = boardState?.let { json.decodeFromString(it) },
         beat = beat

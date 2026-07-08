@@ -1,7 +1,10 @@
 CREATE TABLE NonogramData (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     difficulty TEXT NOT NULL,
-    solution TEXT NOT NULL
+    solution TEXT NOT NULL,
+    authorId INTEGER NOT NULL DEFAULT 0,
+    valid INTEGER NOT NULL DEFAULT 0,
+    status INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE User (
@@ -24,7 +27,7 @@ CREATE TABLE UserProgress (
 );
 
 insertNonogram:
-INSERT INTO NonogramData(id, difficulty, solution) VALUES (NULL, ?, ?);
+INSERT INTO NonogramData(id, difficulty, solution, authorId, valid, status) VALUES (NULL, ?, ?, ?, ?, ?);
 
 selectAllNonograms:
 SELECT NonogramData.* FROM NonogramData;

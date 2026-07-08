@@ -37,8 +37,14 @@ class AppSDK(databaseFactory: DatabaseFactory) {
     fun getRandomNonogram(difficulty: String? = null): Nonogram? =
         database.getRandomNonogram(difficulty)
 
-    fun addNonogram(difficulty: String, solution: List<List<Int>>): Long =
-        database.addNonogram(difficulty, solution)
+    fun addNonogram(
+        difficulty: String,
+        solution: List<List<Int>>,
+        authorId: Long = 0,
+        valid: Long = 0,
+        status: Long = 0
+    ): Long =
+        database.addNonogram(difficulty, solution, authorId, valid, status)
 
     fun addUser(name: String): Long =
         database.addUser(name)

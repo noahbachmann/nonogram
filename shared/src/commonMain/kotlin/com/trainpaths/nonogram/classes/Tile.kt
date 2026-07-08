@@ -45,7 +45,7 @@ fun TileButton(tile: Tile, check: () -> Unit) {
             .background(color)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null   // no ripple at all
+                indication = null
             ) {
                 tile.click()
                 check()
