@@ -35,15 +35,14 @@ import com.trainpaths.nonogram.classes.DrawNonogram
 fun MenuScreen(
     viewModel: MenuViewModel,
     onNonogramClick: (Long) -> Unit,
-    onSettingsClick: () -> Unit,
     onGenClick: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
+            showSettings = true,
             centerContent = {
                 RootScreenToggle(selectedIndex = 0) { onGenClick() }
             },
-            onSettingsClick = onSettingsClick,
         )
 
         if (viewModel.isLoading) {

@@ -31,7 +31,6 @@ import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 fun GenConfScreen(
     genViewModel: GenViewModel,
     onMenuClick: () -> Unit,
-    onSettingsClick: () -> Unit,
     onStart: () -> Unit,
 ) {
     var rows by remember { mutableStateOf("") }
@@ -39,10 +38,10 @@ fun GenConfScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
+            showSettings = true,
             centerContent = {
                 RootScreenToggle(selectedIndex = 1) { onMenuClick() }
             },
-            onSettingsClick = onSettingsClick,
         )
 
         Column(

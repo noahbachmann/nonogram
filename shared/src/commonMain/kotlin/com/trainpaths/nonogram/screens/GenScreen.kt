@@ -17,17 +17,17 @@ import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.NonogramAppBar
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 
+
 @Composable
 fun GenScreen(
     genViewModel: GenViewModel,
     onBack: () -> Unit,
-    onSettingsClick: () -> Unit,
     onSave: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
             onBack = onBack,
-            onSettingsClick = onSettingsClick,
+            showSettings = true,
         )
 
         Column(

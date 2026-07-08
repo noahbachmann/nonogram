@@ -12,19 +12,27 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.trainpaths.nonogram.icons.arrowBack
 import com.trainpaths.nonogram.icons.settings
+import com.trainpaths.nonogram.navigation.SettingsRoute
+
+val LocalNavController = staticCompositionLocalOf<NavController> {
+    error("No NavController provided")
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NonogramAppBar(
     title: String = "",
     onBack: (() -> Unit)? = null,
-    onSettingsClick: (() -> Unit)? = null,
+    showSettings: Boolean = false,
     centerContent: (@Composable () -> Unit)? = null,
 ) {
+    val navController = if (showSettings) LocalNavController.current else null
     TopAppBar(
         title = {
             if (centerContent != null) {
@@ -41,8 +49,8 @@ fun NonogramAppBar(
             }
         },
         actions = {
-            if (onSettingsClick != null) {
-                IconButton(onClick = onSettingsClick) {
+            if (showSettings) {
+                IconButton(onClick = { navController?.navigate(SettingsRoute) }) {
                     Icon(settings, contentDescription = "Settings")
                 }
             }

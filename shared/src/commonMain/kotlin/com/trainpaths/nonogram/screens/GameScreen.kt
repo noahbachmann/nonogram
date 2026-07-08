@@ -16,13 +16,12 @@ import com.trainpaths.nonogram.classes.Game
 fun GameScreen(
     viewModel: GameViewModel,
     onBack: () -> Unit,
-    onSettingsClick: () -> Unit,
     onWin: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
             onBack = onBack,
-            onSettingsClick = onSettingsClick,
+            showSettings = true,
         )
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

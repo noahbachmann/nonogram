@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +55,7 @@ fun App(
     AppTheme {
         val navController = rememberNavController()
         var onResetBoard by remember { mutableStateOf<(() -> Unit)?>(null) }
+        CompositionLocalProvider(LocalNavController provides navController) {
         NavHost(
             navController = navController,
             startDestination = startDestination,
@@ -81,7 +83,6 @@ fun App(
                 MenuScreen(
                     viewModel = menuViewModel,
                     onNonogramClick = { id -> navController.navigate(PlayDialogRoute(id)) },
-                    onSettingsClick = { navController.navigate(SettingsRoute) },
                     onGenClick = {
                         navController.navigate(GenConfRoute) {
                             popUpTo(MenuRoute) { inclusive = true }
@@ -97,7 +98,6 @@ fun App(
                             popUpTo(GenConfRoute) { inclusive = true }
                         }
                     },
-                    onSettingsClick = { navController.navigate(SettingsRoute) },
                     onStart = {
                         navController.navigate(GeneratorRoute)
                     },
@@ -107,7 +107,6 @@ fun App(
                 GenScreen(
                     genViewModel = genViewModel,
                     onBack = { navController.popBackStack() },
-                    onSettingsClick = { navController.navigate(SettingsRoute) },
                     onSave = {
 
                     },
@@ -139,13 +138,6 @@ fun App(
                             menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
                         }
                         navController.navigate(LeaveDialogRoute)
-                    },
-                    onSettingsClick = {
-                        viewModel.saveCurrentProgress()
-                        viewModel.currentNonogramId?.let { id ->
-                            menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
-                        }
-                        navController.navigate(SettingsRoute)
                     },
                     onWin = {
                         viewModel.saveCurrentProgress(true)
@@ -183,6 +175,7 @@ fun App(
                     onSignIn = { navController.navigate(LoginRoute) },
                 )
             }
+        }
         }
     }
 }
