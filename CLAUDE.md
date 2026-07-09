@@ -69,8 +69,13 @@ Type-safe navigation via `navigation-compose` with `@Serializable` route objects
 - **New:** `GenList` → `+New` (`startNew()`) → `GenConf(editing=false)` → *Generate* (`setNonogram`) → `GenScreen`. GenConf's
   "Done" navigates forward to `GeneratorRoute` (`popUpTo(GenListRoute)`); back cancels to the list.
 - **Edit:** `GenList` → card (`loadForEdit`) → `GenScreen`. The top-left wrench opens `GenConf(editing=true)` pre-filled with
-  the current dims; *Save* (`resizeNonogram`, preserves overlapping cells, keeps the puzzle id) or *Back* both
-  `popBackStack()` to the same `GenScreen`.
+  the current dims; *Save* applies `resizeNonogram` (preserves overlapping cells, keeps the puzzle id) **and persists via
+  `onSave`**, *Back* discards — both `popBackStack()` to the same `GenScreen`.
+
+**Save-state guard.** `GenViewModel.isDirty` tracks unsaved edits (set on tile edit/`resize`, cleared on load/save). Leaving
+`GenScreen` toward the list — via the swap button *or* system/gesture back (`BackHandler`) — routes through `attemptLeave`:
+if dirty it shows `GenSaveConfirmDialog` (Save / Don't save / cancel-by-dismiss) before navigating; otherwise it goes
+straight to `GenListRoute`. The board's bottom **Save** button is an explicit save-and-exit.
 
 `NonogramAppBar` navigation icon: GENERATOR mode shows the `build` wrench (used as the "config" affordance in `GenScreen`);
 pass `backArrow = true` to force a plain back arrow (used in `GenConf`).

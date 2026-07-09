@@ -12,27 +12,34 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.NonogramAppBar
 import com.trainpaths.nonogram.classes.Board
+import com.trainpaths.nonogram.dialogs.GenSaveConfirmDialog
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
-
 
 @Composable
 fun GenScreen(
     genViewModel: GenViewModel,
     onConfig: () -> Unit,
-    onSwapMode: () -> Unit,
-    onSaved: () -> Unit,
+    onExitToList: () -> Unit,
 ) {
+    var showSaveDialog by remember { mutableStateOf(false) }
+
+    val attemptLeave = { if (genViewModel.isDirty) showSaveDialog = true else onExitToList() }
+
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
             onBack = onConfig,
             showSettings = true,
             mode = AppBarMode.GENERATOR,
-            onSwapMode = onSwapMode,
+            onSwapMode = { attemptLeave() },
         )
 
         val nonogram = genViewModel.nonogram
@@ -49,7 +56,7 @@ fun GenScreen(
         }
 
         Button(
-            onClick = { genViewModel.onSave { onSaved() } },
+            onClick = { genViewModel.onSave { onExitToList() } },
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
@@ -62,5 +69,19 @@ fun GenScreen(
         ) {
             Text("Save", style = MaterialTheme.typography.titleMedium)
         }
+    }
+
+    if (showSaveDialog) {
+        GenSaveConfirmDialog(
+            onSave = {
+                showSaveDialog = false
+                genViewModel.onSave { onExitToList() }
+            },
+            onDiscard = {
+                showSaveDialog = false
+                onExitToList()
+            },
+            onCancel = { showSaveDialog = false },
+        )
     }
 }

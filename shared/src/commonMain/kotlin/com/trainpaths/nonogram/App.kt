@@ -133,12 +133,7 @@ fun App(
                         onConfig = {
                             navController.navigate(GenConfRoute(editing = true))
                         },
-                        onSwapMode = {
-                            navController.navigate(MenuRoute) {
-                                popUpTo(MenuRoute) { inclusive = true }
-                            }
-                        },
-                        onSaved = {
+                        onExitToList = {
                             navController.navigate(GenListRoute) {
                                 popUpTo(GenListRoute) { inclusive = true }
                             }

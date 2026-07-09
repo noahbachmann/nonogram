@@ -43,6 +43,10 @@ class GenViewModel(
     var isLoadingMine by mutableStateOf(true)
         private set
 
+    /** True when the current puzzle has edits not yet written to the database. */
+    var isDirty by mutableStateOf(false)
+        private set
+
     fun loadMyNonograms() {
         isLoadingMine = true
         viewModelScope.launch {
@@ -66,6 +70,7 @@ class GenViewModel(
         nonogram = Nonogram(0, Difficulty.EASY, emptyList())
         tiles = List(h) { List(w) { Tile() } }
         updateNonogram()
+        isDirty = false
     }
 
     /**
@@ -93,6 +98,7 @@ class GenViewModel(
         tiles = existing.solution.map { row ->
             row.map { cell -> Tile().apply { if (cell == 1) state = TileState.FILLED } }
         }
+        isDirty = false
     }
 
     fun updateNonogram() {
@@ -105,6 +111,7 @@ class GenViewModel(
             }
         }
         nonogram = nonogram.copy(solution = solution)
+        isDirty = true
     }
 
     fun onSave(onDone: () -> Unit = {}) {
@@ -120,6 +127,7 @@ class GenViewModel(
                     nonogram = sdk.getNonogramById(newId) ?: Nonogram(0, Difficulty.EASY, board)
                 }
             }
+            isDirty = false
             onDone()
         }
     }

@@ -84,7 +84,12 @@ fun GenConfScreen(
                 onClick = {
                     val h = rows.toIntOrNull() ?: return@Button
                     val w = cols.toIntOrNull() ?: return@Button
-                    if (editing) genViewModel.resizeNonogram(h, w) else genViewModel.setNonogram(h, w)
+                    if (editing) {
+                        genViewModel.resizeNonogram(h, w)
+                        genViewModel.onSave()
+                    } else {
+                        genViewModel.setNonogram(h, w)
+                    }
                     onDone()
                 },
                 modifier = Modifier
