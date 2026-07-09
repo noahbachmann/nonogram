@@ -111,7 +111,7 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
             }
         }
 
-        /*val top = clues[0] + 1
+        val top = clues[0] + 1
         for (row in 0 until top) {
             if (solution[row][col] == 1) {
                 for (r in row until top) {
@@ -123,16 +123,16 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
 
         val bottom = ng.height - clues.last()
         if (solution[bottom][col] == 1) {
-            solution[bottom-1][col] = 2
+            solution[bottom - 1][col] = 2
         }
         for (row in bottom until ng.height) {
             if (solution[row][col] == 1) {
-                for (r in row until ng.height) {
+                for (r in bottom until row) {
                     solution[r][col] = 1
                 }
                 break
             }
-        }*/
+        }
     }
     return solution
 }
