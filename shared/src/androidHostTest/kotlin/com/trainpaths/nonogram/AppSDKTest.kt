@@ -1,6 +1,7 @@
 package com.trainpaths.nonogram
 
 import com.trainpaths.nonogram.classes.Difficulty
+import com.trainpaths.nonogram.classes.solveNonogram
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,14 +22,14 @@ class AppSDKTest {
     fun seedIfEmpty_insertsThreeNonograms() {
         assertTrue(sdk.getAllNonograms().isEmpty())
         sdk.seedIfEmpty()
-        assertEquals(3, sdk.getAllNonograms().size)
+        assertEquals(4, sdk.getAllNonograms().size)
     }
 
     @Test
     fun seedIfEmpty_doesNotDuplicateOnSecondCall() {
         sdk.seedIfEmpty()
         sdk.seedIfEmpty()
-        assertEquals(3, sdk.getAllNonograms().size)
+        assertEquals(4, sdk.getAllNonograms().size)
     }
 
     @Test
@@ -171,5 +172,28 @@ class AppSDKTest {
         val single = sdk.getSingleProgress(userId, nonogramId)
         assertNotNull(single)
         assertNull(single.boardState)
+    }
+
+    @Test
+    fun solveNonogram_correct() {
+        val nonogramId = sdk.addNonogram(
+            "EASY", listOf(
+                listOf(0, 1, 1, 1, 0, 0, 0, 1, 1, 1),
+                listOf(1, 1, 1, 0, 0, 0, 0, 0, 0, 0),
+                listOf(1, 1, 1, 1, 1, 1, 0, 0, 0, 0),
+                listOf(0, 0, 0, 1, 1, 0, 0, 0, 0, 1),
+                listOf(1, 1, 1, 1, 1, 1, 0, 0, 1, 1),
+                listOf(1, 1, 0, 0, 0, 0, 0, 0, 0, 0),
+                listOf(0, 0, 0, 0, 0, 0, 0, 1, 1, 1),
+                listOf(1, 1, 0, 1, 1, 1, 1, 1, 1, 1),
+                listOf(1, 1, 0, 0, 0, 0, 1, 0, 1, 0),
+                listOf(1, 1, 1, 1, 0, 0, 0, 1, 1, 0)
+            )
+        )
+        val ng = sdk.getNonogramById(nonogramId)
+
+        val solution = solveNonogram(ng!!)
+
+        assertEquals(ng.solution, solution.map { row -> row.toList() }.toList())
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import kotlinx.serialization.Serializable
+import kotlin.math.min
 
 enum class Difficulty { EASY, MEDIUM, HARD, HARDCORE }
 
@@ -54,15 +55,25 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
     for (row in 0 until ng.height) {
         val clues: List<Int> = ng.rowClues[row]
         val max = clues.sum() + clues.size
-        if (max > ng.width - max) {
+
+        if (max == ng.width) {
+            var l = 0
+            for (clue in clues) {
+                val r = l + clue
+                solution[row].fill(1, l, r)
+                solution[row][r] = 2
+                l += r
+            }
+            continue
+        } else if (max > ng.width - max) {
             var l = 0
             var r = ng.width - max
             for (clue in clues) {
-                l += clue + 1
+                l = r + clue
                 if (l > r) {
                     solution[row].fill(1, r, l)
                 }
-                r += clue + 1
+                r += clue
             }
         }
     }
@@ -70,17 +81,49 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
     for (col in 0 until ng.width) {
         val clues: List<Int> = ng.colClues[col]
         val max = clues.sum() + clues.size
-        if (max > ng.height - max) {
+
+        if (max == ng.height) {
+            var l = 0
+            for (clue in clues) {
+                val r = l + clue
+                for (row in l until r) {
+                    solution[row][col] = 1
+                }
+                solution[r][col] = 2
+                l += r
+            }
+            continue
+        } else if (max > ng.height - max) {
             var l = 0
             var r = ng.height - max
             for (clue in clues) {
-                l += clue + 1
+                l = r + clue
                 if (l > r) {
                     for (row in r until l) {
                         solution[row][col] = 1
                     }
                 }
                 r += clue + 1
+            }
+        }
+
+        val top = clues[0] + 1
+        val bottom = clues.last()
+        for (row in 0 until top) {
+            if (solution[row][col] == 1) {
+                for (r in row until top) {
+                    solution[r][col] = 1
+                }
+                break
+            }
+        }
+
+        for (row in bottom until ng.height) {
+            if (solution[row][col] == 1) {
+                for (r in bottom until row) {
+                    solution[r][col] = 1
+                }
+                break
             }
         }
     }
