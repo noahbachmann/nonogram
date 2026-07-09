@@ -23,25 +23,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.NonogramAppBar
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 
 @Composable
 fun GenConfScreen(
     genViewModel: GenViewModel,
-    onMenuClick: () -> Unit,
-    onStart: () -> Unit,
+    editing: Boolean,
+    onBack: () -> Unit,
+    onDone: () -> Unit,
 ) {
     var rows by remember { mutableStateOf(genViewModel.height.toString()) }
     var cols by remember { mutableStateOf(genViewModel.width.toString()) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
-            onBack = onStart,
+            onBack = onBack,
+            backArrow = true,
             showSettings = true,
-            mode = AppBarMode.GENERATOR,
-            onSwapMode = { onMenuClick() },
         )
 
         Column(
@@ -85,8 +84,8 @@ fun GenConfScreen(
                 onClick = {
                     val h = rows.toIntOrNull() ?: return@Button
                     val w = cols.toIntOrNull() ?: return@Button
-                    genViewModel.setNonogram(h, w)
-                    onStart()
+                    if (editing) genViewModel.resizeNonogram(h, w) else genViewModel.setNonogram(h, w)
+                    onDone()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -97,7 +96,7 @@ fun GenConfScreen(
                     contentColor = MaterialTheme.colorScheme.primary,
                 ),
             ) {
-                Text("Generate", style = MaterialTheme.typography.titleMedium)
+                Text(if (editing) "Save" else "Generate", style = MaterialTheme.typography.titleMedium)
             }
         }
     }

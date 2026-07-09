@@ -23,13 +23,13 @@ import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 @Composable
 fun GenScreen(
     genViewModel: GenViewModel,
-    onBack: () -> Unit,
+    onConfig: () -> Unit,
     onSwapMode: () -> Unit,
     onSaved: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
-            onBack = onBack,
+            onBack = onConfig,
             showSettings = true,
             mode = AppBarMode.GENERATOR,
             onSwapMode = onSwapMode,

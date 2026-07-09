@@ -12,7 +12,7 @@ object MenuRoute
 object GenListRoute
 
 @Serializable
-object GenConfRoute
+data class GenConfRoute(val editing: Boolean = false)
 
 @Serializable
 object GeneratorRoute

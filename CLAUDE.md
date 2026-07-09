@@ -60,8 +60,20 @@ that initialize Koin DI and host the Compose UI.
 ### Navigation
 
 Type-safe navigation via `navigation-compose` with `@Serializable` route objects in `navigation/Routes.kt`. Routes:
-`LoginRoute`, `MenuRoute`, `GameRoute(nonogramId)`, `SettingsRoute`, `GeneratorRoute`, plus dialog routes (
-`PlayDialogRoute`, `WinDialogRoute`, `LeaveDialogRoute`).
+`LoginRoute`, `MenuRoute`, `GameRoute(nonogramId)`, `SettingsRoute`, plus the generator routes `GenListRoute`,
+`GenConfRoute(editing)`, `GeneratorRoute` (the board editor), plus dialog routes (`PlayDialogRoute`, `WinDialogRoute`,
+`LeaveDialogRoute`).
+
+**Generator flow.** `GenConfRoute` is *linked to a specific `GeneratorRoute`* via its `editing` flag:
+
+- **New:** `GenList` → `+New` (`startNew()`) → `GenConf(editing=false)` → *Generate* (`setNonogram`) → `GenScreen`. GenConf's
+  "Done" navigates forward to `GeneratorRoute` (`popUpTo(GenListRoute)`); back cancels to the list.
+- **Edit:** `GenList` → card (`loadForEdit`) → `GenScreen`. The top-left wrench opens `GenConf(editing=true)` pre-filled with
+  the current dims; *Save* (`resizeNonogram`, preserves overlapping cells, keeps the puzzle id) or *Back* both
+  `popBackStack()` to the same `GenScreen`.
+
+`NonogramAppBar` navigation icon: GENERATOR mode shows the `build` wrench (used as the "config" affordance in `GenScreen`);
+pass `backArrow = true` to force a plain back arrow (used in `GenConf`).
 
 ### DI (Koin)
 
@@ -105,5 +117,7 @@ content. Text on main background uses `onPrimary`.
 
 ## Current State
 
-The nonogram generator feature is next. `GeneratorRoute`, `GenConfScreen`, `GenScreen`, and `GenViewModel` exist as
-scaffolding but are not yet implemented.
+The generator is implemented end-to-end: `GenListScreen` lists the signed-in user's puzzles, `GenConfScreen` sets the
+grid size, `GenScreen` is the tile-drawing board, all driven by the shared `GenViewModel`. Users can create new puzzles
+and edit existing ones (with non-destructive resize). See **Navigation → Generator flow** above. Difficulty is still
+hardcoded to `EASY` in `GenViewModel` (no selector yet), and puzzles aren't validated for a unique solution.

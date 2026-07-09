@@ -101,7 +101,8 @@ fun App(
                             }
                         },
                         onNewClick = {
-                            navController.navigate(GenConfRoute)
+                            genViewModel.startNew()
+                            navController.navigate(GenConfRoute(editing = false))
                         },
                         onEditClick = { nonogram ->
                             genViewModel.loadForEdit(nonogram)
@@ -109,26 +110,32 @@ fun App(
                         },
                     )
                 }
-                composable<GenConfRoute> {
+                composable<GenConfRoute> { entry ->
+                    val route: GenConfRoute = entry.toRoute()
                     GenConfScreen(
                         genViewModel = genViewModel,
-                        onMenuClick = {
-                            navController.navigate(GenListRoute) {
-                                popUpTo(GenListRoute) { inclusive = true }
+                        editing = route.editing,
+                        onBack = { navController.popBackStack() },
+                        onDone = {
+                            if (route.editing) {
+                                navController.popBackStack()
+                            } else {
+                                navController.navigate(GeneratorRoute) {
+                                    popUpTo(GenListRoute) { inclusive = false }
+                                }
                             }
-                        },
-                        onStart = {
-                            navController.navigate(GeneratorRoute)
                         },
                     )
                 }
                 composable<GeneratorRoute> {
                     GenScreen(
                         genViewModel = genViewModel,
-                        onBack = { navController.popBackStack() },
+                        onConfig = {
+                            navController.navigate(GenConfRoute(editing = true))
+                        },
                         onSwapMode = {
-                            navController.navigate(GenListRoute) {
-                                popUpTo(GenListRoute) { inclusive = true }
+                            navController.navigate(MenuRoute) {
+                                popUpTo(MenuRoute) { inclusive = true }
                             }
                         },
                         onSaved = {

@@ -34,6 +34,7 @@ fun NonogramAppBar(
     showSettings: Boolean = false,
     mode: AppBarMode? = null,
     onSwapMode: (() -> Unit)? = null,
+    backArrow: Boolean = false,
 ) {
     val navController = if (showSettings) LocalNavController.current else null
     CenterAlignedTopAppBar(
@@ -54,7 +55,7 @@ fun NonogramAppBar(
             if (onBack != null) {
                 IconButton(onClick = onBack) {
                     Icon(
-                        imageVector = if (mode == AppBarMode.PUZZLE) arrowBack else build,
+                        imageVector = if (backArrow || mode == AppBarMode.PUZZLE) arrowBack else build,
                         contentDescription = "Back",
                         modifier = Modifier.size(28.dp),
                     )

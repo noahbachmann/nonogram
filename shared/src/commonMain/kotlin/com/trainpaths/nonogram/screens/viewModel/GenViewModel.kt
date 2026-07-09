@@ -22,6 +22,10 @@ class GenViewModel(
     private val syncService: FirestoreSyncService,
 ) : ViewModel() {
 
+    companion object {
+        private const val DEFAULT_SIZE = 5
+    }
+
     var height: Int = 0
         private set
     var width: Int = 0
@@ -52,11 +56,33 @@ class GenViewModel(
         }
     }
 
+    fun startNew() {
+        setNonogram(DEFAULT_SIZE, DEFAULT_SIZE)
+    }
+
     fun setNonogram(h: Int, w: Int) {
         height = h
         width = w
         nonogram = Nonogram(0, Difficulty.EASY, emptyList())
         tiles = List(h) { List(w) { Tile() } }
+        updateNonogram()
+    }
+
+    /**
+     * Resizes the current puzzle to [h] x [w] while preserving the existing drawing where the old
+     * and new grids overlap. Keeps [nonogram] (and its id) so an edit still updates the same row.
+     */
+    fun resizeNonogram(h: Int, w: Int) {
+        if (h == height && w == width) return
+        val old = tiles
+        tiles = List(h) { r ->
+            List(w) { c ->
+                val previous = old.getOrNull(r)?.getOrNull(c)
+                Tile().apply { if (previous != null) state = previous.state }
+            }
+        }
+        height = h
+        width = w
         updateNonogram()
     }
 
