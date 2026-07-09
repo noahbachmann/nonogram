@@ -18,6 +18,9 @@ internal class Database(databaseFactory: DatabaseFactory) {
     internal fun getNonogramsByDifficulty(difficulty: String): List<Nonogram> =
         dbQuery.selectNonogramsByDifficulty(difficulty, ::mapNonogram).executeAsList()
 
+    internal fun getNonogramsByAuthor(authorId: Long): List<Nonogram> =
+        dbQuery.selectNonogramsByAuthor(authorId, ::mapNonogram).executeAsList()
+
     internal fun getNonogramById(id: Long): Nonogram? =
         dbQuery.selectNonogramById(id, ::mapNonogram).executeAsOneOrNull()
 

@@ -21,6 +21,7 @@ import com.trainpaths.nonogram.dialogs.PlayConfirmDialog
 import com.trainpaths.nonogram.dialogs.WinConfirmDialog
 import com.trainpaths.nonogram.navigation.GameRoute
 import com.trainpaths.nonogram.navigation.GenConfRoute
+import com.trainpaths.nonogram.navigation.GenListRoute
 import com.trainpaths.nonogram.navigation.GeneratorRoute
 import com.trainpaths.nonogram.navigation.LeaveDialogRoute
 import com.trainpaths.nonogram.navigation.LocalNavController
@@ -34,6 +35,7 @@ import com.trainpaths.nonogram.screens.GenConfScreen
 import com.trainpaths.nonogram.screens.GenScreen
 import com.trainpaths.nonogram.screens.LoginScreen
 import com.trainpaths.nonogram.screens.MenuScreen
+import com.trainpaths.nonogram.screens.GenListScreen
 import com.trainpaths.nonogram.screens.SettingsScreen
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
@@ -85,9 +87,25 @@ fun App(
                         viewModel = menuViewModel,
                         onNonogramClick = { id -> navController.navigate(PlayDialogRoute(id)) },
                         onGenClick = {
-                            navController.navigate(GenConfRoute) {
+                            navController.navigate(GenListRoute)
+                        },
+                    )
+                }
+                composable<GenListRoute> {
+                    LaunchedEffect(Unit) { genViewModel.loadMyNonograms() }
+                    GenListScreen(
+                        genViewModel = genViewModel,
+                        onSwap = {
+                            navController.navigate(MenuRoute) {
                                 popUpTo(MenuRoute) { inclusive = true }
                             }
+                        },
+                        onNewClick = {
+                            navController.navigate(GenConfRoute)
+                        },
+                        onEditClick = { nonogram ->
+                            genViewModel.loadForEdit(nonogram)
+                            navController.navigate(GeneratorRoute)
                         },
                     )
                 }
@@ -95,8 +113,8 @@ fun App(
                     GenConfScreen(
                         genViewModel = genViewModel,
                         onMenuClick = {
-                            navController.navigate(MenuRoute) {
-                                popUpTo(GenConfRoute) { inclusive = true }
+                            navController.navigate(GenListRoute) {
+                                popUpTo(GenListRoute) { inclusive = true }
                             }
                         },
                         onStart = {
@@ -109,8 +127,13 @@ fun App(
                         genViewModel = genViewModel,
                         onBack = { navController.popBackStack() },
                         onSwapMode = {
-                            navController.navigate(MenuRoute) {
-                                popUpTo(GenConfRoute) { inclusive = true }
+                            navController.navigate(GenListRoute) {
+                                popUpTo(GenListRoute) { inclusive = true }
+                            }
+                        },
+                        onSaved = {
+                            navController.navigate(GenListRoute) {
+                                popUpTo(GenListRoute) { inclusive = true }
                             }
                         },
                     )
@@ -155,7 +178,7 @@ fun App(
                             viewModel.currentNonogramId?.let { id ->
                                 menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
                             }
-                            navController.navigate(GenConfRoute) {
+                            navController.navigate(GenListRoute) {
                                 popUpTo(MenuRoute) { inclusive = true }
                             }
                         },

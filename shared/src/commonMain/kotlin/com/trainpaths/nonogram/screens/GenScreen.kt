@@ -25,11 +25,8 @@ fun GenScreen(
     genViewModel: GenViewModel,
     onBack: () -> Unit,
     onSwapMode: () -> Unit,
+    onSaved: () -> Unit,
 ) {
-    fun onSave() {
-        genViewModel.updateNonogram()
-    }
-
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
             onBack = onBack,
@@ -52,7 +49,7 @@ fun GenScreen(
         }
 
         Button(
-            onClick = { onSave() },
+            onClick = { genViewModel.onSave { onSaved() } },
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()

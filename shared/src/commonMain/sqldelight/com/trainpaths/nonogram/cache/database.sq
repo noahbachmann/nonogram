@@ -46,6 +46,9 @@ SELECT NonogramData.* FROM NonogramData;
 selectNonogramsByDifficulty:
 SELECT NonogramData.* FROM NonogramData WHERE difficulty = ?;
 
+selectNonogramsByAuthor:
+SELECT NonogramData.* FROM NonogramData WHERE authorId = ?;
+
 selectNonogramById:
 SELECT NonogramData.* FROM NonogramData WHERE id = ?;
 

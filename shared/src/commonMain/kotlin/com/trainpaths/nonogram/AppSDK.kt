@@ -51,6 +51,9 @@ class AppSDK(databaseFactory: DatabaseFactory) {
     fun getNonogramsByDifficulty(difficulty: String): List<Nonogram> =
         database.getNonogramsByDifficulty(difficulty)
 
+    fun getNonogramsByAuthor(authorId: Long): List<Nonogram> =
+        database.getNonogramsByAuthor(authorId)
+
     fun getNonogramById(id: Long): Nonogram? =
         database.getNonogramById(id)
 
