@@ -18,6 +18,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.NonogramAppBar
 import com.trainpaths.nonogram.classes.Board
@@ -33,6 +36,9 @@ fun GenScreen(
     var showSaveDialog by remember { mutableStateOf(false) }
 
     val attemptLeave = { if (genViewModel.isDirty) showSaveDialog = true else onExitToList() }
+    
+    val backState = rememberNavigationEventState(currentInfo = NavigationEventInfo.None)
+    NavigationBackHandler(state = backState) { attemptLeave() }
 
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(

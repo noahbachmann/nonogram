@@ -73,7 +73,9 @@ Type-safe navigation via `navigation-compose` with `@Serializable` route objects
   `onSave`**, *Back* discards — both `popBackStack()` to the same `GenScreen`.
 
 **Save-state guard.** `GenViewModel.isDirty` tracks unsaved edits (set on tile edit/`resize`, cleared on load/save). Leaving
-`GenScreen` toward the list — via the swap button *or* system/gesture back (`BackHandler`) — routes through `attemptLeave`:
+`GenScreen` toward the list — via the swap button *or* system/predictive back (`NavigationBackHandler` +
+`rememberNavigationEventState` from `androidx.navigationevent:navigationevent-compose`, the modern non-deprecated back
+API — NOT the deprecated `androidx.compose.ui.backhandler.BackHandler`) — routes through `attemptLeave`:
 if dirty it shows `GenSaveConfirmDialog` (Save / Don't save / cancel-by-dismiss) before navigating; otherwise it goes
 straight to `GenListRoute`. The board's bottom **Save** button is an explicit save-and-exit.
 
