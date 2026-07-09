@@ -44,9 +44,6 @@ const val SEPARATOR_UNITS = 4f
 /** No line ever renders thinner than this, or it antialiases into nothing. */
 const val LINE_MIN_DEVICE_PX = 1f
 
-/** Breathing room around a clue number inside its cell. */
-val CLUE_PADDING = 1.dp
-
 /** Content-space width the divider reserves between the clue gutters and the playing field. */
 val BOARD_SEPARATOR = TILE_BORDER * SEPARATOR_UNITS
 

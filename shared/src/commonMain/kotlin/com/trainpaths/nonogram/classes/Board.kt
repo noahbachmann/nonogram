@@ -332,7 +332,6 @@ private fun RowClueLine(clues: List<Int>, slots: Int, gutterW: Dp) {
     Row(
         modifier = Modifier
             .requiredSize(gutterW, CELL)
-            .padding(CLUE_PADDING)
             .background(Color.White),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -350,7 +349,6 @@ private fun ColClueLine(clues: List<Int>, slots: Int, gutterH: Dp) {
     Column(
         modifier = Modifier
             .requiredSize(CELL, gutterH)
-            .padding(CLUE_PADDING)
             .background(Color.White),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
