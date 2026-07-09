@@ -127,7 +127,7 @@ private fun NonogramCard(nonogram: Nonogram, progress: List<List<Int>>, beatCoun
                 }
             }
             Row(Modifier.fillMaxSize()) {
-                DrawNonogram(progress)
+                DrawNonogram(if (beatCount > 0 && progress.all { row -> row.all { it == 0 } }) nonogram.solution else progress)
             }
         }
     }
