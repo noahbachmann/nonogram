@@ -1,6 +1,5 @@
 package com.trainpaths.nonogram.classes
 
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.Canvas
@@ -48,6 +47,44 @@ private fun computeLineClues(line: List<Int>): List<Int> {
     if (clues.isEmpty())
         return listOf(0)
     return clues
+}
+
+fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
+    val solution: Array<Array<Int>> = Array(ng.height) { Array(ng.width) { 0 } }
+    for (row in 0 until ng.height) {
+        val clues: List<Int> = ng.rowClues[row]
+        val max = clues.sum() + clues.size
+        if (max > ng.width - max) {
+            var l = 0
+            var r = ng.width - max
+            for (clue in clues) {
+                l += clue + 1
+                if (l > r) {
+                    solution[row].fill(1, r, l)
+                }
+                r += clue + 1
+            }
+        }
+    }
+
+    for (col in 0 until ng.width) {
+        val clues: List<Int> = ng.colClues[col]
+        val max = clues.sum() + clues.size
+        if (max > ng.height - max) {
+            var l = 0
+            var r = ng.height - max
+            for (clue in clues) {
+                l += clue + 1
+                if (l > r) {
+                    for (row in r until l) {
+                        solution[row][col] = 1
+                    }
+                }
+                r += clue + 1
+            }
+        }
+    }
+    return solution
 }
 
 @Composable
