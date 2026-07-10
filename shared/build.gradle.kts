@@ -1,3 +1,6 @@
+@file:OptIn(ExperimentalWasmDsl::class)
+
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -93,6 +96,7 @@ kotlin {
         }
         webMain.dependencies {
             implementation(libs.sqldelight.web.worker.driver)
+            implementation(npm("firebase", "12.13.0"))
         }
     }
 }
