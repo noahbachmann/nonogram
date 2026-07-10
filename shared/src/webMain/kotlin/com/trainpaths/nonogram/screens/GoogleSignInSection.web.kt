@@ -26,7 +26,7 @@ actual fun GoogleSignInSection(
             scope.launch {
                 try {
                     val user = FirebaseWeb.signInWithGoogle(idToken, accessToken)
-                    onSignedIn(user.uid, user.displayName ?: googleUser?.displayName?.takeIf { it.isNotBlank() })
+                    onSignedIn(user.uid, user.displayName ?: googleUser.displayName.takeIf { it.isNotBlank() })
                 } catch (e: Throwable) {
                     println("GoogleSignIn(web): Firebase sign-in failed: ${e.message}")
                 }
