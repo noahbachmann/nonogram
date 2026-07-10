@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.auth.AuthState
-import com.trainpaths.nonogram.sync.FirestoreSyncService
+import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +14,7 @@ import kotlinx.coroutines.withContext
 
 class AuthViewModel(
     private val authRepository: AuthRepository,
-    private val syncService: FirestoreSyncService,
+    private val syncService: SyncService,
     private val sdk: AppSDK,
 ) : ViewModel() {
 

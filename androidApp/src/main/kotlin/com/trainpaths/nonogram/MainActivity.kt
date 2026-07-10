@@ -4,6 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.trainpaths.nonogram.auth.AuthState
+import com.trainpaths.nonogram.screens.LoadingScreen
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
@@ -18,15 +22,18 @@ class MainActivity : ComponentActivity() {
         AppInitializer.onApplicationStart(BuildConfig.GOOGLE_WEB_CLIENT_ID)
 
         setContent {
-            val menuViewModel = koinViewModel<MenuViewModel>()
             val authViewModel = koinViewModel<AuthViewModel>()
-            val genViewModel = koinViewModel<GenViewModel>()
-            App(
-                menuViewModel = menuViewModel,
-                authViewModel = authViewModel,
-                genViewModel = genViewModel,
-                gameViewModelFactory = { _ -> koinViewModel<GameViewModel>() },
-            )
+            val authState by authViewModel.authState.collectAsState()
+            if (authState == AuthState.INITIALIZING) {
+                AppTheme { LoadingScreen() }
+            } else {
+                App(
+                    menuViewModel = koinViewModel<MenuViewModel>(),
+                    authViewModel = authViewModel,
+                    genViewModel = koinViewModel<GenViewModel>(),
+                    gameViewModelFactory = { _ -> koinViewModel<GameViewModel>() },
+                )
+            }
         }
     }
 }

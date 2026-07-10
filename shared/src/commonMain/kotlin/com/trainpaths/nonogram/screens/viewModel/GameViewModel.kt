@@ -11,7 +11,7 @@ import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileState
-import com.trainpaths.nonogram.sync.FirestoreSyncService
+import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -20,7 +20,7 @@ import kotlinx.serialization.json.Json
 class GameViewModel(
     private val sdk: AppSDK,
     private val authRepository: AuthRepository,
-    private val syncService: FirestoreSyncService,
+    private val syncService: SyncService,
 ) : ViewModel() {
 
     var nonogram: Nonogram? by mutableStateOf(null)

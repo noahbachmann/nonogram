@@ -19,7 +19,7 @@ class AuthRepository(private val sdk: AppSDK, private val settings: Settings) {
     val hasCompletedOnboarding: Boolean
         get() = settings.getBoolean(KEY_HAS_COMPLETED_ONBOARDING, false)
 
-    fun initialize() {
+    suspend fun initialize() {
         val savedId = settings.getLongOrNull(KEY_CURRENT_USER_ID)
         if (savedId != null && sdk.getUserById(savedId) != null) {
             _currentUserId.value = savedId
@@ -37,7 +37,7 @@ class AuthRepository(private val sdk: AppSDK, private val settings: Settings) {
         settings.putBoolean(KEY_HAS_COMPLETED_ONBOARDING, true)
     }
 
-    fun linkFirebaseUser(firebaseUid: String, displayName: String?) {
+    suspend fun linkFirebaseUser(firebaseUid: String, displayName: String?) {
         val existingUser = sdk.getUserByFirebaseUid(firebaseUid)
         if (existingUser != null) {
             _currentUserId.value = existingUser.id

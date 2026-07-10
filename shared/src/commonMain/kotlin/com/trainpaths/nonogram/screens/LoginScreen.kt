@@ -23,11 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.mmk.kmpauth.firebase.google.GoogleButtonUiContainerFirebase
-import com.mmk.kmpauth.uihelper.google.GoogleSignInButton
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
-import dev.gitlive.firebase.auth.FirebaseUser
 
 @Composable
 fun LoginScreen(
@@ -42,18 +38,6 @@ fun LoginScreen(
         if (signInComplete && isSigningIn) {
             isSigningIn = false
             onLoginSuccess()
-        }
-    }
-
-    val onFirebaseResult: (Result<FirebaseUser?>) -> Unit = { result ->
-        if (result.isSuccess) {
-            val firebaseUser = result.getOrNull()
-            if (firebaseUser != null) {
-                isSigningIn = true
-                authViewModel.onFirebaseSignInSuccess(firebaseUser.uid, firebaseUser.displayName)
-            }
-        } else {
-            println("Error Result: ${result.exceptionOrNull()?.message}")
         }
     }
 
@@ -79,13 +63,13 @@ fun LoginScreen(
                 modifier = Modifier.width(IntrinsicSize.Max),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                GoogleButtonUiContainerFirebase(onResult = onFirebaseResult, linkAccount = false) {
-                    GoogleSignInButton(
-                        modifier = Modifier.fillMaxWidth().height(44.dp),
-                        fontSize = 19.sp,
-                        text = "Sign in with Google"
-                    ) { this.onClick() }
-                }
+                GoogleSignInSection(
+                    onSignedIn = { uid, displayName ->
+                        isSigningIn = true
+                        authViewModel.onFirebaseSignInSuccess(uid, displayName)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                )
 
                 OutlinedButton(
                     onClick = {

@@ -5,11 +5,19 @@ import com.trainpaths.nonogram.cache.DatabaseFactory
 import com.trainpaths.nonogram.cache.NonogramProgress
 import com.trainpaths.nonogram.cache.ProgressWithTimestamp
 import com.trainpaths.nonogram.classes.Nonogram
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
-class AppSDK(databaseFactory: DatabaseFactory) {
-    private val database = Database(databaseFactory)
+class AppSDK(private val databaseFactory: DatabaseFactory) {
+    private val mutex = Mutex()
+    private var database: Database? = null
 
-    fun seedIfEmpty() {
+    private suspend fun db(): Database =
+        database ?: mutex.withLock {
+            database ?: Database(databaseFactory.createDriver()).also { database = it }
+        }
+
+    suspend fun seedIfEmpty() {
         if (getAllNonograms().isNotEmpty()) return
         addNonogram(
             "EASY", listOf(
@@ -45,66 +53,66 @@ class AppSDK(databaseFactory: DatabaseFactory) {
         )
     }
 
-    fun getAllNonograms(): List<Nonogram> =
-        database.getAllNonograms()
+    suspend fun getAllNonograms(): List<Nonogram> =
+        db().getAllNonograms()
 
-    fun getNonogramsByDifficulty(difficulty: String): List<Nonogram> =
-        database.getNonogramsByDifficulty(difficulty)
+    suspend fun getNonogramsByDifficulty(difficulty: String): List<Nonogram> =
+        db().getNonogramsByDifficulty(difficulty)
 
-    fun getNonogramsByAuthor(authorId: Long): List<Nonogram> =
-        database.getNonogramsByAuthor(authorId)
+    suspend fun getNonogramsByAuthor(authorId: Long): List<Nonogram> =
+        db().getNonogramsByAuthor(authorId)
 
-    fun getNonogramById(id: Long): Nonogram? =
-        database.getNonogramById(id)
+    suspend fun getNonogramById(id: Long): Nonogram? =
+        db().getNonogramById(id)
 
-    fun getRandomNonogram(difficulty: String? = null): Nonogram? =
-        database.getRandomNonogram(difficulty)
+    suspend fun getRandomNonogram(difficulty: String? = null): Nonogram? =
+        db().getRandomNonogram(difficulty)
 
-    fun addNonogram(
+    suspend fun addNonogram(
         difficulty: String,
         solution: List<List<Int>>,
         authorId: Long = 0,
         valid: Long = 0,
         status: Long = 0
     ): Long =
-        database.addNonogram(difficulty, solution, authorId, valid, status)
+        db().addNonogram(difficulty, solution, authorId, valid, status)
 
-    fun updateNonogram(
+    suspend fun updateNonogram(
         id: Long,
         nonogram: Nonogram,
     ): Long =
-        database.updateNonogram(id, nonogram)
+        db().updateNonogram(id, nonogram)
 
-    fun addUser(name: String): Long =
-        database.addUser(name)
+    suspend fun addUser(name: String): Long =
+        db().addUser(name)
 
-    fun getUserById(id: Long) =
-        database.getUserById(id)
+    suspend fun getUserById(id: Long) =
+        db().getUserById(id)
 
-    fun getUserByFirebaseUid(uid: String) =
-        database.getUserByFirebaseUid(uid)
+    suspend fun getUserByFirebaseUid(uid: String) =
+        db().getUserByFirebaseUid(uid)
 
-    fun updateUserFirebaseUid(userId: Long, firebaseUid: String, name: String) =
-        database.updateUserFirebaseUid(userId, firebaseUid, name)
+    suspend fun updateUserFirebaseUid(userId: Long, firebaseUid: String, name: String) =
+        db().updateUserFirebaseUid(userId, firebaseUid, name)
 
-    fun saveProgress(userId: Long, nonogramId: Long, board: List<List<Int>>?) =
-        database.saveProgress(userId, nonogramId, board)
+    suspend fun saveProgress(userId: Long, nonogramId: Long, board: List<List<Int>>?) =
+        db().saveProgress(userId, nonogramId, board)
 
-    fun incrementBeat(userId: Long, nonogramId: Long) =
-        database.incrementBeat(userId, nonogramId)
+    suspend fun incrementBeat(userId: Long, nonogramId: Long) =
+        db().incrementBeat(userId, nonogramId)
 
-    fun saveProgressAfterWin(userId: Long, nonogramId: Long) =
-        database.saveProgressAfterWin(userId, nonogramId)
+    suspend fun saveProgressAfterWin(userId: Long, nonogramId: Long) =
+        db().saveProgressAfterWin(userId, nonogramId)
 
-    fun getProgressForUser(userId: Long): List<NonogramProgress> =
-        database.getProgressForUser(userId)
+    suspend fun getProgressForUser(userId: Long): List<NonogramProgress> =
+        db().getProgressForUser(userId)
 
-    fun getProgressForUserWithTimestamp(userId: Long): List<ProgressWithTimestamp> =
-        database.getProgressForUserWithTimestamp(userId)
+    suspend fun getProgressForUserWithTimestamp(userId: Long): List<ProgressWithTimestamp> =
+        db().getProgressForUserWithTimestamp(userId)
 
-    fun getSingleProgress(userId: Long, nonogramId: Long): ProgressWithTimestamp? =
-        database.getSingleProgress(userId, nonogramId)
+    suspend fun getSingleProgress(userId: Long, nonogramId: Long): ProgressWithTimestamp? =
+        db().getSingleProgress(userId, nonogramId)
 
-    fun saveProgressWithTimestamp(userId: Long, nonogramId: Long, boardState: String?, updatedAt: Long) =
-        database.saveProgressWithTimestamp(userId, nonogramId, boardState, updatedAt)
+    suspend fun saveProgressWithTimestamp(userId: Long, nonogramId: Long, boardState: String?, updatedAt: Long) =
+        db().saveProgressWithTimestamp(userId, nonogramId, boardState, updatedAt)
 }

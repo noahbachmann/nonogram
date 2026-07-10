@@ -11,7 +11,7 @@ import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileState
-import com.trainpaths.nonogram.sync.FirestoreSyncService
+import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -19,7 +19,7 @@ import kotlinx.coroutines.withContext
 class GenViewModel(
     private val sdk: AppSDK,
     private val authRepository: AuthRepository,
-    private val syncService: FirestoreSyncService,
+    private val syncService: SyncService,
 ) : ViewModel() {
 
     companion object {
