@@ -8,6 +8,7 @@ import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.di.appModule
 import com.trainpaths.nonogram.di.webModule
+import com.trainpaths.nonogram.firebase.FirebaseWeb
 import com.trainpaths.nonogram.screens.LoadingScreen
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
@@ -21,6 +22,14 @@ import org.koin.mp.KoinPlatform
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
+    FirebaseWeb.initialize(
+        apiKey = FirebaseWebConfig.API_KEY,
+        authDomain = FirebaseWebConfig.AUTH_DOMAIN,
+        projectId = FirebaseWebConfig.PROJECT_ID,
+        messagingSenderId = FirebaseWebConfig.MESSAGING_SENDER_ID,
+        appId = FirebaseWebConfig.APP_ID,
+    )
+    AppInitializer.onApplicationStart(FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID)
     startKoin { modules(webModule, appModule) }
     MainScope().launch {
         AppInitializer.initializeAuth(KoinPlatform.getKoin().get<AuthRepository>())

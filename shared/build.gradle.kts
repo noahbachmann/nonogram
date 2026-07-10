@@ -25,6 +25,8 @@ kotlin {
 
     js {
         browser()
+        // The Firebase externals in webMain are @JsModule-only, which UMD (the js default) can't link.
+        useEsModules()
     }
 
     wasmJs {

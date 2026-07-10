@@ -48,22 +48,56 @@ built on the official `@sqlite.org/sqlite-wasm` package, using the `opfs-sahpool
 `WebDatabaseFactory` (`shared/src/webMain/.../cache/WebDatabaseFactory.kt`) drives the worker through the same
 `WebWorkerDriver` SQLDelight uses for its own sql.js reference worker — only the worker script differs.
 
-## Guest-only v1 and the Firebase seams
+## Web sign-in + sync (milestone 2)
 
-Neither `kmpauth-firebase` nor `dev.gitlive:firebase-firestore` publish a `wasmJs` variant (firestore doesn't
-even publish `js`+sign-in together in a way that works without gitlive on wasm). Rather than block the whole
-web port on that, v1 ships **guest-only** on web, with two seams ready for a follow-up:
+Neither `kmpauth-firebase` nor `dev.gitlive:firebase-firestore` publish a `wasmJs` variant, so web sign-in/sync
+is built without gitlive: `kmpauth-google` (publishes js+wasmJs, commonMain dep) obtains the Google token in the
+browser, and **hand-written Kotlin externals to the Firebase JS SDK** (`npm("firebase", ...)` in `shared`'s
+`webMain`) do the credential exchange and Firestore I/O. Both v1 seams are now filled:
 
-- **`sync/SyncService`** — interface with the five sync methods `AuthViewModel`/`GameViewModel` already called.
-  `sync/FirestoreSyncService` (androidMain) implements it with gitlive+Firestore, unchanged behavior. Web binds
-  `sync/NoOpSyncService` (webMain) — unreachable in guest mode, but keeps DI symmetric.
-- **`screens/GoogleSignInSection`** — `expect`/`actual` composable. Android's actual is the original
-  `GoogleButtonUiContainerFirebase` + `GoogleSignInButton` block moved out of `LoginScreen`. Web's actual
-  renders nothing; `LoginScreen` on web only shows "Continue as Guest".
+- **`sync/SyncService`** — web binds `sync/FirebaseWebSyncService` (webMain), which mirrors the androidMain
+  `FirestoreSyncService` method-for-method against the same Firestore shape (`users/{uid}/progress/{nonogramId}`,
+  fields `boardState: String?` + `updatedAt: number`), so Android and web sync interoperate.
+- **`screens/GoogleSignInSection`** — the web actual renders kmpauth's `GoogleButtonUiContainer` +
+  `GoogleSignInButton`, exchanges the Google token via `FirebaseWeb.signInWithGoogle`, and feeds the resulting
+  Firebase `uid`/`displayName` into the unchanged common login flow.
 
-See the GitHub issue for the milestone-2 design (kmpauth-google web ID token + hand-written Kotlin externals
-to the Firebase JS SDK, implementing `FirebaseWebSyncService : SyncService` and filling in the web actual of
-`GoogleSignInSection` — avoiding gitlive-firebase entirely so both `js` and `wasmJs` get sign-in + sync).
+### The externals pattern (first in this repo)
+
+All bindings live once in `shared/src/webMain/kotlin/.../firebase/` and compile for **both** js and wasmJs
+(supported since Kotlin 2.2.20). The rules that make that work:
+
+- Only `JsAny`-family types in external signatures; every `external interface` extends `JsAny`. No `Long`
+  (Firestore numbers are doubles — `updatedAt` crosses the boundary as `Double`, `.toLong()` on read).
+- `@file:JsModule("firebase/auth")` etc. at file level; `@OptIn(ExperimentalWasmJsInterop::class)` per file.
+- `@JsModule`-only externals can't link under UMD, so **both `shared` and `webApp` set `js { useEsModules() }`**
+  (wasmJs is ESM anyway; webpack bundles either).
+- `js(...)` is unavailable in a shared source set. Plain JS objects (Firebase config, Firestore write payloads)
+  are built via a global `external object JSON { fun parse(...) }` + kotlinx-serialization `buildJsonObject`.
+- `Promise<T : JsAny?>.await()` comes from kotlinx-coroutines ≥ 1.11, which ships it in its shared web fragment.
+- Statics like `GoogleAuthProvider.credential(...)` are bound as an `external object`.
+- `QuerySnapshot` is consumed via `.empty` / `.forEach(callback)` instead of `.docs`, sidestepping the
+  js-vs-wasm `JsArray` API divergence.
+
+`firebase/FirebaseWeb.kt` is the facade: everything outside the `firebase` package (sync service, sign-in UI,
+`webApp/main.kt`) talks only to it, so if shared externals ever regress the bindings can move per-target
+without touching callers.
+
+### Auth/session details
+
+- **kmpauth token caveat:** kmpauth-google's web implementation uses the GIS *token client* (implicit flow), so
+  `GoogleUser.idToken` is usually empty in the browser and `accessToken` is populated. The sign-in actual passes
+  both (blank-filtered) to `GoogleAuthProvider.credential(idToken?, accessToken?)` — Firebase accepts either.
+  kmpauth injects the GIS script itself; `index.html` needs no change.
+- **Session restore gate:** on page reload the app trusts the local SQL `User.firebaseUid`, but the Firebase JS
+  session restores asynchronously from indexedDB. Every Firestore op in `FirebaseWebSyncService` first awaits
+  `auth.authStateReady()` and verifies the live uid matches — otherwise it logs and no-ops instead of hitting a
+  guaranteed permission-denied.
+- **Config:** `webApp/.../FirebaseWebConfig.kt` holds committed constants (Firebase web config + the Google web
+  OAuth client id). These are public-by-design — they ship in every JS bundle; security comes from Firestore
+  rules and the OAuth **Authorized JavaScript origins** allowlist (each dev/prod origin must be listed there;
+  note js and wasmJs dev servers on different ports are different origins with separate indexedDB sessions).
+  `main.kt` calls `FirebaseWeb.initialize(...)` and `AppInitializer.onApplicationStart(clientId)` before Koin.
 
 ## Dead code note
 
