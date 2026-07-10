@@ -4,14 +4,14 @@ import com.trainpaths.nonogram.AppSDK
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.firestore
 
-class FirestoreSyncService(private val sdk: AppSDK) {
+class FirestoreSyncService(private val sdk: AppSDK) : SyncService {
 
     private val firestore = Firebase.firestore
 
     private fun progressCollection(firebaseUid: String) =
         firestore.collection("users").document(firebaseUid).collection("progress")
 
-    suspend fun pushProgress(firebaseUid: String, nonogramId: Long, boardState: String?, updatedAt: Long) {
+    override suspend fun pushProgress(firebaseUid: String, nonogramId: Long, boardState: String?, updatedAt: Long) {
         try {
             progressCollection(firebaseUid)
                 .document(nonogramId.toString())
@@ -21,7 +21,7 @@ class FirestoreSyncService(private val sdk: AppSDK) {
         }
     }
 
-    suspend fun hasRemoteProgress(firebaseUid: String): Boolean {
+    override suspend fun hasRemoteProgress(firebaseUid: String): Boolean {
         return try {
             val docs = progressCollection(firebaseUid).get()
             docs.documents.isNotEmpty()
@@ -31,7 +31,7 @@ class FirestoreSyncService(private val sdk: AppSDK) {
         }
     }
 
-    suspend fun uploadAllLocalProgress(firebaseUid: String, localUserId: Long) {
+    override suspend fun uploadAllLocalProgress(firebaseUid: String, localUserId: Long) {
         try {
             val allProgress = sdk.getProgressForUserWithTimestamp(localUserId)
             for (progress in allProgress) {
@@ -42,7 +42,7 @@ class FirestoreSyncService(private val sdk: AppSDK) {
         }
     }
 
-    suspend fun pullAllProgress(firebaseUid: String, localUserId: Long) {
+    override suspend fun pullAllProgress(firebaseUid: String, localUserId: Long) {
         try {
             val remoteDocuments = progressCollection(firebaseUid).get()
             for (doc in remoteDocuments.documents) {
@@ -56,7 +56,7 @@ class FirestoreSyncService(private val sdk: AppSDK) {
         }
     }
 
-    suspend fun pullAndMergeAllProgress(firebaseUid: String, localUserId: Long) {
+    override suspend fun pullAndMergeAllProgress(firebaseUid: String, localUserId: Long) {
         try {
             val remoteDocuments = progressCollection(firebaseUid).get()
             for (doc in remoteDocuments.documents) {

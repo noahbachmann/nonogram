@@ -2,6 +2,7 @@ package com.trainpaths.nonogram
 
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.solveNonogram
+import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -19,21 +20,21 @@ class AppSDKTest {
     }
 
     @Test
-    fun seedIfEmpty_insertsThreeNonograms() {
+    fun seedIfEmpty_insertsThreeNonograms() = runTest {
         assertTrue(sdk.getAllNonograms().isEmpty())
         sdk.seedIfEmpty()
         assertEquals(4, sdk.getAllNonograms().size)
     }
 
     @Test
-    fun seedIfEmpty_doesNotDuplicateOnSecondCall() {
+    fun seedIfEmpty_doesNotDuplicateOnSecondCall() = runTest {
         sdk.seedIfEmpty()
         sdk.seedIfEmpty()
         assertEquals(4, sdk.getAllNonograms().size)
     }
 
     @Test
-    fun addNonogram_and_getAllNonograms_roundTrip() {
+    fun addNonogram_and_getAllNonograms_roundTrip() = runTest {
         val solution = listOf(listOf(1, 0), listOf(0, 1))
         val id = sdk.addNonogram("EASY", solution)
         val all = sdk.getAllNonograms()
@@ -44,7 +45,7 @@ class AppSDKTest {
     }
 
     @Test
-    fun getNonogramsByDifficulty_filtersCorrectly() {
+    fun getNonogramsByDifficulty_filtersCorrectly() = runTest {
         sdk.addNonogram("EASY", listOf(listOf(1)))
         sdk.addNonogram("HARD", listOf(listOf(0)))
         sdk.addNonogram("EASY", listOf(listOf(1, 1)))
@@ -58,14 +59,14 @@ class AppSDKTest {
     }
 
     @Test
-    fun getNonogramById_returnsCorrectOrNull() {
+    fun getNonogramById_returnsCorrectOrNull() = runTest {
         val id = sdk.addNonogram("EASY", listOf(listOf(1)))
         assertNotNull(sdk.getNonogramById(id))
         assertNull(sdk.getNonogramById(9999))
     }
 
     @Test
-    fun addUser_and_getUserById_roundTrip() {
+    fun addUser_and_getUserById_roundTrip() = runTest {
         val userId = sdk.addUser("Alice")
         val user = sdk.getUserById(userId)
         assertNotNull(user)
@@ -74,13 +75,13 @@ class AppSDKTest {
     }
 
     @Test
-    fun getUserByFirebaseUid_returnsNullInitially() {
+    fun getUserByFirebaseUid_returnsNullInitially() = runTest {
         sdk.addUser("Bob")
         assertNull(sdk.getUserByFirebaseUid("firebase-123"))
     }
 
     @Test
-    fun updateUserFirebaseUid_thenFindByUid() {
+    fun updateUserFirebaseUid_thenFindByUid() = runTest {
         val userId = sdk.addUser("Charlie")
         sdk.updateUserFirebaseUid(userId, "firebase-456", "Charlie Updated")
         val found = sdk.getUserByFirebaseUid("firebase-456")
@@ -90,7 +91,7 @@ class AppSDKTest {
     }
 
     @Test
-    fun saveProgress_and_getProgressForUser_roundTrip() {
+    fun saveProgress_and_getProgressForUser_roundTrip() = runTest {
         val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1, 0), listOf(0, 1)))
         val userId = sdk.addUser("Dave")
         val board = listOf(listOf(1, 0), listOf(0, 0))
@@ -104,7 +105,7 @@ class AppSDKTest {
     }
 
     @Test
-    fun incrementBeat_incrementsCounter() {
+    fun incrementBeat_incrementsCounter() = runTest {
         val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
         val userId = sdk.addUser("Eve")
 
@@ -120,7 +121,7 @@ class AppSDKTest {
     }
 
     @Test
-    fun upsertProgress_preservesBeatCount() {
+    fun upsertProgress_preservesBeatCount() = runTest {
         val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
         val userId = sdk.addUser("Frank")
 
@@ -136,7 +137,7 @@ class AppSDKTest {
     }
 
     @Test
-    fun saveProgressWithTimestamp_and_getSingleProgress_roundTrip() {
+    fun saveProgressWithTimestamp_and_getSingleProgress_roundTrip() = runTest {
         val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
         val userId = sdk.addUser("Grace")
         val timestamp = 1700000000000L
@@ -150,7 +151,7 @@ class AppSDKTest {
     }
 
     @Test
-    fun getProgressForUserWithTimestamp_returnsAllProgress() {
+    fun getProgressForUserWithTimestamp_returnsAllProgress() = runTest {
         val id1 = sdk.addNonogram("EASY", listOf(listOf(1)))
         val id2 = sdk.addNonogram("HARD", listOf(listOf(0)))
         val userId = sdk.addUser("Heidi")
@@ -163,7 +164,7 @@ class AppSDKTest {
     }
 
     @Test
-    fun saveProgress_nullBoard() {
+    fun saveProgress_nullBoard() = runTest {
         val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
         val userId = sdk.addUser("Ivan")
 
@@ -175,7 +176,7 @@ class AppSDKTest {
     }
 
     @Test
-    fun solveNonogram_correct() {
+    fun solveNonogram_correct() = runTest {
         val nonogramId = sdk.addNonogram(
             "EASY", listOf(
                 listOf(0, 1, 1, 1, 0, 0, 0, 1, 1, 1),

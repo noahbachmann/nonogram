@@ -9,7 +9,7 @@ object AppInitializer {
         GoogleAuthProvider.create(credentials = GoogleAuthCredentials(serverId = googleWebClientId))
     }
 
-    fun initializeAuth(authRepository: AuthRepository) {
+    suspend fun initializeAuth(authRepository: AuthRepository) {
         authRepository.initialize()
     }
 }

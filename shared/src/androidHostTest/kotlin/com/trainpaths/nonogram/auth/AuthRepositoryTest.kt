@@ -3,6 +3,7 @@ package com.trainpaths.nonogram.auth
 import com.russhwolf.settings.MapSettings
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.TestDatabaseFactory
+import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,14 +30,14 @@ class AuthRepositoryTest {
     }
 
     @Test
-    fun initialize_noSavedUser_createsGuestAndSetsGuest() {
+    fun initialize_noSavedUser_createsGuestAndSetsGuest() = runTest {
         authRepo.initialize()
         assertEquals(AuthState.GUEST, authRepo.authState.value)
         assertNotNull(authRepo.currentUserId.value)
     }
 
     @Test
-    fun initialize_withSavedGuestUser_restoresAndSetsGuest() {
+    fun initialize_withSavedGuestUser_restoresAndSetsGuest() = runTest {
         val userId = sdk.addUser("Guest")
         settings.putLong("current_user_id", userId)
 
@@ -47,7 +48,7 @@ class AuthRepositoryTest {
     }
 
     @Test
-    fun initialize_withSavedSignedInUser_setsSignedIn() {
+    fun initialize_withSavedSignedInUser_setsSignedIn() = runTest {
         val userId = sdk.addUser("Signed User")
         sdk.updateUserFirebaseUid(userId, "firebase-abc", "Signed User")
         settings.putLong("current_user_id", userId)
@@ -59,7 +60,7 @@ class AuthRepositoryTest {
     }
 
     @Test
-    fun initialize_withStaleUserId_createsNewGuest() {
+    fun initialize_withStaleUserId_createsNewGuest() = runTest {
         settings.putLong("current_user_id", 9999)
 
         authRepo.initialize()
@@ -71,7 +72,7 @@ class AuthRepositoryTest {
     }
 
     @Test
-    fun linkFirebaseUser_newUid_updatesCurrentUser() {
+    fun linkFirebaseUser_newUid_updatesCurrentUser() = runTest {
         authRepo.initialize()
         val userId = authRepo.currentUserId.value!!
 
@@ -86,7 +87,7 @@ class AuthRepositoryTest {
     }
 
     @Test
-    fun linkFirebaseUser_existingUid_switchesToThatUser() {
+    fun linkFirebaseUser_existingUid_switchesToThatUser() = runTest {
         val existingUserId = sdk.addUser("Existing")
         sdk.updateUserFirebaseUid(existingUserId, "firebase-existing", "Existing")
 
@@ -108,7 +109,7 @@ class AuthRepositoryTest {
     }
 
     @Test
-    fun linkFirebaseUser_alsoCompletesOnboarding() {
+    fun linkFirebaseUser_alsoCompletesOnboarding() = runTest {
         authRepo.initialize()
         assertFalse(authRepo.hasCompletedOnboarding)
         authRepo.linkFirebaseUser("firebase-xyz", "User")

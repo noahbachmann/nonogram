@@ -24,6 +24,10 @@ kotlin {
         browser()
     }
 
+    wasmJs {
+        browser()
+    }
+
     androidLibrary {
         namespace = "com.trainpaths.nonogram.shared"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -51,6 +55,8 @@ kotlin {
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.auth)
             implementation(libs.firebase.firestore)
+            implementation(libs.kmpauth.firebase)
+            implementation(libs.gitlive.firebase.firestore)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -67,16 +73,15 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.async.extensions)
             implementation(libs.kotlinx.datetime)
             implementation(libs.koin.core)
+            implementation(libs.koin.core.viewmodel)
             implementation(libs.navigation.compose)
 
             implementation(libs.multiplatform.settings)
             implementation(libs.kmpauth.google)
-            implementation(libs.kmpauth.firebase)
-            implementation(libs.kmpauth.facebook)
             implementation(libs.kmpauth.uihelper)
-            implementation(libs.gitlive.firebase.firestore)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -86,8 +91,8 @@ kotlin {
         getByName("androidHostTest").dependencies {
             implementation(libs.sqldelight.sqlite.driver)
         }
-        jsMain.dependencies {
-            implementation(libs.wrappers.browser)
+        webMain.dependencies {
+            implementation(libs.sqldelight.web.worker.driver)
         }
     }
 }
@@ -100,6 +105,7 @@ sqldelight {
     databases {
         create("NonogramDb") {
             packageName.set("com.trainpaths.nonogram.cache")
+            generateAsync.set(true)
         }
     }
 }

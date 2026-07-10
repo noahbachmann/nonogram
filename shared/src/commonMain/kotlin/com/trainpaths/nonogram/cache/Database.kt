@@ -1,38 +1,42 @@
 package com.trainpaths.nonogram.cache
 
+import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOne
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
+import app.cash.sqldelight.db.SqlDriver
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 
-internal class Database(databaseFactory: DatabaseFactory) {
-    private val database = NonogramDb(databaseFactory.createDriver())
+internal class Database(driver: SqlDriver) {
+    private val database = NonogramDb(driver)
     private val dbQuery = database.databaseQueries
     private val json = Json
 
     // ---------- Nonograms ----------
 
-    internal fun getAllNonograms(): List<Nonogram> =
-        dbQuery.selectAllNonograms(::mapNonogram).executeAsList()
+    internal suspend fun getAllNonograms(): List<Nonogram> =
+        dbQuery.selectAllNonograms(::mapNonogram).awaitAsList()
 
-    internal fun getNonogramsByDifficulty(difficulty: String): List<Nonogram> =
-        dbQuery.selectNonogramsByDifficulty(difficulty, ::mapNonogram).executeAsList()
+    internal suspend fun getNonogramsByDifficulty(difficulty: String): List<Nonogram> =
+        dbQuery.selectNonogramsByDifficulty(difficulty, ::mapNonogram).awaitAsList()
 
-    internal fun getNonogramsByAuthor(authorId: Long): List<Nonogram> =
-        dbQuery.selectNonogramsByAuthor(authorId, ::mapNonogram).executeAsList()
+    internal suspend fun getNonogramsByAuthor(authorId: Long): List<Nonogram> =
+        dbQuery.selectNonogramsByAuthor(authorId, ::mapNonogram).awaitAsList()
 
-    internal fun getNonogramById(id: Long): Nonogram? =
-        dbQuery.selectNonogramById(id, ::mapNonogram).executeAsOneOrNull()
+    internal suspend fun getNonogramById(id: Long): Nonogram? =
+        dbQuery.selectNonogramById(id, ::mapNonogram).awaitAsOneOrNull()
 
-    internal fun getRandomNonogram(difficulty: String? = null): Nonogram? =
+    internal suspend fun getRandomNonogram(difficulty: String? = null): Nonogram? =
         if (difficulty == null) {
-            dbQuery.selectRandomNonogram(::mapNonogram).executeAsOneOrNull()
+            dbQuery.selectRandomNonogram(::mapNonogram).awaitAsOneOrNull()
         } else {
             dbQuery.selectRandomNonogramByDifficulty(difficulty, ::mapNonogram)
-                .executeAsOneOrNull()
+                .awaitAsOneOrNull()
         }
 
-    internal fun addNonogram(
+    internal suspend fun addNonogram(
         difficulty: String,
         solution: List<List<Int>>,
         authorId: Long = 0,
@@ -41,10 +45,10 @@ internal class Database(databaseFactory: DatabaseFactory) {
     ): Long =
         dbQuery.transactionWithResult {
             dbQuery.insertNonogram(difficulty, json.encodeToString(solution), authorId, valid, status)
-            dbQuery.lastInsertedId().executeAsOne()
+            dbQuery.lastInsertedId().awaitAsOne()
         }
 
-    internal fun updateNonogram(
+    internal suspend fun updateNonogram(
         id: Long,
         nonogram: Nonogram,
     ): Long =
@@ -57,27 +61,27 @@ internal class Database(databaseFactory: DatabaseFactory) {
                 nonogram.status,
                 id
             )
-            dbQuery.lastInsertedId().executeAsOne()
+            dbQuery.lastInsertedId().awaitAsOne()
         }
     // ---------- Users ----------
 
-    internal fun addUser(name: String): Long =
+    internal suspend fun addUser(name: String): Long =
         dbQuery.transactionWithResult {
             dbQuery.insertUser(name)
-            dbQuery.lastInsertedId().executeAsOne()
+            dbQuery.lastInsertedId().awaitAsOne()
         }
 
-    internal fun getUserById(id: Long) =
-        dbQuery.selectUserById(id).executeAsOneOrNull()
+    internal suspend fun getUserById(id: Long) =
+        dbQuery.selectUserById(id).awaitAsOneOrNull()
 
-    internal fun getUserByFirebaseUid(uid: String) =
-        dbQuery.selectUserByFirebaseUid(uid).executeAsOneOrNull()
+    internal suspend fun getUserByFirebaseUid(uid: String) =
+        dbQuery.selectUserByFirebaseUid(uid).awaitAsOneOrNull()
 
-    internal fun updateUserFirebaseUid(userId: Long, firebaseUid: String, name: String) {
+    internal suspend fun updateUserFirebaseUid(userId: Long, firebaseUid: String, name: String) {
         dbQuery.updateUserFirebaseUid(firebaseUid, name, userId)
     }
 
-    internal fun saveProgress(
+    internal suspend fun saveProgress(
         userId: Long,
         nonogramId: Long,
         board: List<List<Int>>?
@@ -90,11 +94,11 @@ internal class Database(databaseFactory: DatabaseFactory) {
         )
     }
 
-    internal fun incrementBeat(userId: Long, nonogramId: Long) {
+    internal suspend fun incrementBeat(userId: Long, nonogramId: Long) {
         dbQuery.incrementBeat(userId, nonogramId)
     }
 
-    internal fun saveProgressAfterWin(userId: Long, nonogramId: Long) {
+    internal suspend fun saveProgressAfterWin(userId: Long, nonogramId: Long) {
         dbQuery.upsertProgressAfterWin(
             userId = userId,
             nonogramId = nonogramId,
@@ -102,20 +106,20 @@ internal class Database(databaseFactory: DatabaseFactory) {
         )
     }
 
-    internal fun getProgressForUser(userId: Long): List<NonogramProgress> =
-        dbQuery.selectProgressForUser(userId, ::mapProgress).executeAsList()
+    internal suspend fun getProgressForUser(userId: Long): List<NonogramProgress> =
+        dbQuery.selectProgressForUser(userId, ::mapProgress).awaitAsList()
 
-    internal fun getProgressForUserWithTimestamp(userId: Long): List<ProgressWithTimestamp> =
+    internal suspend fun getProgressForUserWithTimestamp(userId: Long): List<ProgressWithTimestamp> =
         dbQuery.selectProgressForUserWithTimestamp(userId) { nonogramId, boardState, updatedAt ->
             ProgressWithTimestamp(nonogramId, boardState, updatedAt)
-        }.executeAsList()
+        }.awaitAsList()
 
-    internal fun getSingleProgress(userId: Long, nonogramId: Long): ProgressWithTimestamp? =
+    internal suspend fun getSingleProgress(userId: Long, nonogramId: Long): ProgressWithTimestamp? =
         dbQuery.selectSingleProgress(userId, nonogramId) { boardState, updatedAt ->
             ProgressWithTimestamp(nonogramId, boardState, updatedAt)
-        }.executeAsOneOrNull()
+        }.awaitAsOneOrNull()
 
-    internal fun saveProgressWithTimestamp(
+    internal suspend fun saveProgressWithTimestamp(
         userId: Long,
         nonogramId: Long,
         boardState: String?,

@@ -19,6 +19,9 @@ solve nonogram puzzles, track progress, and optionally sync via Google sign-in w
 # Web (JS — broader compatibility)
 ./gradlew :webApp:jsBrowserDevelopmentRun
 
+# Web production bundles
+./gradlew :webApp:wasmJsBrowserDistribution :webApp:jsBrowserDistribution
+
 # iOS: open iosApp/ in Xcode
 ```
 
@@ -39,23 +42,40 @@ solve nonogram puzzles, track progress, and optionally sync via Google sign-in w
 Tests live in `shared/src/commonTest/` (pure-logic tests) and `shared/src/androidHostTest/` (tests that need a
 SQLDelight driver — uses `TestDatabaseFactory` with the SQLite JVM driver).
 
+## Documenting changes
+
+Don't over-document via code comments. When a change is architecturally significant (a new subsystem, a
+cross-cutting refactor, a platform port), explain the design in a `.md` file under `docs/` instead — see
+`docs/web-architecture.md` for the shape this should take. Code comments stay minimal (one line, only for
+genuinely non-obvious *why*).
+
 ## Architecture
 
-All shared code lives in `shared/src/commonMain/`. Platform apps (`androidApp/`, `webApp/`, `iosApp/`) are thin shells
-that initialize Koin DI and host the Compose UI.
+All shared code lives in `shared/src/commonMain/`, with platform-specific code in `shared/src/androidMain/` and
+`shared/src/webMain/` (shared by the `jsMain`/`wasmJsMain` source sets — see `docs/web-architecture.md`).
+Platform apps (`androidApp/`, `webApp/`, `iosApp/`) are thin shells that initialize Koin DI and host the Compose UI.
 
 ### Layers
 
-- **`AppSDK`** — facade over the database. All data access goes through here. ViewModels and sync service depend on it.
+- **`AppSDK`** — facade over the database. All data access goes through here; every method is `suspend` (SQLDelight
+  `generateAsync` is on so the web worker driver can be async). Builds its `Database` lazily behind a mutex on first
+  use so the constructor itself stays synchronous for DI.
 - **`cache/Database`** — internal class wrapping SQLDelight-generated `NonogramDb`. Maps DB rows to domain types. Not
   accessed directly outside `AppSDK`.
+- **`cache/DatabaseFactory`** — `suspend fun createDriver(): SqlDriver`, implemented per platform: `AndroidDatabaseFactory`
+  (androidMain, `Schema.synchronous()`), `WebDatabaseFactory` (webMain, OPFS worker driver + explicit
+  `PRAGMA user_version` migration — see `docs/web-architecture.md`), `TestDatabaseFactory` (androidHostTest, in-memory JDBC).
 - **`auth/AuthRepository`** — manages auth state (`GUEST` / `SIGNED_IN`), local user ID, and onboarding flag via
-  `multiplatform-settings`. Links guest accounts to Firebase UIDs on sign-in.
-- **`sync/FirestoreSyncService`** — bidirectional Firestore sync for user progress. Uses
-  `dev.gitlive:firebase-firestore` (KMP wrapper). Merge strategy: last-write-wins by `updatedAt` timestamp.
+  `multiplatform-settings`. Links guest accounts to Firebase UIDs on sign-in. `initialize()`/`linkFirebaseUser()` are
+  suspend (call the suspend `AppSDK`).
+- **`sync/SyncService`** — interface for progress sync (push/pull/merge). `sync/FirestoreSyncService` (androidMain)
+  implements it with `dev.gitlive:firebase-firestore`; web binds `sync/NoOpSyncService` (guest-only web v1 — see
+  `docs/web-architecture.md` for the milestone-2 plan to add web sign-in + sync).
+- **`screens/GoogleSignInSection`** — `expect`/`actual` composable for the Google sign-in button; Android wires
+  `kmpauth-firebase`, web renders nothing in v1.
 - **ViewModels** (`screens/viewModel/`) — Compose state holders using `mutableStateOf`. `GameViewModel` manages the tile
   board and save/sync. `MenuViewModel` holds the nonogram list and progress preview map. `AuthViewModel` orchestrates
-  login flow and sync-on-start.
+  login flow and sync-on-start. All depend on the suspend `AppSDK`/`SyncService` from inside `viewModelScope.launch`.
 
 ### Navigation
 
@@ -84,8 +104,12 @@ pass `backArrow = true` to force a plain back arrow (used in `GenConf`).
 
 ### DI (Koin)
 
-- `di/AppModule.kt` — common singletons: `AppSDK`, `Settings`, `AuthRepository`, `FirestoreSyncService`
-- `di/AndroidModule.kt` — platform bindings: `DatabaseFactory` implementation, ViewModel registration via `viewModelOf`
+- `di/AppModule.kt` — common singletons: `AppSDK`, `Settings`, `AuthRepository`, plus all ViewModel registrations via
+  `viewModelOf` (koin-core-viewmodel, shared across platforms).
+- `di/AndroidModule.kt` — platform bindings: `DatabaseFactory` → `AndroidDatabaseFactory`, `SyncService` →
+  `FirestoreSyncService`.
+- `di/WebModule.kt` (webMain) — platform bindings: `DatabaseFactory` → `WebDatabaseFactory`, `SyncService` →
+  `NoOpSyncService`.
 
 ### Data Model
 
@@ -101,6 +125,10 @@ Migrations: numbered `.sqm` files in subdirectories (e.g., `1.sqm`, `2/2.sqm`)
 Database name: `NonogramDb`, package: `com.trainpaths.nonogram.cache`
 
 Tables: `NonogramData`, `User`, `UserProgress` (composite PK: userId + nonogramId).
+
+`generateAsync` is enabled, so all generated query/transaction code is `suspend`. Sync drivers (Android, JVM tests)
+adapt via `NonogramDb.Schema.synchronous()`; the web worker driver uses the async API directly. See
+`docs/web-architecture.md` for the per-platform schema init/migration story.
 
 ### AppTheme
 
@@ -118,9 +146,13 @@ content. Text on main background uses `onPrimary`.
 
 ### Firebase / Auth
 
-- Google sign-in via `kmpauth` (`io.github.mirzemehdi:kmpauth-google/firebase`)
-- `AppInitializer.onApplicationStart()` sets up `GoogleAuthProvider` with a web client ID
-- Firestore path: `users/{firebaseUid}/progress/{nonogramId}`
+- Google sign-in via `kmpauth` (`io.github.mirzemehdi:kmpauth-google/firebase`) — `kmpauth-firebase` is Android-only
+  (no web target published), so it's an androidMain-only dependency; `kmpauth-google`/`kmpauth-uihelper` are
+  commonMain (both publish js+wasmJs).
+- `AppInitializer.onApplicationStart()` sets up `GoogleAuthProvider` with a web client ID (Android only; web has no
+  Google client id needed in guest-only v1).
+- Firestore path: `users/{firebaseUid}/progress/{nonogramId}` (Android only — `dev.gitlive:firebase-firestore` has
+  no wasmJs variant; androidMain-only dependency, isolated behind `sync/SyncService`).
 
 ## Current State
 
@@ -128,3 +160,7 @@ The generator is implemented end-to-end: `GenListScreen` lists the signed-in use
 grid size, `GenScreen` is the tile-drawing board, all driven by the shared `GenViewModel`. Users can create new puzzles
 and edit existing ones (with non-destructive resize). See **Navigation → Generator flow** above. Difficulty is still
 hardcoded to `EASY` in `GenViewModel` (no selector yet), and puzzles aren't validated for a unique solution.
+
+Web (js + wasmJs) is implemented as a guest-only port with persistent OPFS storage — no Google sign-in or Firestore
+sync yet (Firebase libraries don't support wasmJs; see `docs/web-architecture.md` and the tracked GitHub issue for
+the sign-in/sync follow-up).
