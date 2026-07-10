@@ -69,10 +69,12 @@ Platform apps (`androidApp/`, `webApp/`, `iosApp/`) are thin shells that initial
   `multiplatform-settings`. Links guest accounts to Firebase UIDs on sign-in. `initialize()`/`linkFirebaseUser()` are
   suspend (call the suspend `AppSDK`).
 - **`sync/SyncService`** — interface for progress sync (push/pull/merge). `sync/FirestoreSyncService` (androidMain)
-  implements it with `dev.gitlive:firebase-firestore`; web binds `sync/NoOpSyncService` (guest-only web v1 — see
-  `docs/web-architecture.md` for the milestone-2 plan to add web sign-in + sync).
+  implements it with `dev.gitlive:firebase-firestore`; web binds `sync/FirebaseWebSyncService` (webMain), built on
+  hand-written Kotlin externals to the Firebase JS SDK in `firebase/` (see `docs/web-architecture.md` for the
+  externals pattern and the auth-session gate). Same Firestore shape on both platforms, so progress interoperates.
 - **`screens/GoogleSignInSection`** — `expect`/`actual` composable for the Google sign-in button; Android wires
-  `kmpauth-firebase`, web renders nothing in v1.
+  `kmpauth-firebase`, web wires kmpauth's `GoogleButtonUiContainer` + `FirebaseWeb.signInWithGoogle` (note: the
+  web flow yields an access token, not an ID token — see `docs/web-architecture.md`).
 - **ViewModels** (`screens/viewModel/`) — Compose state holders using `mutableStateOf`. `GameViewModel` manages the tile
   board and save/sync. `MenuViewModel` holds the nonogram list and progress preview map. `AuthViewModel` orchestrates
   login flow and sync-on-start. All depend on the suspend `AppSDK`/`SyncService` from inside `viewModelScope.launch`.
@@ -109,7 +111,7 @@ pass `backArrow = true` to force a plain back arrow (used in `GenConf`).
 - `di/AndroidModule.kt` — platform bindings: `DatabaseFactory` → `AndroidDatabaseFactory`, `SyncService` →
   `FirestoreSyncService`.
 - `di/WebModule.kt` (webMain) — platform bindings: `DatabaseFactory` → `WebDatabaseFactory`, `SyncService` →
-  `NoOpSyncService`.
+  `FirebaseWebSyncService`.
 
 ### Data Model
 
@@ -149,10 +151,12 @@ content. Text on main background uses `onPrimary`.
 - Google sign-in via `kmpauth` (`io.github.mirzemehdi:kmpauth-google/firebase`) — `kmpauth-firebase` is Android-only
   (no web target published), so it's an androidMain-only dependency; `kmpauth-google`/`kmpauth-uihelper` are
   commonMain (both publish js+wasmJs).
-- `AppInitializer.onApplicationStart()` sets up `GoogleAuthProvider` with a web client ID (Android only; web has no
-  Google client id needed in guest-only v1).
-- Firestore path: `users/{firebaseUid}/progress/{nonogramId}` (Android only — `dev.gitlive:firebase-firestore` has
-  no wasmJs variant; androidMain-only dependency, isolated behind `sync/SyncService`).
+- `AppInitializer.onApplicationStart()` sets up `GoogleAuthProvider` with a web client ID. Android passes
+  `BuildConfig.GOOGLE_WEB_CLIENT_ID` (from `local.properties`); web passes `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID`
+  (committed constants in `webApp` — Firebase web config is public-by-design).
+- Firestore path: `users/{firebaseUid}/progress/{nonogramId}` on both platforms — Android via
+  `dev.gitlive:firebase-firestore` (androidMain), web via hand-written Firebase JS SDK externals (webMain), both
+  isolated behind `sync/SyncService`.
 
 ## Current State
 
@@ -161,6 +165,6 @@ grid size, `GenScreen` is the tile-drawing board, all driven by the shared `GenV
 and edit existing ones (with non-destructive resize). See **Navigation → Generator flow** above. Difficulty is still
 hardcoded to `EASY` in `GenViewModel` (no selector yet), and puzzles aren't validated for a unique solution.
 
-Web (js + wasmJs) is implemented as a guest-only port with persistent OPFS storage — no Google sign-in or Firestore
-sync yet (Firebase libraries don't support wasmJs; see `docs/web-architecture.md` and the tracked GitHub issue for
-the sign-in/sync follow-up).
+Web (js + wasmJs) has persistent OPFS storage plus Google sign-in and Firestore sync via hand-written Firebase JS
+SDK externals in `shared/src/webMain` (no gitlive — it doesn't publish wasmJs; see `docs/web-architecture.md` for
+the externals pattern, the kmpauth access-token caveat, and the auth-session restore gate).

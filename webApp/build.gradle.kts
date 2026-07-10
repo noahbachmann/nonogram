@@ -12,6 +12,8 @@ kotlin {
     js {
         browser()
         binaries.executable()
+        // Must match :shared — the Firebase @JsModule externals can't link under UMD.
+        useEsModules()
     }
 
     wasmJs {
