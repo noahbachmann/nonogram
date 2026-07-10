@@ -5,6 +5,7 @@ package com.trainpaths.nonogram.firebase
 
 import kotlin.js.ExperimentalWasmJsInterop
 import kotlin.js.JsAny
+import kotlin.js.JsModule
 import kotlin.js.Promise
 
 internal external interface Firestore : JsAny
