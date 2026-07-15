@@ -20,25 +20,32 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
     suspend fun seedIfEmpty() {
         if (getAllNonograms().isNotEmpty()) return
         addNonogram(
-            "EASY", listOf(
+            "EASY",
+            listOf(
                 listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0), listOf(1, 1, 1, 1, 1),
                 listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0)
-            )
+            ),
+            status = 1,
         )
         addNonogram(
-            "MEDIUM", listOf(
+            "MEDIUM",
+            listOf(
                 listOf(1, 1, 1, 1, 1), listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 0, 0),
                 listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 1, 1)
-            )
+            ),
+            status = 1,
         )
         addNonogram(
-            "HARD", listOf(
+            "HARD",
+            listOf(
                 listOf(1, 1, 0, 0, 0), listOf(0, 1, 1, 0, 0), listOf(0, 0, 1, 1, 0),
                 listOf(0, 0, 0, 1, 1), listOf(0, 0, 0, 0, 1)
-            )
+            ),
+            status = 1,
         )
         addNonogram(
-            "HARD", listOf(
+            "HARD",
+            listOf(
                 listOf(0, 1, 1, 1, 0, 0, 0, 1, 1, 1),
                 listOf(1, 1, 0, 0, 1, 1, 1, 1, 1, 1),
                 listOf(1, 1, 1, 1, 1, 0, 0, 0, 1, 1),
@@ -48,8 +55,9 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
                 listOf(0, 0, 1, 0, 0, 0, 0, 0, 0, 0),
                 listOf(0, 0, 1, 1, 1, 1, 0, 1, 0, 1),
-                listOf(0, 0, 0, 0, 1, 1, 1, 0, 0, 1)
-            )
+                listOf(0, 0, 0, 0, 1, 1, 1, 0, 0, 1),
+            ),
+            status = 1,
         )
     }
 
