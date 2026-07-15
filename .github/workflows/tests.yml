@@ -25,6 +25,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Run unit tests (android host, js, wasmJs)
+        env:
+          # so karma's ChromeHeadless launcher finds chromium
+          CHROME_BIN: /usr/bin/chromium
         run: ./gradlew :shared:testAndroidHostTest :shared:jsBrowserTest :shared:wasmJsBrowserTest --continue
 
       - name: Upload test reports
