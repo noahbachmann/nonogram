@@ -23,11 +23,14 @@ kotlin {
         }
     }*/
 
+    // Chromium's sandbox can't start inside the CI docker container
+    val useNoSandbox = System.getenv("CI") != null
+
     js {
         browser {
             testTask {
                 useKarma {
-                    if (System.getenv("CI") != null) useChromeHeadlessNoSandbox() else useChromeHeadless()
+                    if (useNoSandbox) useChromeHeadlessNoSandbox() else useChromeHeadless()
                 }
             }
         }
