@@ -19,6 +19,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
 
     suspend fun seedIfEmpty() {
         if (getAllNonograms().isNotEmpty()) return
+        // Fixed ids: seeds must be identical on every device so progress sync lines up.
         addNonogram(
             "EASY",
             listOf(
@@ -26,6 +27,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0)
             ),
             status = 1,
+            id = 1,
         )
         addNonogram(
             "MEDIUM",
@@ -34,6 +36,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 1, 1)
             ),
             status = 1,
+            id = 2,
         )
         addNonogram(
             "HARD",
@@ -42,6 +45,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(0, 0, 0, 1, 1), listOf(0, 0, 0, 0, 1)
             ),
             status = 1,
+            id = 3,
         )
         addNonogram(
             "HARD",
@@ -58,6 +62,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(0, 0, 0, 0, 1, 1, 1, 0, 0, 1),
             ),
             status = 1,
+            id = 4,
         )
     }
 
@@ -81,15 +86,19 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
         solution: List<List<Int>>,
         authorId: Long = 0,
         valid: Long = 0,
-        status: Long = 0
+        status: Long = 0,
+        id: Long? = null
     ): Long =
-        db().addNonogram(difficulty, solution, authorId, valid, status)
+        db().addNonogram(difficulty, solution, authorId, valid, status, id)
 
     suspend fun updateNonogram(
         id: Long,
         nonogram: Nonogram,
     ): Long =
         db().updateNonogram(id, nonogram)
+
+    suspend fun upsertNonogramFromRemote(nonogram: Nonogram) =
+        db().upsertNonogram(nonogram)
 
     suspend fun addUser(name: String): Long =
         db().addUser(name)

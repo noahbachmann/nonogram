@@ -120,11 +120,19 @@ class GenViewModel(
         val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
         viewModelScope.launch {
             withContext(Dispatchers.Default) {
-                if (nonogramId != 0.toLong()) {
+                val savedId = if (nonogramId != 0.toLong()) {
                     sdk.updateNonogram(nonogramId, nonogram)
                 } else {
-                    val newId = sdk.addNonogram(nonogram.difficulty.toString(), board, userId, 0)
-                    nonogram = sdk.getNonogramById(newId) ?: Nonogram(0, Difficulty.EASY, board)
+                    sdk.addNonogram(nonogram.difficulty.toString(), board, userId, 0)
+                }
+                // Re-fetch so the pushed copy carries the freshly stamped updatedAt.
+                val saved = sdk.getNonogramById(savedId)
+                if (saved != null) {
+                    nonogram = saved
+                    val firebaseUid = sdk.getUserById(userId)?.firebaseUid
+                    if (firebaseUid != null) {
+                        syncService.pushNonogram(firebaseUid, saved)
+                    }
                 }
             }
             isDirty = false

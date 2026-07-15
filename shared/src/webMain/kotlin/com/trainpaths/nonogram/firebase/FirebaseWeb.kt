@@ -11,8 +11,8 @@ import kotlin.js.JsAny
 data class WebFirebaseUser(val uid: String, val displayName: String?)
 
 /**
- * Facade over the hand-written Firebase JS SDK bindings. Everything outside this
- * package talks to Firebase only through here (see docs/web-architecture.md).
+ * Facade over the handwritten Firebase JS SDK bindings. Everything outside this
+ * package talks to Firebase only through here
  */
 object FirebaseWeb {
 
@@ -49,7 +49,7 @@ object FirebaseWeb {
     /** Waits for the indexedDB session restore; null when signed out. */
     suspend fun awaitSignedInUid(): String? {
         val auth = auth ?: return null
-        auth.authStateReady().await<JsAny?>()
+        auth.authStateReady().await()
         return auth.currentUser?.uid
     }
 
@@ -60,6 +60,25 @@ object FirebaseWeb {
         JSON.parse(
             buildJsonObject {
                 put("boardState", boardState)
+                put("updatedAt", updatedAt)
+            }.toString()
+        )!!
+
+    internal fun makeNonogramData(
+        difficulty: String,
+        solutionJson: String,
+        authorUid: String,
+        valid: Long,
+        status: Long,
+        updatedAt: Long,
+    ): JsAny =
+        JSON.parse(
+            buildJsonObject {
+                put("difficulty", difficulty)
+                put("solution", solutionJson)
+                put("authorUid", authorUid)
+                put("valid", valid)
+                put("status", status)
                 put("updatedAt", updatedAt)
             }.toString()
         )!!

@@ -36,6 +36,8 @@ class AuthViewModel(
             } else {
                 syncService.uploadAllLocalProgress(firebaseUid, userId)
             }
+            syncService.uploadAllLocalNonograms(firebaseUid, userId)
+            pullNonogramsIncremental(firebaseUid, userId)
             _signInComplete.value = true
         }
     }
@@ -53,6 +55,26 @@ class AuthViewModel(
                 withContext(Dispatchers.Main) { onComplete() }
             }
         }
+    }
+
+    /** Only fetches docs with updatedAt past the persisted cursor. */
+    fun syncNonograms(onNewData: () -> Unit = {}) {
+        viewModelScope.launch(Dispatchers.Default) {
+            if (authRepository.authState.value != AuthState.SIGNED_IN) return@launch
+            val userId = authRepository.currentUserId.value ?: return@launch
+            val firebaseUid = sdk.getUserById(userId)?.firebaseUid ?: return@launch
+            if (pullNonogramsIncremental(firebaseUid, userId)) {
+                withContext(Dispatchers.Main) { onNewData() }
+            }
+        }
+    }
+
+    private suspend fun pullNonogramsIncremental(firebaseUid: String, userId: Long): Boolean {
+        val cursor = authRepository.getNonogramSyncCursor(firebaseUid)
+        val newCursor = syncService.pullNonogramsSince(firebaseUid, userId, cursor)
+        if (newCursor == cursor) return false
+        authRepository.setNonogramSyncCursor(firebaseUid, newCursor)
+        return true
     }
 
     fun completeOnboarding() {

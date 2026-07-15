@@ -1,6 +1,7 @@
 package com.trainpaths.nonogram
 
 import com.trainpaths.nonogram.classes.Difficulty
+import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.solveNonogram
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
@@ -31,6 +32,36 @@ class AppSDKTest {
         sdk.seedIfEmpty()
         sdk.seedIfEmpty()
         assertEquals(4, sdk.getAllNonograms().size)
+    }
+
+    @Test
+    fun seedIfEmpty_usesFixedIds() = runTest {
+        sdk.seedIfEmpty()
+        assertEquals(setOf(1L, 2L, 3L, 4L), sdk.getAllNonograms().map { it.id }.toSet())
+    }
+
+    @Test
+    fun addNonogram_assignsRandomJsSafeIdAndTimestamp() = runTest {
+        val id1 = sdk.addNonogram("EASY", listOf(listOf(1)))
+        val id2 = sdk.addNonogram("EASY", listOf(listOf(1)))
+        assertTrue(id1 != id2)
+        assertTrue(id1 >= (1L shl 20) && id1 < (1L shl 53))
+        assertTrue(sdk.getNonogramById(id1)!!.updatedAt > 0)
+    }
+
+    @Test
+    fun upsertNonogramFromRemote_insertsThenOverwrites() = runTest {
+        val remote = Nonogram(
+            id = 42, difficulty = Difficulty.HARD, solution = listOf(listOf(1, 0)),
+            authorId = 7, valid = 0, status = 1, updatedAt = 123,
+        )
+        sdk.upsertNonogramFromRemote(remote)
+        assertEquals(remote, sdk.getNonogramById(42))
+
+        val newer = remote.copy(solution = listOf(listOf(0, 1)), updatedAt = 456)
+        sdk.upsertNonogramFromRemote(newer)
+        assertEquals(newer, sdk.getNonogramById(42))
+        assertEquals(1, sdk.getAllNonograms().size)
     }
 
     @Test

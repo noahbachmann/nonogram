@@ -7,6 +7,7 @@ import app.cash.sqldelight.db.SqlDriver
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import kotlinx.serialization.json.Json
+import kotlin.random.Random
 import kotlin.time.Clock
 
 internal class Database(driver: SqlDriver) {
@@ -41,28 +42,50 @@ internal class Database(driver: SqlDriver) {
         solution: List<List<Int>>,
         authorId: Long = 0,
         valid: Long = 0,
-        status: Long = 0
-    ): Long =
-        dbQuery.transactionWithResult {
-            dbQuery.insertNonogram(difficulty, json.encodeToString(solution), authorId, valid, status)
-            dbQuery.lastInsertedId().awaitAsOne()
-        }
+        status: Long = 0,
+        id: Long? = null
+    ): Long {
+        // Random ids in [2^20, 2^53) stay unique across devices (Firestore doc ids) and JS-double-safe.
+        val nonogramId = id ?: Random.nextLong(1L shl 20, 1L shl 53)
+        dbQuery.upsertNonogram(
+            nonogramId,
+            difficulty,
+            json.encodeToString(solution),
+            authorId,
+            valid,
+            status,
+            Clock.System.now().toEpochMilliseconds()
+        )
+        return nonogramId
+    }
 
     internal suspend fun updateNonogram(
         id: Long,
         nonogram: Nonogram,
-    ): Long =
-        dbQuery.transactionWithResult {
-            dbQuery.updateNonogram(
-                nonogram.difficulty.toString(),
-                json.encodeToString(nonogram.solution),
-                nonogram.authorId,
-                nonogram.valid,
-                nonogram.status,
-                id
-            )
-            dbQuery.lastInsertedId().awaitAsOne()
-        }
+    ): Long {
+        dbQuery.updateNonogram(
+            nonogram.difficulty.toString(),
+            json.encodeToString(nonogram.solution),
+            nonogram.authorId,
+            nonogram.valid,
+            nonogram.status,
+            Clock.System.now().toEpochMilliseconds(),
+            id
+        )
+        return id
+    }
+
+    internal suspend fun upsertNonogram(nonogram: Nonogram) {
+        dbQuery.upsertNonogram(
+            nonogram.id,
+            nonogram.difficulty.toString(),
+            json.encodeToString(nonogram.solution),
+            nonogram.authorId,
+            nonogram.valid,
+            nonogram.status,
+            nonogram.updatedAt
+        )
+    }
     // ---------- Users ----------
 
     internal suspend fun addUser(name: String): Long =
@@ -139,14 +162,16 @@ internal class Database(driver: SqlDriver) {
         solution: String,
         authorId: Long,
         valid: Long,
-        status: Long
+        status: Long,
+        updatedAt: Long
     ): Nonogram = Nonogram(
         id = id,
         difficulty = Difficulty.valueOf(difficulty),
         solution = json.decodeFromString(solution),
         authorId = authorId,
         valid = valid,
-        status = status
+        status = status,
+        updatedAt = updatedAt
     )
 
     private fun mapProgress(
@@ -156,6 +181,7 @@ internal class Database(driver: SqlDriver) {
         authorId: Long,
         valid: Long,
         status: Long,
+        updatedAt: Long,
         boardState: String?,
         beat: Long
     ): NonogramProgress = NonogramProgress(
@@ -165,7 +191,8 @@ internal class Database(driver: SqlDriver) {
             solution = json.decodeFromString(solution),
             authorId = authorId,
             valid = valid,
-            status = status
+            status = status,
+            updatedAt = updatedAt
         ),
         board = boardState?.let { json.decodeFromString(it) },
         beat = beat

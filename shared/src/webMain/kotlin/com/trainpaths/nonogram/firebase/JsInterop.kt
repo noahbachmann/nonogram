@@ -11,6 +11,15 @@ internal external interface ProgressDocData : JsAny {
     val updatedAt: Double
 }
 
+internal external interface NonogramDocData : JsAny {
+    val difficulty: String
+    val solution: String
+    val authorUid: String
+    val valid: Double
+    val status: Double
+    val updatedAt: Double
+}
+
 // Global JSON — the portable way to build plain JS objects from webMain, where js(...) is unavailable.
 internal external object JSON : JsAny {
     fun parse(text: String): JsAny?
