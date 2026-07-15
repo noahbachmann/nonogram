@@ -7,7 +7,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.firestore
 import kotlinx.serialization.json.Json
 
-class FirestoreSyncService(private val sdk: AppSDK) : SyncService {
+class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
 
     private val firestore = Firebase.firestore
     private val json = Json
