@@ -1,10 +1,7 @@
 package com.trainpaths.nonogram
 
-/**
- * Firebase web-app config. These values are public-by-design (they ship in the JS bundle;
- * security comes from Firestore rules and the OAuth origin allowlist).
- *
- */
+// These values are public-by-design
+
 object FirebaseWebConfig {
     const val API_KEY = "AIzaSyD4VXmYnQgnkTXT4Yw5GfvGjPOKv5e04FA"
     const val AUTH_DOMAIN = "nonogram-ba791.firebaseapp.com"

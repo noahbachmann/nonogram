@@ -12,7 +12,7 @@ kotlin {
     js {
         browser()
         binaries.executable()
-        // Must match :shared — the Firebase @JsModule externals can't link under UMD.
+        // Firebase externals are @JsModule-only, which UMD can't link
         useEsModules()
     }
 
