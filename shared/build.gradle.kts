@@ -24,13 +24,25 @@ kotlin {
     }*/
 
     js {
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useFirefoxHeadless()
+                }
+            }
+        }
         // Firebase externals are @JsModule-only, which UMD can't link
         useEsModules()
     }
 
     wasmJs {
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useFirefoxHeadless()
+                }
+            }
+        }
     }
 
     androidLibrary {
