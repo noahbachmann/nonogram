@@ -23,7 +23,6 @@ fun Game(
         if (values == nonogram.solution) onWin()
     }
 
-    // No centring wrapper: fit-and-centre is the board transform's job now.
     Board(
         nonogram = nonogram,
         tiles = tiles,

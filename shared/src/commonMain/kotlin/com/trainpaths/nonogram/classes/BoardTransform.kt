@@ -60,7 +60,7 @@ const val SCROLL_ZOOM_PER_NOTCH = 1.15f
 val ZOOM_CONTROLS_MIN_WIDTH = 600.dp
 
 /** A clue gutter may never occupy more than this fraction of the viewport along its own axis. */
-private const val GUTTER_MAX_FRACTION = 0.4f
+private const val GUTTER_MAX_FRACTION = 0.35f
 
 /**
  * Width of one line unit, in *content* px, at a given layer [scale].
