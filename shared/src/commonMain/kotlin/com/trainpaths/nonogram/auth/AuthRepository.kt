@@ -37,6 +37,14 @@ class AuthRepository(private val sdk: AppSDK, private val settings: Settings) {
         settings.putBoolean(KEY_HAS_COMPLETED_ONBOARDING, true)
     }
 
+    /** Max remote NonogramData.updatedAt already pulled for this account; 0 = never synced. */
+    fun getNonogramSyncCursor(firebaseUid: String): Long =
+        settings.getLong(KEY_NONOGRAM_SYNC_CURSOR_PREFIX + firebaseUid, 0L)
+
+    fun setNonogramSyncCursor(firebaseUid: String, cursor: Long) {
+        settings.putLong(KEY_NONOGRAM_SYNC_CURSOR_PREFIX + firebaseUid, cursor)
+    }
+
     suspend fun linkFirebaseUser(firebaseUid: String, displayName: String?) {
         val existingUser = sdk.getUserByFirebaseUid(firebaseUid)
         if (existingUser != null) {
@@ -53,5 +61,6 @@ class AuthRepository(private val sdk: AppSDK, private val settings: Settings) {
     companion object {
         private const val KEY_CURRENT_USER_ID = "current_user_id"
         private const val KEY_HAS_COMPLETED_ONBOARDING = "has_completed_onboarding"
+        private const val KEY_NONOGRAM_SYNC_CURSOR_PREFIX = "nonogram_sync_cursor_"
     }
 }

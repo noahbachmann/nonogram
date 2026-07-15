@@ -154,9 +154,12 @@ content. Text on main background uses `onPrimary`.
 - `AppInitializer.onApplicationStart()` sets up `GoogleAuthProvider` with a web client ID. Android passes
   `BuildConfig.GOOGLE_WEB_CLIENT_ID` (from `local.properties`); web passes `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID`
   (committed constants in `webApp` — Firebase web config is public-by-design).
-- Firestore path: `users/{firebaseUid}/progress/{nonogramId}` on both platforms — Android via
+- Firestore paths: `users/{firebaseUid}/progress/{nonogramId}` (progress) and `nonograms/{id}` (puzzles — own +
+  public per the `status` column, pulled incrementally on menu entry via a per-account `updatedAt` cursor stored in
+  `Settings`; merge policy lives in `sync/SyncService.kt` `mergeRemoteNonograms`) on both platforms — Android via
   `dev.gitlive:firebase-firestore` (androidMain), web via hand-written Firebase JS SDK externals (webMain), both
-  isolated behind `sync/SyncService`.
+  isolated behind `sync/SyncService`. The `nonograms` queries need security rules (read: public or own; write: own)
+  and two composite indexes — `(status, updatedAt)`, `(authorUid, updatedAt)` — set up in the Firebase console.
 
 ## Current State
 
