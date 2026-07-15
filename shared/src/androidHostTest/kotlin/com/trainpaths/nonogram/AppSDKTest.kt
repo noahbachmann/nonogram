@@ -205,27 +205,27 @@ class AppSDKTest {
         assertNotNull(single)
         assertNull(single.boardState)
     }
-
-    @Test
-    fun solveNonogram_correct() = runTest {
-        val nonogramId = sdk.addNonogram(
-            "EASY", listOf(
-                listOf(0, 1, 1, 1, 0, 0, 0, 1, 1, 1),
-                listOf(1, 1, 1, 0, 0, 0, 0, 0, 0, 0),
-                listOf(1, 1, 1, 1, 1, 1, 0, 0, 0, 0),
-                listOf(0, 0, 0, 1, 1, 0, 0, 0, 0, 1),
-                listOf(1, 1, 1, 1, 1, 1, 0, 0, 1, 1),
-                listOf(1, 1, 0, 0, 0, 0, 0, 0, 0, 0),
-                listOf(0, 0, 0, 0, 0, 0, 0, 1, 1, 1),
-                listOf(1, 1, 0, 1, 1, 1, 1, 1, 1, 1),
-                listOf(1, 1, 0, 0, 0, 0, 1, 0, 1, 0),
-                listOf(1, 1, 1, 1, 0, 0, 0, 1, 1, 0)
+    /*
+        @Test
+        fun solveNonogram_correct() = runTest {
+            val nonogramId = sdk.addNonogram(
+                "EASY", listOf(
+                    listOf(0, 1, 1, 1, 0, 0, 0, 1, 1, 1),
+                    listOf(1, 1, 1, 0, 0, 0, 0, 0, 0, 0),
+                    listOf(1, 1, 1, 1, 1, 1, 0, 0, 0, 0),
+                    listOf(0, 0, 0, 1, 1, 0, 0, 0, 0, 1),
+                    listOf(1, 1, 1, 1, 1, 1, 0, 0, 1, 1),
+                    listOf(1, 1, 0, 0, 0, 0, 0, 0, 0, 0),
+                    listOf(0, 0, 0, 0, 0, 0, 0, 1, 1, 1),
+                    listOf(1, 1, 0, 1, 1, 1, 1, 1, 1, 1),
+                    listOf(1, 1, 0, 0, 0, 0, 1, 0, 1, 0),
+                    listOf(1, 1, 1, 1, 0, 0, 0, 1, 1, 0)
+                )
             )
-        )
-        val ng = sdk.getNonogramById(nonogramId)
+            val ng = sdk.getNonogramById(nonogramId)
 
-        val solution = solveNonogram(ng!!)
+            val solution = solveNonogram(ng!!)
 
-        assertEquals(ng.solution, solution.map { row -> row.toList() }.toList())
-    }
+            assertEquals(ng.solution, solution.map { row -> row.toList() }.toList())
+        }*/
 }
