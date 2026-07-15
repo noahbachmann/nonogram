@@ -27,7 +27,7 @@ kotlin {
         browser {
             testTask {
                 useKarma {
-                    useChromeHeadless()
+                    if (System.getenv("CI") != null) useChromeHeadlessNoSandbox() else useChromeHeadless()
                 }
             }
         }
@@ -39,7 +39,7 @@ kotlin {
         browser {
             testTask {
                 useKarma {
-                    useChromeHeadless()
+                    if (useNoSandbox) useChromeHeadlessNoSandbox() else useChromeHeadless()
                 }
             }
         }
