@@ -152,8 +152,9 @@ content. Text on main background uses `onPrimary`.
   (no web target published), so it's an androidMain-only dependency; `kmpauth-google`/`kmpauth-uihelper` are
   commonMain (both publish js+wasmJs).
 - `AppInitializer.onApplicationStart()` sets up `GoogleAuthProvider` with a web client ID. Android passes
-  `BuildConfig.GOOGLE_WEB_CLIENT_ID` (from `local.properties`); web passes `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID`
-  (committed constants in `webApp` — Firebase web config is public-by-design).
+  `R.string.default_web_client_id` (generated from `androidApp/google-services.json`); web passes
+  `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID` (committed constants in `webApp` — Firebase web config is
+  public-by-design).
 - Firestore paths: `users/{firebaseUid}/progress/{nonogramId}` (progress) and `nonograms/{id}` (puzzles — own +
   public per the `status` column, pulled incrementally on menu entry via a per-account `updatedAt` cursor stored in
   `Settings`; merge policy lives in `sync/SyncService.kt` `mergeRemoteNonograms`) on both platforms — Android via

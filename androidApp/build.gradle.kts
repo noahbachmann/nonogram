@@ -1,15 +1,10 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.googleServices)
-}
-
-val localProps = Properties().apply {
-    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
 
 kotlin {
@@ -41,11 +36,6 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
-        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID",
-            "\"${localProps.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\"")
-    }
-    buildFeatures {
-        buildConfig = true
     }
     packaging {
         resources {

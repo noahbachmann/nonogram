@@ -19,7 +19,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        AppInitializer.onApplicationStart(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+        AppInitializer.onApplicationStart(getString(R.string.default_web_client_id))
 
         setContent {
             val authViewModel = koinViewModel<AuthViewModel>()
