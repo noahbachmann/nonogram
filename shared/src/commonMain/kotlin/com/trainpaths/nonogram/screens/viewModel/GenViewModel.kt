@@ -7,14 +7,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
+import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileState
 import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+internal fun publicationStatus(isPublic: Boolean, isValid: Boolean, isSignedIn: Boolean): Long =
+    if (isPublic && isValid && isSignedIn) 1L else 0L
 
 class GenViewModel(
     private val sdk: AppSDK,
@@ -46,6 +51,16 @@ class GenViewModel(
     /** True when the current puzzle has edits not yet written to the database. */
     var isDirty by mutableStateOf(false)
         private set
+
+    /** True while the current puzzle is being persisted (and, eventually, validated). */
+    var isSaving by mutableStateOf(false)
+        private set
+
+    /** A user-facing message when the latest save could not be completed. */
+    var saveError by mutableStateOf<String?>(null)
+        private set
+
+    val authState = authRepository.authState
 
     fun loadMyNonograms() {
         isLoadingMine = true
@@ -114,29 +129,67 @@ class GenViewModel(
         isDirty = true
     }
 
+    fun setPublic(isPublic: Boolean) {
+        val status = publicationStatus(
+            isPublic = isPublic,
+            isValid = nonogram.valid == 1L,
+            isSignedIn = authRepository.authState.value == AuthState.SIGNED_IN,
+        )
+        if (nonogram.status != status) {
+            nonogram = nonogram.copy(status = status)
+            isDirty = true
+        }
+    }
+
     fun onSave(onDone: () -> Unit = {}) {
+        if (isSaving) return
         val userId = authRepository.currentUserId.value ?: return
         val nonogramId = nonogram.id
         val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
+        isSaving = true
+        saveError = null
         viewModelScope.launch {
-            withContext(Dispatchers.Default) {
-                val savedId = if (nonogramId != 0.toLong()) {
-                    sdk.updateNonogram(nonogramId, nonogram)
-                } else {
-                    sdk.addNonogram(nonogram.difficulty.toString(), board, userId, 0)
-                }
-                // Re-fetch so the pushed copy carries the freshly stamped updatedAt.
-                val saved = sdk.getNonogramById(savedId)
-                if (saved != null) {
-                    nonogram = saved
-                    val firebaseUid = sdk.getUserById(userId)?.firebaseUid
-                    if (firebaseUid != null) {
-                        syncService.pushNonogram(firebaseUid, saved)
+            try {
+                withContext(Dispatchers.Default) {
+                    // Invalid puzzles must never be persisted as public, including legacy data.
+                    val puzzleToSave = nonogram.copy(
+                        solution = board,
+                        status = publicationStatus(
+                            isPublic = nonogram.status == 1L,
+                            isValid = nonogram.valid == 1L,
+                            isSignedIn = authRepository.authState.value == AuthState.SIGNED_IN,
+                        ),
+                    )
+                    val savedId = if (nonogramId != 0L) {
+                        sdk.updateNonogram(nonogramId, puzzleToSave)
+                    } else {
+                        sdk.addNonogram(
+                            difficulty = puzzleToSave.difficulty.toString(),
+                            solution = board,
+                            authorId = userId,
+                            valid = puzzleToSave.valid,
+                            status = puzzleToSave.status,
+                        )
+                    }
+                    // Re-fetch so the UI and pushed copy carry validator output and updatedAt.
+                    val saved = sdk.getNonogramById(savedId)
+                    if (saved != null) {
+                        nonogram = saved
+                        val firebaseUid = sdk.getUserById(userId)?.firebaseUid
+                        if (firebaseUid != null) {
+                            syncService.pushNonogram(firebaseUid, saved)
+                        }
                     }
                 }
+                isDirty = false
+                onDone()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                saveError = error.message ?: "Unable to save this nonogram."
+            } finally {
+                isSaving = false
             }
-            isDirty = false
-            onDone()
         }
     }
 }

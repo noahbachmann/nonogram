@@ -132,6 +132,7 @@ fun App(
                     GenScreen(
                         genViewModel = genViewModel,
                         onConfig = {
+                            genViewModel.onSave()
                             navController.navigate(GenConfRoute(editing = true))
                         },
                         onExitToList = {
