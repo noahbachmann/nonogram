@@ -18,8 +18,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-internal fun publicationStatus(isPublic: Boolean, isValid: Boolean, isSignedIn: Boolean): Long =
-    if (isPublic && isValid && isSignedIn) 1L else 0L
+internal fun publicationStatus(isPublic: Boolean, isValid: Boolean, isSignedIn: Boolean): Boolean =
+    isPublic && isValid && isSignedIn
 
 class GenViewModel(
     private val sdk: AppSDK,
@@ -130,13 +130,13 @@ class GenViewModel(
     }
 
     fun setPublic(isPublic: Boolean) {
-        val status = publicationStatus(
+        val isPublicAllowed = publicationStatus(
             isPublic = isPublic,
-            isValid = nonogram.valid == 1L,
+            isValid = nonogram.isValid,
             isSignedIn = authRepository.authState.value == AuthState.SIGNED_IN,
         )
-        if (nonogram.status != status) {
-            nonogram = nonogram.copy(status = status)
+        if (nonogram.isPublic != isPublicAllowed) {
+            nonogram = nonogram.copy(isPublic = isPublicAllowed)
             isDirty = true
         }
     }
@@ -154,9 +154,9 @@ class GenViewModel(
                     // Invalid puzzles must never be persisted as public, including legacy data.
                     val puzzleToSave = nonogram.copy(
                         solution = board,
-                        status = publicationStatus(
-                            isPublic = nonogram.status == 1L,
-                            isValid = nonogram.valid == 1L,
+                        isPublic = publicationStatus(
+                            isPublic = nonogram.isPublic,
+                            isValid = nonogram.isValid,
                             isSignedIn = authRepository.authState.value == AuthState.SIGNED_IN,
                         ),
                     )
@@ -167,8 +167,8 @@ class GenViewModel(
                             difficulty = puzzleToSave.difficulty.toString(),
                             solution = board,
                             authorId = userId,
-                            valid = puzzleToSave.valid,
-                            status = puzzleToSave.status,
+                            isValid = puzzleToSave.isValid,
+                            isPublic = puzzleToSave.isPublic,
                         )
                     }
                     // Re-fetch so the UI and pushed copy carry validator output and updatedAt.

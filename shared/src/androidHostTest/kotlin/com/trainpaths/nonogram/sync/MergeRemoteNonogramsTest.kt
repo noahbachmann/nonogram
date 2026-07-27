@@ -32,7 +32,7 @@ class MergeRemoteNonogramsTest {
         solution: List<List<Int>> = listOf(listOf(1, 0)),
     ) = Nonogram(
         id = id, difficulty = Difficulty.EASY, solution = solution,
-        authorId = authorId, valid = 0, status = 1, updatedAt = updatedAt,
+        authorId = authorId, isValid = false, isPublic = true, updatedAt = updatedAt,
     )
 
     @Test

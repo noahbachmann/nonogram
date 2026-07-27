@@ -43,18 +43,18 @@ fun GenConfScreen(
     var rows by remember { mutableStateOf(genViewModel.height.toString()) }
     var cols by remember { mutableStateOf(genViewModel.width.toString()) }
     var isPublic by remember {
-        mutableStateOf(genViewModel.nonogram.valid == 1L && genViewModel.nonogram.status == 1L)
+        mutableStateOf(genViewModel.nonogram.isValid && genViewModel.nonogram.isPublic)
     }
     val authState by genViewModel.authState.collectAsState()
 
     LaunchedEffect(
         genViewModel.isSaving,
-        genViewModel.nonogram.valid,
-        genViewModel.nonogram.status,
+        genViewModel.nonogram.isValid,
+        genViewModel.nonogram.isPublic,
     ) {
         if (!genViewModel.isSaving) {
             isPublic =
-                genViewModel.nonogram.valid == 1L && genViewModel.nonogram.status == 1L
+                genViewModel.nonogram.isValid && genViewModel.nonogram.isPublic
         }
     }
 
@@ -103,7 +103,7 @@ fun GenConfScreen(
             )
 
             if (editing) {
-                val isValid = genViewModel.nonogram.valid == 1L
+                val isValid = genViewModel.nonogram.isValid
                 val canMakePublic =
                     !genViewModel.isSaving &&
                         genViewModel.saveError == null &&

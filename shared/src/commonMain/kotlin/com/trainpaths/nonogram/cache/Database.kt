@@ -6,6 +6,8 @@ import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.db.SqlDriver
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.util.toBoolean
+import com.trainpaths.nonogram.util.toLong
 import kotlinx.serialization.json.Json
 import kotlin.random.Random
 import kotlin.time.Clock
@@ -41,8 +43,8 @@ internal class Database(driver: SqlDriver) {
         difficulty: String,
         solution: List<List<Int>>,
         authorId: Long = 0,
-        valid: Long = 0,
-        status: Long = 0,
+        isValid: Boolean = false,
+        isPublic: Boolean = false,
         id: Long? = null
     ): Long {
         // Random ids in [2^20, 2^53) stay unique across devices (Firestore doc ids) and JS-double-safe.
@@ -52,8 +54,8 @@ internal class Database(driver: SqlDriver) {
             difficulty,
             json.encodeToString(solution),
             authorId,
-            valid,
-            status,
+            isValid.toLong(),
+            isPublic.toLong(),
             Clock.System.now().toEpochMilliseconds()
         )
         return nonogramId
@@ -67,8 +69,8 @@ internal class Database(driver: SqlDriver) {
             nonogram.difficulty.toString(),
             json.encodeToString(nonogram.solution),
             nonogram.authorId,
-            nonogram.valid,
-            nonogram.status,
+            nonogram.isValid.toLong(),
+            nonogram.isPublic.toLong(),
             Clock.System.now().toEpochMilliseconds(),
             id
         )
@@ -81,8 +83,8 @@ internal class Database(driver: SqlDriver) {
             nonogram.difficulty.toString(),
             json.encodeToString(nonogram.solution),
             nonogram.authorId,
-            nonogram.valid,
-            nonogram.status,
+            nonogram.isValid.toLong(),
+            nonogram.isPublic.toLong(),
             nonogram.updatedAt
         )
     }
@@ -169,8 +171,8 @@ internal class Database(driver: SqlDriver) {
         difficulty = Difficulty.valueOf(difficulty),
         solution = json.decodeFromString(solution),
         authorId = authorId,
-        valid = valid,
-        status = status,
+        isValid = valid.toBoolean(),
+        isPublic = status.toBoolean(),
         updatedAt = updatedAt
     )
 
@@ -190,8 +192,8 @@ internal class Database(driver: SqlDriver) {
             difficulty = Difficulty.valueOf(difficulty),
             solution = json.decodeFromString(solution),
             authorId = authorId,
-            valid = valid,
-            status = status,
+            isValid = valid.toBoolean(),
+            isPublic = status.toBoolean(),
             updatedAt = updatedAt
         ),
         board = boardState?.let { json.decodeFromString(it) },

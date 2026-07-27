@@ -3,6 +3,8 @@ package com.trainpaths.nonogram.sync
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.util.toBoolean
+import com.trainpaths.nonogram.util.toLong
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.firestore
 import kotlinx.serialization.json.Json
@@ -91,8 +93,8 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
                     // Solution stays a JSON string: Firestore rejects nested arrays.
                     "solution" to json.encodeToString(nonogram.solution),
                     "authorUid" to firebaseUid,
-                    "valid" to nonogram.valid,
-                    "status" to nonogram.status,
+                    "valid" to nonogram.isValid.toLong(),
+                    "status" to nonogram.isPublic.toLong(),
                     "updatedAt" to nonogram.updatedAt,
                 )
             )
@@ -133,8 +135,8 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
                         difficulty = Difficulty.valueOf(doc.get("difficulty")),
                         solution = json.decodeFromString(doc.get<String>("solution")),
                         authorId = if (doc.get<String>("authorUid") == firebaseUid) localUserId else 0,
-                        valid = doc.get("valid"),
-                        status = doc.get("status"),
+                        isValid = doc.get<Long>("valid").toBoolean(),
+                        isPublic = doc.get<Long>("status").toBoolean(),
                         updatedAt = doc.get("updatedAt"),
                     )
                 } catch (e: Exception) {
