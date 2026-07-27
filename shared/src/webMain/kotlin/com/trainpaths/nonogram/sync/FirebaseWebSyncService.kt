@@ -6,7 +6,6 @@ import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.firebase.FirebaseWeb
-import com.trainpaths.nonogram.firebase.NonogramQuerySnapshot
 import com.trainpaths.nonogram.firebase.ProgressQuerySnapshot
 import com.trainpaths.nonogram.firebase.collection
 import com.trainpaths.nonogram.firebase.doc
@@ -15,6 +14,7 @@ import com.trainpaths.nonogram.firebase.getProgressDocs
 import com.trainpaths.nonogram.firebase.query
 import com.trainpaths.nonogram.firebase.setDoc
 import com.trainpaths.nonogram.firebase.where
+import com.trainpaths.nonogram.util.toBoolean
 import kotlinx.coroutines.await
 import kotlinx.serialization.json.Json
 import kotlin.js.ExperimentalWasmJsInterop
@@ -122,8 +122,8 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
                     // Solution stays a JSON string: Firestore rejects nested arrays.
                     solutionJson = json.encodeToString(nonogram.solution),
                     authorUid = firebaseUid,
-                    valid = nonogram.valid,
-                    status = nonogram.status,
+                    isValid = nonogram.isValid,
+                    isPublic = nonogram.isPublic,
                     updatedAt = nonogram.updatedAt,
                 )
             ).await()
@@ -173,8 +173,8 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
                                 difficulty = Difficulty.valueOf(data.difficulty),
                                 solution = json.decodeFromString(data.solution),
                                 authorId = if (data.authorUid == firebaseUid) localUserId else 0,
-                                valid = data.valid.toLong(),
-                                status = data.status.toLong(),
+                                isValid = data.valid.toLong().toBoolean(),
+                                isPublic = data.status.toLong().toBoolean(),
                                 updatedAt = data.updatedAt.toLong(),
                             )
                         } catch (e: Throwable) {

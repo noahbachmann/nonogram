@@ -26,7 +26,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0), listOf(1, 1, 1, 1, 1),
                 listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0)
             ),
-            status = 1,
+            isPublic = true,
             id = 1,
         )
         addNonogram(
@@ -35,7 +35,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(1, 1, 1, 1, 1), listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 0, 0),
                 listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 1, 1)
             ),
-            status = 1,
+            isPublic = true,
             id = 2,
         )
         addNonogram(
@@ -44,7 +44,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(1, 1, 0, 0, 0), listOf(0, 1, 1, 0, 0), listOf(0, 0, 1, 1, 0),
                 listOf(0, 0, 0, 1, 1), listOf(0, 0, 0, 0, 1)
             ),
-            status = 1,
+            isPublic = true,
             id = 3,
         )
         addNonogram(
@@ -61,7 +61,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(0, 0, 1, 1, 1, 1, 0, 1, 0, 1),
                 listOf(0, 0, 0, 0, 1, 1, 1, 0, 0, 1),
             ),
-            status = 1,
+            isPublic = true,
             id = 4,
         )
     }
@@ -85,11 +85,11 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
         difficulty: String,
         solution: List<List<Int>>,
         authorId: Long = 0,
-        valid: Long = 0,
-        status: Long = 0,
+        isValid: Boolean = false,
+        isPublic: Boolean = false,
         id: Long? = null
     ): Long =
-        db().addNonogram(difficulty, solution, authorId, valid, status, id)
+        db().addNonogram(difficulty, solution, authorId, isValid, isPublic, id)
 
     suspend fun updateNonogram(
         id: Long,

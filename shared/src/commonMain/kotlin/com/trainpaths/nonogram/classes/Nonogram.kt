@@ -18,8 +18,8 @@ data class Nonogram(
     val difficulty: Difficulty,
     val solution: List<List<Int>>,
     val authorId: Long = 0,
-    val valid: Long = 0,
-    val status: Long = 0,
+    val isValid: Boolean = false,
+    val isPublic: Boolean = false,
     val updatedAt: Long = 0
 ) {
     val height: Int get() = solution.size

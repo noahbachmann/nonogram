@@ -2,6 +2,7 @@
 
 package com.trainpaths.nonogram.firebase
 
+import com.trainpaths.nonogram.util.toLong
 import kotlinx.coroutines.await
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -68,8 +69,8 @@ object FirebaseWeb {
         difficulty: String,
         solutionJson: String,
         authorUid: String,
-        valid: Long,
-        status: Long,
+        isValid: Boolean,
+        isPublic: Boolean,
         updatedAt: Long,
     ): JsAny =
         JSON.parse(
@@ -77,8 +78,8 @@ object FirebaseWeb {
                 put("difficulty", difficulty)
                 put("solution", solutionJson)
                 put("authorUid", authorUid)
-                put("valid", valid)
-                put("status", status)
+                put("valid", isValid.toLong())
+                put("status", isPublic.toLong())
                 put("updatedAt", updatedAt)
             }.toString()
         )!!
