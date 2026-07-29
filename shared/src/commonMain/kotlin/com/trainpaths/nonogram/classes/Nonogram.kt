@@ -8,7 +8,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import kotlinx.serialization.Serializable
-import kotlin.math.min
 
 enum class Difficulty { EASY, MEDIUM, HARD, HARDCORE }
 
@@ -53,6 +52,11 @@ private fun computeLineClues(line: List<Int>): List<Int> {
 
 fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
     val solution: Array<Array<Int>> = Array(ng.height) { Array(ng.width) { 0 } }
+
+    val trackingRows: MutableSet<Int> = mutableSetOf()
+    val trackingCols: MutableSet<Int> = mutableSetOf()
+
+    // first time ROWS
     for (row in 0 until ng.height) {
         val clues: List<Int> = ng.rowClues[row]
         val max = clues.sum() + clues.size - 1
@@ -61,7 +65,9 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
             var l = 0
             for (clue in clues) {
                 val r = l + clue
+
                 solution[row].fill(1, l, r)
+                trackingCols.addAll(l until r)
 
                 if (r >= ng.width) continue
                 solution[row][r] = 2
@@ -75,12 +81,14 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
                 l += clue
                 if (l > r && l - r < clue) {
                     solution[row].fill(1, r, l)
+                    trackingCols.addAll(r until l)
                 }
                 r = ++l
             }
         }
     }
 
+    // first time COLS
     for (col in 0 until ng.width) {
         val clues: List<Int> = ng.colClues[col]
         val max = clues.sum() + clues.size - 1
@@ -92,6 +100,7 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
                 for (row in l until r) {
                     solution[row][col] = 1
                 }
+                trackingRows.addAll(l until r)
 
                 if (r >= ng.height) continue
                 solution[r][col] = 2
@@ -107,34 +116,74 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
                     for (row in r until l) {
                         solution[row][col] = 1
                     }
+                    trackingRows.addAll(r until l)
                 }
                 r += ++l
             }
         }
+    }
 
-        val top = clues[0] + 1
-        for (row in 0 until top) {
+    for (col in trackingCols) {
+        val clues: List<Int> = ng.colClues[col]
+
+        //top check for constraints
+        var top = clues[0]
+        var topCount = 0
+        while(solution[top+topCount][col] == 1) {
+            trackingRows.add(topCount)
+            solution[topCount++][col] = 2
+        }
+        top += topCount
+        for (row in topCount until top) {
             if (solution[row][col] == 1) {
+                var len = 1
                 for (r in row until top) {
                     solution[r][col] = 1
+                    len++
+                }
+                if (len == clues[0]) {
+                    solution[top][col] = 2
+                    trackingRows.addAll(row until top+1)
+                } else {
+                    trackingRows.addAll(row until top)
                 }
                 break
             }
         }
 
-        val bottom = ng.height - clues.last()
-        if (solution[bottom][col] == 1) {
-            solution[bottom - 1][col] = 2
+        //bot check for constraints
+        var bot = ng.height - clues.last()
+        var botCount = 1
+
+        while(solution[bot-botCount][col] == 1) {
+            val newBot = ng.height - botCount
+
+            trackingRows.add(newBot)
+            solution[newBot][col] = 2
+
+            botCount++
         }
-        for (row in bottom until ng.height) {
+        bot -= botCount
+
+        val botEnd = ng.height + 1 - botCount
+        for (row in bot until botEnd) {
             if (solution[row][col] == 1) {
-                for (r in bottom until row) {
+                var len = 1
+                for (r in bot until row) {
                     solution[r][col] = 1
+                    len++
+                }
+                if (len == clues.last()) {
+                    solution[bot--][col] = 2
+                    trackingRows.addAll(bot until ng.height)
+                } else {
+                    trackingRows.addAll(bot until row)
                 }
                 break
             }
         }
     }
+
     return solution
 }
 
