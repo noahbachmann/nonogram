@@ -136,7 +136,7 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
         top += topCount
         for (row in topCount until top) {
             if (solution[row][col] == 1) {
-                var len = 1
+                var len = 0
                 for (r in row until top) {
                     solution[r][col] = 1
                     len++
@@ -163,9 +163,9 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
 
             botCount++
         }
-        bot -= botCount
+        bot -= --botCount
 
-        val botEnd = ng.height + 1 - botCount
+        val botEnd = ng.height - botCount
         for (row in bot until botEnd) {
             if (solution[row][col] == 1) {
                 var len = 1
