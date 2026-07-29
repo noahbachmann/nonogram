@@ -3,7 +3,39 @@ package com.trainpaths.nonogram.classes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+private val testNonograms = arrayOf(
+    Nonogram(
+        id = 1,
+        difficulty = Difficulty.EASY,
+        solution = listOf(
+            listOf(0, 1, 1, 1, 0, 0, 0, 1, 1, 1),
+            listOf(1, 1, 1, 0, 0, 0, 0, 0, 0, 0),
+            listOf(1, 1, 1, 1, 1, 1, 0, 0, 0, 0),
+            listOf(0, 0, 0, 1, 1, 0, 0, 0, 0, 1),
+            listOf(1, 1, 1, 1, 1, 1, 0, 0, 1, 1),
+            listOf(1, 1, 0, 0, 0, 0, 0, 0, 0, 0),
+            listOf(0, 0, 0, 0, 0, 0, 0, 1, 1, 1),
+            listOf(1, 1, 0, 1, 1, 1, 1, 1, 1, 1),
+            listOf(1, 1, 0, 0, 0, 0, 1, 0, 1, 0),
+            listOf(1, 1, 1, 1, 0, 0, 0, 1, 1, 0),
+        ),
+    ),
+)
+
 class NonogramTest {
+
+    @Test
+    fun solveNonogram_returnsExpectedSolutions() {
+        testNonograms.forEach { nonogram ->
+            val actualSolution = solveNonogram(nonogram).map { row -> row.toList() }
+
+            assertEquals(
+                expected = nonogram.solution,
+                actual = actualSolution,
+                message = "Unexpected solution for nonogram ${nonogram.id}",
+            )
+        }
+    }
 
     @Test
     fun rowClues_allZeros_returnsListOfZero() {
