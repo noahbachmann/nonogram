@@ -3,22 +3,149 @@ package com.trainpaths.nonogram.classes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-private val testNonograms = arrayOf(
-    Nonogram(
-        id = 1,
-        difficulty = Difficulty.EASY,
-        solution = listOf(
-            listOf(0, 1, 1, 1, 0, 0, 0, 1, 1, 1),
-            listOf(1, 1, 1, 0, 0, 0, 0, 0, 0, 0),
-            listOf(1, 1, 1, 1, 1, 1, 0, 0, 0, 0),
-            listOf(0, 0, 0, 1, 1, 0, 0, 0, 0, 1),
-            listOf(1, 1, 1, 1, 1, 1, 0, 0, 1, 1),
-            listOf(1, 1, 0, 0, 0, 0, 0, 0, 0, 0),
-            listOf(0, 0, 0, 0, 0, 0, 0, 1, 1, 1),
-            listOf(1, 1, 0, 1, 1, 1, 1, 1, 1, 1),
-            listOf(1, 1, 0, 0, 0, 0, 1, 0, 1, 0),
-            listOf(1, 1, 1, 1, 0, 0, 0, 1, 1, 0),
+private data class NonogramTestData(
+    val desc: String,
+    val nonogram: Nonogram,
+    val expectedRowClues: List<List<Int>>? = null,
+    val expectedColClues: List<List<Int>>? = null,
+    val verifySolver: Boolean = false,
+)
+
+private val nonogramData = arrayOf(
+    NonogramTestData(
+        desc = "solver sample",
+        nonogram = Nonogram(
+            id = 1,
+            difficulty = Difficulty.EASY,
+            solution = listOf(
+                listOf(0, 1, 1, 1, 0, 0, 0, 1, 1, 1),
+                listOf(1, 1, 1, 0, 0, 0, 0, 0, 0, 0),
+                listOf(1, 1, 1, 1, 1, 1, 0, 0, 0, 0),
+                listOf(0, 0, 0, 1, 1, 0, 0, 0, 0, 1),
+                listOf(1, 1, 1, 1, 1, 1, 0, 0, 1, 1),
+                listOf(1, 1, 0, 0, 0, 0, 0, 0, 0, 0),
+                listOf(0, 0, 0, 0, 0, 0, 0, 1, 1, 1),
+                listOf(1, 1, 0, 1, 1, 1, 1, 1, 1, 1),
+                listOf(1, 1, 0, 0, 0, 0, 1, 0, 1, 0),
+                listOf(1, 1, 1, 1, 0, 0, 0, 1, 1, 0),
+            ),
         ),
+        verifySolver = true,
+    ),
+    NonogramTestData(
+        desc = "all-zero row",
+        nonogram = Nonogram(
+            id = 2,
+            difficulty = Difficulty.EASY,
+            solution = listOf(listOf(0, 0, 0)),
+        ),
+        expectedRowClues = listOf(listOf(0)),
+    ),
+    NonogramTestData(
+        desc = "all-filled row",
+        nonogram = Nonogram(
+            id = 3,
+            difficulty = Difficulty.EASY,
+            solution = listOf(listOf(1, 1, 1)),
+        ),
+        expectedRowClues = listOf(listOf(3)),
+    ),
+    NonogramTestData(
+        desc = "multiple filled runs",
+        nonogram = Nonogram(
+            id = 4,
+            difficulty = Difficulty.EASY,
+            solution = listOf(listOf(1, 1, 0, 1, 1)),
+        ),
+        expectedRowClues = listOf(listOf(2, 2)),
+    ),
+    NonogramTestData(
+        desc = "single filled cell",
+        nonogram = Nonogram(
+            id = 5,
+            difficulty = Difficulty.EASY,
+            solution = listOf(listOf(1)),
+        ),
+        expectedRowClues = listOf(listOf(1)),
+    ),
+    NonogramTestData(
+        desc = "single empty cell",
+        nonogram = Nonogram(
+            id = 6,
+            difficulty = Difficulty.EASY,
+            solution = listOf(listOf(0)),
+        ),
+        expectedRowClues = listOf(listOf(0)),
+    ),
+    NonogramTestData(
+        desc = "filled run with surrounding empty cells",
+        nonogram = Nonogram(
+            id = 7,
+            difficulty = Difficulty.EASY,
+            solution = listOf(listOf(0, 1, 1, 0)),
+        ),
+        expectedRowClues = listOf(listOf(2)),
+    ),
+    NonogramTestData(
+        desc = "multiple rows",
+        nonogram = Nonogram(
+            id = 8,
+            difficulty = Difficulty.EASY,
+            solution = listOf(
+                listOf(1, 0, 1),
+                listOf(0, 0, 0),
+                listOf(1, 1, 1),
+            ),
+        ),
+        expectedRowClues = listOf(listOf(1, 1), listOf(0), listOf(3)),
+    ),
+    NonogramTestData(
+        desc = "column runs",
+        nonogram = Nonogram(
+            id = 9,
+            difficulty = Difficulty.EASY,
+            solution = listOf(
+                listOf(1, 0),
+                listOf(1, 0),
+                listOf(0, 1),
+            ),
+        ),
+        expectedColClues = listOf(listOf(2), listOf(1)),
+    ),
+    NonogramTestData(
+        desc = "cross pattern",
+        nonogram = Nonogram(
+            id = 10,
+            difficulty = Difficulty.EASY,
+            solution = listOf(
+                listOf(0, 0, 1, 0, 0),
+                listOf(0, 0, 1, 0, 0),
+                listOf(1, 1, 1, 1, 1),
+                listOf(0, 0, 1, 0, 0),
+                listOf(0, 0, 1, 0, 0),
+            ),
+        ),
+        expectedRowClues = listOf(listOf(1), listOf(1), listOf(5), listOf(1), listOf(1)),
+        expectedColClues = listOf(listOf(1), listOf(1), listOf(5), listOf(1), listOf(1)),
+    ),
+    NonogramTestData(
+        desc = "alternating cells",
+        nonogram = Nonogram(
+            id = 11,
+            difficulty = Difficulty.EASY,
+            solution = listOf(listOf(1, 0, 1, 0, 1)),
+        ),
+        expectedRowClues = listOf(listOf(1, 1, 1)),
+    ),
+    NonogramTestData(
+        desc = "empty solution",
+        nonogram = Nonogram(
+            id = 12,
+            difficulty = Difficulty.EASY,
+            solution = emptyList(),
+        ),
+        expectedRowClues = emptyList(),
+        expectedColClues = emptyList(),
     ),
 )
 
@@ -26,154 +153,50 @@ class NonogramTest {
 
     @Test
     fun solveNonogram_returnsExpectedSolutions() {
-        testNonograms.forEach { nonogram ->
-            val actualSolution = solveNonogram(nonogram).map { row -> row.toList() }
+        nonogramData.filter { it.verifySolver }.forEach { data ->
+            val actualSolution = solveNonogram(data.nonogram).map { row -> row.toList() }
 
             assertEquals(
-                expected = nonogram.solution,
+                expected = data.nonogram.solution,
                 actual = actualSolution,
-                message = "Unexpected solution for nonogram ${nonogram.id}",
+                message = "Unexpected solution for ${data.desc}",
             )
         }
     }
 
     @Test
-    fun rowClues_allZeros_returnsListOfZero() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = listOf(listOf(0, 0, 0))
-        )
-        assertEquals(listOf(listOf(0)), nonogram.rowClues)
+    fun clues_areComputedCorrectly() {
+        nonogramData.forEach { data ->
+            data.expectedRowClues?.let { expected ->
+                assertEquals(
+                    expected = expected,
+                    actual = data.nonogram.rowClues,
+                    message = "Unexpected row clues for ${data.desc}",
+                )
+            }
+            data.expectedColClues?.let { expected ->
+                assertEquals(
+                    expected = expected,
+                    actual = data.nonogram.colClues,
+                    message = "Unexpected column clues for ${data.desc}",
+                )
+            }
+        }
     }
 
     @Test
-    fun rowClues_allOnes_returnsSingleCount() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = listOf(listOf(1, 1, 1))
-        )
-        assertEquals(listOf(listOf(3)), nonogram.rowClues)
-    }
-
-    @Test
-    fun rowClues_mixedRuns() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = listOf(listOf(1, 1, 0, 1, 1))
-        )
-        assertEquals(listOf(listOf(2, 2)), nonogram.rowClues)
-    }
-
-    @Test
-    fun rowClues_singleFilledCell() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = listOf(listOf(1))
-        )
-        assertEquals(listOf(listOf(1)), nonogram.rowClues)
-    }
-
-    @Test
-    fun rowClues_singleEmptyCell() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = listOf(listOf(0))
-        )
-        assertEquals(listOf(listOf(0)), nonogram.rowClues)
-    }
-
-    @Test
-    fun rowClues_leadingAndTrailingZeros() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = listOf(listOf(0, 1, 1, 0))
-        )
-        assertEquals(listOf(listOf(2)), nonogram.rowClues)
-    }
-
-    @Test
-    fun rowClues_multipleRows() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = listOf(
-                listOf(1, 0, 1),
-                listOf(0, 0, 0),
-                listOf(1, 1, 1)
+    fun dimensions_matchSolutions() {
+        nonogramData.forEach { data ->
+            assertEquals(
+                expected = data.nonogram.solution.size,
+                actual = data.nonogram.height,
+                message = "Unexpected height for ${data.desc}",
             )
-        )
-        assertEquals(
-            listOf(listOf(1, 1), listOf(0), listOf(3)),
-            nonogram.rowClues
-        )
-    }
-
-    @Test
-    fun colClues_computedCorrectly() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = listOf(
-                listOf(1, 0),
-                listOf(1, 0),
-                listOf(0, 1)
+            assertEquals(
+                expected = data.nonogram.solution.firstOrNull()?.size ?: 0,
+                actual = data.nonogram.width,
+                message = "Unexpected width for ${data.desc}",
             )
-        )
-        assertEquals(listOf(listOf(2), listOf(1)), nonogram.colClues)
-    }
-
-    @Test
-    fun colClues_crossPattern() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = listOf(
-                listOf(0, 0, 1, 0, 0),
-                listOf(0, 0, 1, 0, 0),
-                listOf(1, 1, 1, 1, 1),
-                listOf(0, 0, 1, 0, 0),
-                listOf(0, 0, 1, 0, 0)
-            )
-        )
-        assertEquals(listOf(listOf(1), listOf(1), listOf(5), listOf(1), listOf(1)), nonogram.colClues)
-        assertEquals(listOf(listOf(1), listOf(1), listOf(5), listOf(1), listOf(1)), nonogram.rowClues)
-    }
-
-    @Test
-    fun height_matchesRowCount() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = listOf(
-                listOf(1, 0),
-                listOf(0, 1),
-                listOf(1, 1)
-            )
-        )
-        assertEquals(3, nonogram.height)
-    }
-
-    @Test
-    fun width_matchesColumnCount() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = listOf(listOf(1, 0, 1, 0))
-        )
-        assertEquals(4, nonogram.width)
-    }
-
-    @Test
-    fun width_emptySolution_returnsZero() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = emptyList()
-        )
-        assertEquals(0, nonogram.height)
-        assertEquals(0, nonogram.width)
-    }
-
-    @Test
-    fun alternatingCells_eachCountsAsOne() {
-        val nonogram = Nonogram(
-            id = 1, difficulty = Difficulty.EASY,
-            solution = listOf(listOf(1, 0, 1, 0, 1))
-        )
-        assertEquals(listOf(listOf(1, 1, 1)), nonogram.rowClues)
+        }
     }
 }
