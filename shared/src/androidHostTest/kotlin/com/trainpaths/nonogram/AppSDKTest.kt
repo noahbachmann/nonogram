@@ -2,7 +2,6 @@ package com.trainpaths.nonogram
 
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
-import com.trainpaths.nonogram.classes.solveNonogram
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -205,27 +204,4 @@ class AppSDKTest {
         assertNotNull(single)
         assertNull(single.boardState)
     }
-    /*
-        @Test
-        fun solveNonogram_correct() = runTest {
-            val nonogramId = sdk.addNonogram(
-                "EASY", listOf(
-                    listOf(0, 1, 1, 1, 0, 0, 0, 1, 1, 1),
-                    listOf(1, 1, 1, 0, 0, 0, 0, 0, 0, 0),
-                    listOf(1, 1, 1, 1, 1, 1, 0, 0, 0, 0),
-                    listOf(0, 0, 0, 1, 1, 0, 0, 0, 0, 1),
-                    listOf(1, 1, 1, 1, 1, 1, 0, 0, 1, 1),
-                    listOf(1, 1, 0, 0, 0, 0, 0, 0, 0, 0),
-                    listOf(0, 0, 0, 0, 0, 0, 0, 1, 1, 1),
-                    listOf(1, 1, 0, 1, 1, 1, 1, 1, 1, 1),
-                    listOf(1, 1, 0, 0, 0, 0, 1, 0, 1, 0),
-                    listOf(1, 1, 1, 1, 0, 0, 0, 1, 1, 0)
-                )
-            )
-            val ng = sdk.getNonogramById(nonogramId)
-
-            val solution = solveNonogram(ng!!)
-
-            assertEquals(ng.solution, solution.map { row -> row.toList() }.toList())
-        }*/
 }
