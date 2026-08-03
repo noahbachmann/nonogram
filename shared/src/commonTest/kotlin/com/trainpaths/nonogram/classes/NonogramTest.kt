@@ -159,7 +159,8 @@ class NonogramTest {
     @Test
     fun solveNonogram_returnsExpectedSolutions() {
         nonogramData.filter { it.verifySolver }.forEach { data ->
-            val actualSolution = solveNonogram(data.nonogram).map { row -> row.toList() }
+            val solver = Solver(data.nonogram)
+            val actualSolution = solver.solveNonogram().map { row -> row.toList() }
 
             assertEquals(
                 expected = data.nonogram.solution,
