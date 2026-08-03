@@ -22,7 +22,8 @@ class Solver(val ng: Nonogram) {
                     drawRowTiles(l, r, row, index)
 
                     if (r >= ng.width) continue
-                    solution[row][r] = 2
+
+                    drawCross(row, r)
                     l = r + 1
                 }
                 continue
@@ -54,7 +55,8 @@ class Solver(val ng: Nonogram) {
                     drawColTiles(l, r, col, index)
 
                     if (r >= ng.height) continue
-                    solution[r][col] = 2
+
+                    drawCross(r, col)
                     l = r + 1
                 }
                 continue
@@ -79,19 +81,19 @@ class Solver(val ng: Nonogram) {
             var top = clues[0]
             var topCount = 0
             while (solution[top + topCount][col] == 1) {
+                drawCross(topCount++, col)
                 trackingRows.add(topCount)
-                solution[topCount++][col] = 2
             }
             top += topCount
             for (row in topCount until top) {
                 if (solution[row][col] == 1) {
                     var len = 0
                     for (r in row until top) {
-                        solution[r][col] = 1
+                        drawTile(r, col, 0, false)
                         len++
                     }
                     if (len == clues[0]) {
-                        solution[top][col] = 2
+                        drawCross(top, col)
                         trackingRows.addAll(row until top + 1)
                     } else {
                         trackingRows.addAll(row until top)
@@ -107,23 +109,23 @@ class Solver(val ng: Nonogram) {
             while (solution[bot - botCount][col] == 1) {
                 val newBot = ng.height - botCount
 
+                drawCross(newBot, col)
                 trackingRows.add(newBot)
-                solution[newBot][col] = 2
 
                 botCount++
             }
             bot -= --botCount
 
             val botEnd = ng.height - botCount
-            for (row in bot until botEnd) {
+            for (row in botEnd - 1 downTo bot) {
                 if (solution[row][col] == 1) {
                     var len = 1
                     for (r in bot until row) {
-                        solution[r][col] = 1
+                        drawTile(r, col, clues.size - 1, false)
                         len++
                     }
                     if (len == clues.last()) {
-                        solution[bot--][col] = 2
+                        drawCross(bot--, col)
                         trackingRows.addAll(bot until ng.height)
                     } else {
                         trackingRows.addAll(bot until row)
@@ -141,19 +143,19 @@ class Solver(val ng: Nonogram) {
             var left = clues[0]
             var leftCount = 0
             while (solution[row][left + leftCount] == 1) {
+                drawCross(row, leftCount++)
                 trackingCols.add(leftCount)
-                solution[row][leftCount++] = 2
             }
             left += leftCount
             for (col in leftCount until left) {
                 if (solution[row][col] == 1) {
                     var len = 0
                     for (c in col until left) {
-                        solution[row][c] = 1
+                        drawTile(row, c, 0)
                         len++
                     }
                     if (len == clues[0]) {
-                        solution[row][left] = 2
+                        drawCross(row, left)
                         trackingCols.addAll(row until left + 1)
                     } else {
                         trackingCols.addAll(row until left)
@@ -169,23 +171,23 @@ class Solver(val ng: Nonogram) {
             while (solution[row][right - rightCount] == 1) {
                 val newRight = ng.width - rightCount
 
+                drawCross(row, newRight)
                 trackingCols.add(newRight)
-                solution[row][newRight] = 2
 
                 rightCount++
             }
             right -= --rightCount
 
             val rightEnd = ng.width - rightCount
-            for (col in right until rightEnd) {
+            for (col in rightEnd - 1 downTo right) {
                 if (solution[row][col] == 1) {
                     var len = 1
                     for (c in right until col) {
-                        solution[row][c] = 1
+                        drawTile(row, c, clues.size - 1)
                         len++
                     }
                     if (len == clues.last()) {
-                        solution[row][right--] = 2
+                        drawCross(row, right--)
                         trackingCols.addAll(right until ng.width)
                     } else {
                         trackingCols.addAll(right until col)
@@ -201,27 +203,35 @@ class Solver(val ng: Nonogram) {
 
     private fun drawRowTiles(l: Int, r: Int, row: Int, index: Int?) {
         for (col in l until r) {
-            val cell = solving[row][col]
-            cell.state = 1
-            if (index != null) {
-                cell.posRowClues.add(index)
-            }
-
-            solution[row][col] = 1
-            trackingCols.add(col)
+            drawTile(row, col, index)
         }
     }
 
     private fun drawColTiles(l: Int, r: Int, col: Int, index: Int?) {
         for (row in l until r) {
-            val cell = solving[row][col]
-            cell.state = 1
-            if (index != null) {
-                cell.posColClues.add(index)
-            }
-
-            solution[row][col] = 1
-            trackingRows.add(row)
+            drawTile(row, col, index, false)
         }
+    }
+
+    private fun drawTile(row: Int, col: Int, index: Int?, isRow: Boolean = true) {
+        val cell = solving[row][col]
+        cell.state = 1
+        if (index != null) {
+            if (isRow) {
+                cell.posRowClues.add(index)
+                trackingCols.add(col)
+            } else {
+                cell.posColClues.add(index)
+                trackingRows.add(row)
+            }
+        }
+        solution[row][col] = 1
+    }
+
+    private fun drawCross(row: Int, col: Int) {
+        val cell = solving[row][col]
+        cell.state = 2
+
+        solution[row][col] = 2
     }
 }
