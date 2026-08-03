@@ -11,6 +11,12 @@ import kotlinx.serialization.Serializable
 
 enum class Difficulty { EASY, MEDIUM, HARD, HARDCORE }
 
+data class Cell(
+    var state: Int = 0,
+    val posRowClues: MutableList<Int> = mutableListOf(),
+    val posColClues: MutableList<Int> = mutableListOf(),
+)
+
 @Serializable
 data class Nonogram(
     val id: Long,
@@ -51,11 +57,6 @@ private fun computeLineClues(line: List<Int>): List<Int> {
 }
 
 fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
-    val solution: Array<Array<Int>> = Array(ng.height) { Array(ng.width) { 0 } }
-
-    val trackingRows: MutableSet<Int> = mutableSetOf()
-    val trackingCols: MutableSet<Int> = mutableSetOf()
-
     // first time ROWS
     for (row in 0 until ng.height) {
         val clues: List<Int> = ng.rowClues[row]
@@ -64,11 +65,10 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
 
         if (diff == 0) {
             var l = 0
-            for (clue in clues) {
+            for ((index, clue) in clues.withIndex()) {
                 val r = l + clue
 
-                solution[row].fill(1, l, r)
-                trackingCols.addAll(l until r)
+                drawRowTiles(l, r, row, index)
 
                 if (r >= ng.width) continue
                 solution[row][r] = 2
@@ -78,11 +78,10 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
         } else if (max > diff && clues.max() > diff) {
             var l = 0
             var r = diff
-            for (clue in clues) {
+            for ((index, clue) in clues.withIndex()) {
                 l += clue
                 if (l > r && l - r < clue) {
-                    solution[row].fill(1, r, l)
-                    trackingCols.addAll(r until l)
+                    drawRowTiles(r, l, row, index)
                 }
                 r += clue + 1
                 l++
@@ -98,12 +97,10 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
 
         if (diff == 0) {
             var l = 0
-            for (clue in clues) {
+            for ((index, clue) in clues.withIndex()) {
                 val r = l + clue
-                for (row in l until r) {
-                    solution[row][col] = 1
-                }
-                trackingRows.addAll(l until r)
+
+                drawColTiles(l, r, col, index)
 
                 if (r >= ng.height) continue
                 solution[r][col] = 2
@@ -113,13 +110,10 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
         } else if (max > diff && clues.max() > diff) {
             var l = 0
             var r = diff
-            for (clue in clues) {
+            for ((index, clue) in clues.withIndex()) {
                 l += clue
                 if (l > r && l - r < clue) {
-                    for (row in r until l) {
-                        solution[row][col] = 1
-                    }
-                    trackingRows.addAll(r until l)
+                    drawColTiles(r, l, col, index)
                 }
                 r += clue + 1
                 l++
@@ -190,6 +184,28 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
     trackingCols.clear()
 
     return solution
+}
+
+private fun drawRowTiles(l: Int, r: Int, row: Int, index: Int) {
+    for (col in l until r) {
+        val cell = solving[row][col]
+        cell.state = 1
+        cell.posRowClues.add(index)
+
+        solution[row][col] = 1
+        trackingCols.add(col)
+    }
+}
+
+private fun drawColTiles(l: Int, r: Int, col: Int, index: Int) {
+    for (row in l until r) {
+        val cell = solving[row][col]
+        cell.state = 1
+        cell.posColClues.add(index)
+
+        solution[row][col] = 1
+        trackingRows.add(row)
+    }
 }
 
 @Composable
