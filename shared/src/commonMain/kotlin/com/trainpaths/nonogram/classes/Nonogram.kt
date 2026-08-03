@@ -60,8 +60,9 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
     for (row in 0 until ng.height) {
         val clues: List<Int> = ng.rowClues[row]
         val max = clues.sum() + clues.size - 1
+        val diff = ng.width - max
 
-        if (max == ng.width) {
+        if (diff == 0) {
             var l = 0
             for (clue in clues) {
                 val r = l + clue
@@ -74,16 +75,17 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
                 l = r + 1
             }
             continue
-        } else if (max > ng.width - max) {
+        } else if (max > diff && clues.max() > diff) {
             var l = 0
-            var r = ng.width - max
+            var r = diff
             for (clue in clues) {
                 l += clue
                 if (l > r && l - r < clue) {
                     solution[row].fill(1, r, l)
                     trackingCols.addAll(r until l)
                 }
-                r = ++l
+                r += clue + 1
+                l++
             }
         }
     }
@@ -92,8 +94,9 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
     for (col in 0 until ng.width) {
         val clues: List<Int> = ng.colClues[col]
         val max = clues.sum() + clues.size - 1
+        val diff = ng.height - max
 
-        if (max == ng.height) {
+        if (diff == 0) {
             var l = 0
             for (clue in clues) {
                 val r = l + clue
@@ -107,9 +110,9 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
                 l = r + 1
             }
             continue
-        } else if (max > ng.height - max) {
+        } else if (max > diff && clues.max() > diff) {
             var l = 0
-            var r = ng.height - max
+            var r = diff
             for (clue in clues) {
                 l += clue
                 if (l > r && l - r < clue) {
@@ -118,7 +121,8 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
                     }
                     trackingRows.addAll(r until l)
                 }
-                r += ++l
+                r += clue + 1
+                l++
             }
         }
     }
@@ -129,7 +133,7 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
         //top check for constraints
         var top = clues[0]
         var topCount = 0
-        while(solution[top+topCount][col] == 1) {
+        while (solution[top + topCount][col] == 1) {
             trackingRows.add(topCount)
             solution[topCount++][col] = 2
         }
@@ -143,7 +147,7 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
                 }
                 if (len == clues[0]) {
                     solution[top][col] = 2
-                    trackingRows.addAll(row until top+1)
+                    trackingRows.addAll(row until top + 1)
                 } else {
                     trackingRows.addAll(row until top)
                 }
@@ -155,7 +159,7 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
         var bot = ng.height - clues.last()
         var botCount = 1
 
-        while(solution[bot-botCount][col] == 1) {
+        while (solution[bot - botCount][col] == 1) {
             val newBot = ng.height - botCount
 
             trackingRows.add(newBot)
@@ -183,6 +187,7 @@ fun solveNonogram(ng: Nonogram): Array<Array<Int>> {
             }
         }
     }
+    trackingCols.clear()
 
     return solution
 }
