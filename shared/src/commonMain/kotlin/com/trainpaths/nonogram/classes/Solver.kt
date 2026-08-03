@@ -72,70 +72,71 @@ class Solver(val ng: Nonogram) {
                     l++
                 }
             }
-        }
 
-        for (col in trackingCols) {
-            val clues: List<Int> = ng.colClues[col]
+            //first partial col check
+            if (col in trackingCols) {
 
-            //top check for constraints
-            var top = clues[0]
-            var topCount = 0
-            while (solution[top + topCount][col] == 1) {
-                drawCross(topCount++, col)
-                trackingRows.add(topCount)
-            }
-            top += topCount
-            for (row in topCount until top) {
-                if (solution[row][col] == 1) {
-                    var len = 0
-                    for (r in row until top) {
-                        drawTile(r, col, 0, false)
-                        len++
-                    }
-                    if (len == clues[0]) {
-                        drawCross(top, col)
-                        trackingRows.addAll(row until top + 1)
-                    } else {
-                        trackingRows.addAll(row until top)
-                    }
-                    break
+                //top check
+                var top = clues[0]
+                var topCount = 0
+                while (solution[top + topCount][col] == 1) {
+                    drawCross(topCount++, col)
+                    trackingRows.add(topCount)
                 }
-            }
-
-            //bot check for constraints
-            var bot = ng.height - clues.last()
-            var botCount = 1
-
-            while (solution[bot - botCount][col] == 1) {
-                val newBot = ng.height - botCount
-
-                drawCross(newBot, col)
-                trackingRows.add(newBot)
-
-                botCount++
-            }
-            bot -= --botCount
-
-            val botEnd = ng.height - botCount
-            for (row in botEnd - 1 downTo bot) {
-                if (solution[row][col] == 1) {
-                    var len = 1
-                    for (r in bot until row) {
-                        drawTile(r, col, clues.size - 1, false)
-                        len++
+                top += topCount
+                for (row in topCount until top) {
+                    if (solution[row][col] == 1) {
+                        var len = 0
+                        for (r in row until top) {
+                            drawTile(r, col, 0, false)
+                            len++
+                        }
+                        if (len == clues[0]) {
+                            drawCross(top, col)
+                            trackingRows.addAll(row until top + 1)
+                        } else {
+                            trackingRows.addAll(row until top)
+                        }
+                        break
                     }
-                    if (len == clues.last()) {
-                        drawCross(bot--, col)
-                        trackingRows.addAll(bot until ng.height)
-                    } else {
-                        trackingRows.addAll(bot until row)
+                }
+
+                //bot check
+                var bot = ng.height - clues.last()
+                var botCount = 1
+
+                while (solution[bot - botCount][col] == 1) {
+                    val newBot = ng.height - botCount
+
+                    drawCross(newBot, col)
+                    trackingRows.add(newBot)
+
+                    botCount++
+                }
+                bot -= --botCount
+
+                val botEnd = ng.height - botCount
+                for (row in botEnd - 1 downTo bot) {
+                    if (solution[row][col] == 1) {
+                        var len = 1
+                        for (r in bot until row) {
+                            drawTile(r, col, clues.size - 1, false)
+                            len++
+                        }
+                        if (len == clues.last()) {
+                            drawCross(bot--, col)
+                            trackingRows.addAll(bot until ng.height)
+                        } else {
+                            trackingRows.addAll(bot until row)
+                        }
+                        break
                     }
-                    break
                 }
             }
         }
         trackingCols.clear()
 
+        //first partial row check
         for (row in trackingRows) {
             val clues: List<Int> = ng.rowClues[row]
 
