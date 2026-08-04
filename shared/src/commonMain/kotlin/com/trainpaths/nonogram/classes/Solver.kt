@@ -135,7 +135,7 @@ class Solver(val ng: Nonogram) {
         cell.state = 2
         cell.posRowClues.clear()
         cell.posColClues.clear()
-        
+
         solution[row][col] = 2
     }
 
@@ -146,14 +146,19 @@ class Solver(val ng: Nonogram) {
 
         //left check for constraints
         var left = clues[0]
-        var leftCount = 0
-        while (solution[row][left + leftCount] == 1) {
-            drawCross(row, leftCount++)
-            trackingCols.add(leftCount)
+        var leftOffset = 0
+        while (solution[row][leftOffset] == 2) {
+            leftOffset++
         }
 
-        left += leftCount
-        for (col in leftCount until left) {
+        //check if perfect distance between constraint and nearest cell
+        while (solution[row][left + leftOffset] == 1) {
+            drawCross(row, leftOffset++)
+            trackingCols.add(leftOffset)
+        }
+
+        left += leftOffset
+        for (col in leftOffset until left) {
             if (solution[row][col] == 1) {
                 var len = 0
                 for (c in col until left) {
@@ -172,19 +177,19 @@ class Solver(val ng: Nonogram) {
 
         //right check for constraints
         var right = ng.width - clues.last()
-        var rightCount = 1
+        var rightOffset = 1
 
-        while (solution[row][right - rightCount] == 1) {
-            val newRight = ng.width - rightCount
+        while (solution[row][right - rightOffset] == 1) {
+            val newRight = ng.width - rightOffset
 
             drawCross(row, newRight)
             trackingCols.add(newRight)
 
-            rightCount++
+            rightOffset++
         }
-        right -= --rightCount
+        right -= --rightOffset
 
-        val rightEnd = ng.width - rightCount
+        val rightEnd = ng.width - rightOffset
         for (col in rightEnd - 1 downTo right) {
             if (solution[row][col] == 1) {
                 var len = 1
@@ -209,13 +214,16 @@ class Solver(val ng: Nonogram) {
         computePosCellClues(clues, emptyCells, cellAt = { row -> solving[row][col] }, false)
         //top check
         var top = clues[0]
-        var topCount = 0
-        while (solution[top + topCount][col] == 1) {
-            drawCross(topCount++, col)
-            trackingRows.add(topCount)
+        var topOffset = 0
+        while (solution[topOffset][col] == 2) {
+            topOffset++
         }
-        top += topCount
-        for (row in topCount until top) {
+        while (solution[top + topOffset][col] == 1) {
+            drawCross(topOffset++, col)
+            trackingRows.add(topOffset)
+        }
+        top += topOffset
+        for (row in topOffset until top) {
             if (solution[row][col] == 1) {
                 var len = 0
                 for (r in row until top) {
@@ -230,23 +238,31 @@ class Solver(val ng: Nonogram) {
                 }
                 break
             }
+            if (solution[row][col] == 2) {
+                for (r in topOffset until row) {
+                    drawCross(r, col)
+                    trackingRows.add(r)
+                }
+                topOffset = row + 1
+                top += topOffset
+            }
         }
 
         //bot check
         var bot = ng.height - clues.last()
-        var botCount = 1
+        var botOffset = 1
 
-        while (solution[bot - botCount][col] == 1) {
-            val newBot = ng.height - botCount
+        while (solution[bot - botOffset][col] == 1) {
+            val newBot = ng.height - botOffset
 
             drawCross(newBot, col)
             trackingRows.add(newBot)
 
-            botCount++
+            botOffset++
         }
-        bot -= --botCount
+        bot -= --botOffset
 
-        val botEnd = ng.height - botCount
+        val botEnd = ng.height - botOffset
         for (row in botEnd - 1 downTo bot) {
             if (solution[row][col] == 1) {
                 var len = 1
@@ -281,6 +297,54 @@ class Solver(val ng: Nonogram) {
                 }
             }
             left += clue + 1
+        }
+    }
+
+    private fun fillPart(start: Int, emptyCells: Int, index: Int, row: Int, isRow: Boolean = true) {
+        var l = start
+        var r = emptyCells
+        l += if (isRow) {
+            ng.rowClues[row][index]
+        } else {
+            ng.colClues[row][index]
+        }
+        for (i in l - 1 downTo start) {
+            if (isRow) {
+                if (solution[row][i] == 2) {
+                    l++
+                    for (j in i - 1 downTo start) {
+                        drawCross(row, j)
+                        l++
+                    }
+                    break
+                } else if (solution[row][i] == 1) {
+                    for (j in i + 1 until l) {
+                        drawTile(row, j, index)
+                    }
+                }
+            } else {
+                if (solution[i][row] == 2) {
+                    l++
+                    for (j in i - 1 downTo start) {
+                        drawCross(j, row)
+                        l++
+                    }
+                    break
+                } else if (solution[i][row] == 1) {
+                    for (j in i + 1 until l) {
+                        drawTile(j, row, index, isRow = false)
+                    }
+                }
+            }
+        }
+        if (l > r && l - r < clue) {
+            for (col in r until l) {
+                if (isRow) {
+                    drawTile(row, col, index, true)
+                } else {
+                    drawTile(col, row, index, false)
+                }
+            }
         }
     }
 }
