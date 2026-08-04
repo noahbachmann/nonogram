@@ -11,12 +11,6 @@ import kotlinx.serialization.Serializable
 
 enum class Difficulty { EASY, MEDIUM, HARD, HARDCORE }
 
-data class Cell(
-    var state: Int = 0,
-    val posRowClues: MutableList<Int> = mutableListOf(),
-    val posColClues: MutableList<Int> = mutableListOf(),
-)
-
 @Serializable
 data class Nonogram(
     val id: Long,
