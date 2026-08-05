@@ -4,9 +4,13 @@ data class Cell(
     var state: Int = 0,
     val posRowClues: MutableSet<Int> = mutableSetOf(),
     val posColClues: MutableSet<Int> = mutableSetOf(),
-    var rowClue: Int = -1,
-    var colClue: Int = -1,
-)
+) {
+    val rowClue: Int
+        get() = posRowClues.singleOrNull() ?: -1
+
+    val colClue: Int
+        get() = posColClues.singleOrNull() ?: -1
+}
 
 class Solver(val ng: Nonogram) {
 
@@ -28,7 +32,7 @@ class Solver(val ng: Nonogram) {
                     val r = l + clue
 
                     for (col in l until r) {
-                        drawTile(row, col, index, isInitial = true)
+                        drawTile(row, col, index, isClear = true)
                     }
 
                     if (r >= ng.width) continue
@@ -36,7 +40,6 @@ class Solver(val ng: Nonogram) {
                     drawCross(row, r)
                     l = r + 1
                 }
-                continue
             } else if (max > emptyCells && clues.max() > emptyCells) {
                 var l = 0
                 var r = emptyCells
@@ -44,7 +47,7 @@ class Solver(val ng: Nonogram) {
                     l += clue
                     if (l > r && l - r < clue) {
                         for (col in r until l) {
-                            drawTile(row, col, index, isInitial = true)
+                            drawTile(row, col, index, isClear = true)
                         }
                     }
                     r += clue + 1
@@ -66,7 +69,7 @@ class Solver(val ng: Nonogram) {
                     val r = l + clue
 
                     for (row in l until r) {
-                        drawTile(row, col, index, false, isInitial = true)
+                        drawTile(row, col, index, false, isClear = true)
                     }
 
                     if (r >= ng.height) continue
@@ -74,7 +77,6 @@ class Solver(val ng: Nonogram) {
                     drawCross(r, col)
                     l = r + 1
                 }
-                continue
             } else if (max > emptyCells && clues.max() > emptyCells) {
                 var l = 0
                 var r = emptyCells
@@ -82,7 +84,7 @@ class Solver(val ng: Nonogram) {
                     l += clue
                     if (l > r && l - r < clue) {
                         for (row in r until l) {
-                            drawTile(row, col, index, false, isInitial = true)
+                            drawTile(row, col, index, false, isClear = true)
                         }
                     }
                     r += clue + 1
@@ -104,39 +106,8 @@ class Solver(val ng: Nonogram) {
         }
         trackingRows.clear()
 
-        return solution
-    }
-
-    private fun drawTile(row: Int, col: Int, index: Int?, isRow: Boolean = true, isInitial: Boolean = false) {
-        val cell = solving[row][col]
-        cell.state = 1
-        if (index != null) {
-            if (isRow) {
-                if (isInitial) {
-                    cell.rowClue = index
-                } else {
-                    cell.posRowClues.add(index)
-                }
-                trackingCols.add(col)
-            } else {
-                if (isInitial) {
-                    cell.colClue = index
-                } else {
-                    cell.posColClues.add(index)
-                }
-                trackingRows.add(row)
-            }
-        }
-        solution[row][col] = 1
-    }
-
-    private fun drawCross(row: Int, col: Int) {
-        val cell = solving[row][col]
-        cell.state = 2
-        cell.posRowClues.clear()
-        cell.posColClues.clear()
-
-        solution[row][col] = 2
+        val check = solving.toSolution()
+        return check
     }
 
     private fun rowCheck(row: Int) {
@@ -179,6 +150,7 @@ class Solver(val ng: Nonogram) {
         var right = ng.width - clues.last()
         var rightOffset = 1
 
+        //check if perfect distance between constraint and nearest cell
         while (solution[row][right - rightOffset] == 1) {
             val newRight = ng.width - rightOffset
 
@@ -300,14 +272,182 @@ class Solver(val ng: Nonogram) {
         }
     }
 
-    private fun fillPart(start: Int, emptyCells: Int, index: Int, row: Int, isRow: Boolean = true) {
-        var l = start
-        var r = emptyCells
-        l += if (isRow) {
-            ng.rowClues[row][index]
+    private fun recomputePosCellClues(clues: List<Int>, rowIndex: Int, cellAt: (Int) -> Cell, isRow: Boolean = true) {
+        var leftOffset = 0
+        var index = 0
+        if (isRow) {
+            while (index < ng.width) {
+                val cell = cellAt(index)
+                if (cell.state == 1) {
+                    var count = 1
+
+                    while (index + count < ng.width && cellAt(index + count).state == 1) {
+                        count++
+                    }
+
+                    if (cell.rowClue > -1) {
+                        val clue = clues[cell.rowClue]
+                        while (count + leftOffset < clue && index + count < ng.width) {
+                            val checkCell = cellAt(index + count)
+                            if (checkCell.state == 0) {
+                                drawTile(rowIndex, index + count, cell.rowClue, isClear = true)
+                            }
+                            count++
+                        }
+                        if (count == clue) {
+                            drawCross(rowIndex, index + count)
+                            drawCross(rowIndex, index - 1)
+                        }
+                    } else {
+                        val iterator = cell.posRowClues.iterator()
+
+                        while (iterator.hasNext()) {
+                            val posIndex = iterator.next()
+                            val clue = clues[posIndex]
+                            if (count > clue) {
+                                iterator.remove()
+                                continue
+                            }
+                            var counter = count
+                            while (counter + leftOffset < clue && index + counter < ng.width) {
+                                if (cellAt(index + counter).state == 2) {
+                                    iterator.remove()
+                                    break
+                                }
+                                counter++
+                            }
+                        }
+                        val clues = cell.posRowClues.map { index ->
+                            clues[index]
+                        }
+                        if (clues.toSet().size == 1 && clues.first() == count) {
+                            drawCross(rowIndex, index + count)
+                            drawCross(rowIndex, index - 1)
+                        }
+                    }
+                    leftOffset = 0
+                    index += ++count
+                    continue
+                } else {
+                    index++
+
+                    if (cell.state == 0) {
+                        leftOffset++
+                    } else if (cell.state == 2) {
+                        leftOffset = 0
+                    }
+                }
+            }
         } else {
-            ng.colClues[row][index]
+            while (index < ng.height) {
+                val cell = cellAt(index)
+                if (cell.state == 1) {
+                    var count = 1
+
+                    while (index + count < ng.height && cellAt(index + count).state == 1) {
+                        count++
+                    }
+
+                    if (cell.colClue > -1) {
+                        val clue = clues[cell.colClue]
+                        while (count + leftOffset < clue && index + count < ng.height) {
+                            val checkCell = cellAt(index + count)
+                            if (checkCell.state == 0) {
+                                drawTile(index + count, rowIndex, cell.colClue, isRow = false, isClear = true)
+                            }
+                            count++
+                        }
+                        if (count == clue) {
+                            drawCross(index + count, rowIndex)
+                            drawCross(index - 1, rowIndex)
+                        }
+                    } else {
+                        val iterator = cell.posColClues.iterator()
+
+                        while (iterator.hasNext()) {
+                            val posIndex = iterator.next()
+                            val clue = clues[posIndex]
+                            if (count > clue) {
+                                iterator.remove()
+                                continue
+                            }
+                            var counter = count
+                            while (counter + leftOffset < clue && index + counter < ng.height) {
+                                if (cellAt(index + counter).state == 2) {
+                                    iterator.remove()
+                                    break
+                                }
+                                counter++
+                            }
+                        }
+                        val clues = cell.posColClues.map { index ->
+                            clues[index]
+                        }
+                        if (clues.toSet().size == 1 && clues.first() == count) {
+                            drawCross(index + count, rowIndex)
+                            drawCross(index - 1, rowIndex)
+                        }
+                    }
+                    leftOffset = 0
+                    index += ++count
+                    continue
+                } else {
+                    index++
+
+                    if (cell.state == 0) {
+                        leftOffset++
+                    } else if (cell.state == 2) {
+                        leftOffset = 0
+                    }
+                }
+            }
         }
+    }
+
+    private fun drawTile(row: Int, col: Int, index: Int?, isRow: Boolean = true, isClear: Boolean = false) {
+        val cell = solving[row][col]
+        cell.state = 1
+        if (index != null) {
+            if (isRow) {
+                if (isClear) {
+                    cell.posRowClues.clear()
+                    cell.posRowClues.add(index)
+                } else {
+                    cell.posRowClues.add(index)
+                }
+                trackingCols.add(col)
+            } else {
+                if (isClear) {
+                    cell.posColClues.clear()
+                    cell.posColClues.add(index)
+                } else {
+                    cell.posColClues.add(index)
+                }
+                trackingRows.add(row)
+            }
+        }
+        solution[row][col] = 1
+    }
+
+    private fun drawCross(row: Int, col: Int) {
+        val cell = solving[row][col]
+        cell.state = 2
+        cell.posRowClues.clear()
+        cell.posColClues.clear()
+
+        solution[row][col] = 2
+    }
+
+    private fun fillPart(start: Int, emptyCells: Int, clueIndex: Int, row: Int, isRow: Boolean = true): Int {
+        var l = start
+        val r = start + emptyCells
+        val clue = if (isRow) {
+            ng.rowClues[row][clueIndex]
+        } else {
+            ng.colClues[row][clueIndex]
+        }
+        l += clue
+
         for (i in l - 1 downTo start) {
             if (isRow) {
                 if (solution[row][i] == 2) {
@@ -319,7 +459,7 @@ class Solver(val ng: Nonogram) {
                     break
                 } else if (solution[row][i] == 1) {
                     for (j in i + 1 until l) {
-                        drawTile(row, j, index)
+                        drawTile(row, j, clueIndex, isClear = true)
                     }
                 }
             } else {
@@ -332,7 +472,7 @@ class Solver(val ng: Nonogram) {
                     break
                 } else if (solution[i][row] == 1) {
                     for (j in i + 1 until l) {
-                        drawTile(j, row, index, isRow = false)
+                        drawTile(j, row, clueIndex, isRow = false, isClear = true)
                     }
                 }
             }
@@ -340,10 +480,19 @@ class Solver(val ng: Nonogram) {
         if (l > r && l - r < clue) {
             for (col in r until l) {
                 if (isRow) {
-                    drawTile(row, col, index, true)
+                    drawTile(row, col, clueIndex, true, isClear = true)
                 } else {
-                    drawTile(col, row, index, false)
+                    drawTile(col, row, clueIndex, false, isClear = true)
                 }
+            }
+        }
+        return l
+    }
+
+    private fun Array<Array<Cell>>.toSolution(): Array<Array<Int>> {
+        return Array(size) { row ->
+            Array(this[row].size) { col ->
+                this[row][col].state
             }
         }
     }
