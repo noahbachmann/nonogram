@@ -299,6 +299,16 @@ class Solver(val ng: Nonogram) {
                         if (count == clue) {
                             drawCross(rowIndex, index + count)
                             drawCross(rowIndex, index - 1)
+                        } else {
+                            val diff = clue - count
+                            for (cellIndex in 0 until ng.width) {
+                                if (count + index + diff > cellIndex && cellIndex >= index - diff) continue
+                                val crossCell = cellAt(cellIndex)
+                                crossCell.posRowClues.remove(cell.rowClue)
+                                if (crossCell.posRowClues.isEmpty()) {
+                                    drawCross(rowIndex, cellIndex)
+                                }
+                            }
                         }
                     } else {
                         val iterator = cell.posRowClues.iterator()
@@ -362,6 +372,16 @@ class Solver(val ng: Nonogram) {
                         if (count == clue) {
                             drawCross(index + count, rowIndex)
                             drawCross(index - 1, rowIndex)
+                        } else {
+                            val diff = clue - count
+                            for (cellIndex in 0 until ng.height) {
+                                if (count + index + diff > cellIndex && cellIndex >= index - diff) continue
+                                val crossCell = cellAt(cellIndex)
+                                crossCell.posColClues.remove(cell.colClue)
+                                if (crossCell.posColClues.isEmpty()) {
+                                    drawCross(cellIndex, rowIndex)
+                                }
+                            }
                         }
                     } else {
                         val iterator = cell.posColClues.iterator()
