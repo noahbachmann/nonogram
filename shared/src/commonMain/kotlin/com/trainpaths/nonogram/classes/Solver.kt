@@ -127,7 +127,6 @@ class Solver(val ng: Nonogram) {
             drawCross(row, leftOffset++)
             trackingCols.add(leftOffset)
         }
-
         left += leftOffset
         for (col in leftOffset until left) {
             if (solution[row][col] == 1) {
@@ -160,7 +159,6 @@ class Solver(val ng: Nonogram) {
             rightOffset++
         }
         right -= --rightOffset
-
         val rightEnd = ng.width - rightOffset
         for (col in rightEnd - 1 downTo right) {
             if (solution[row][col] == 1) {
@@ -287,6 +285,10 @@ class Solver(val ng: Nonogram) {
 
                     if (cell.rowClue > -1) {
                         val clue = clues[cell.rowClue]
+                        while (leftOffset > 0 && count + leftOffset > clue) {
+                            drawCross(rowIndex, index - leftOffset)
+                            leftOffset--
+                        }
                         while (count + leftOffset < clue && index + count < ng.width) {
                             val checkCell = cellAt(index + count)
                             if (checkCell.state == 0) {
