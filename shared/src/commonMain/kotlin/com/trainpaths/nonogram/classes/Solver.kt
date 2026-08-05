@@ -107,8 +107,6 @@ class Solver(val ng: Nonogram) {
             trackingRows.clear()
 
             for (row in rowsToProcess) {
-                trackingRows.remove(row)
-
                 recomputePosCellClues(row, cellAt = { col -> solving[row][col] })
             }
         }
