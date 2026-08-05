@@ -167,9 +167,20 @@ class Solver(val ng: Nonogram) {
                                 drawCross(index - 1, rowIndex)
                             }
                         } else {
-                            val diff = clue - count
+                            var missingAmount = clue - count - 1
+                            for (i in missingAmount downTo 0) {
+                                val checkCell = cellAt(index + count + i)
+                                if (checkCell.rowClue == cell.rowClue && checkCell.state == 1) {
+                                    for (j in i downTo 1) {
+                                        drawTile(rowIndex, index + j, checkCell.rowClue, isClear = true)
+                                        count++
+                                        missingAmount--
+                                    }
+                                    break
+                                }
+                            }
                             for (cellIndex in 0 until ng.width) {
-                                if (count + index + diff > cellIndex && cellIndex >= index - diff) continue
+                                if (count + index + missingAmount > cellIndex && cellIndex >= index - missingAmount) continue
                                 val crossCell = cellAt(cellIndex)
                                 crossCell.posRowClues.remove(cell.rowClue)
                                 if (crossCell.posRowClues.isEmpty()) {
