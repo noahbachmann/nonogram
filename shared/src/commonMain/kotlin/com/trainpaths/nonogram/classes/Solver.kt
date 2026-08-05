@@ -117,158 +117,15 @@ class Solver(val ng: Nonogram) {
         return check
     }
 
-    private fun rowCheck(row: Int) {
-        val clues: List<Int> = ng.rowClues[row]
-        val emptyCells: Int = ng.width - (clues.sum() + clues.size - 1)
-        computePosCellClues(clues, emptyCells, { col -> solving[row][col] })
-
-        //left check for constraints
-        var left = clues[0]
-        var leftOffset = 0
-        while (solution[row][leftOffset] == 2) {
-            leftOffset++
-        }
-
-        //check if perfect distance between constraint and nearest cell
-        while (solution[row][left + leftOffset] == 1) {
-            drawCross(row, leftOffset++)
-            trackingCols.add(leftOffset)
-        }
-        left += leftOffset
-        for (col in leftOffset until left) {
-            if (solution[row][col] == 1) {
-                var len = 0
-                for (c in col until left) {
-                    drawTile(row, c, 0)
-                    len++
-                }
-                if (len == clues[0]) {
-                    drawCross(row, left)
-                    trackingCols.addAll(row until left + 1)
-                } else {
-                    trackingCols.addAll(row until left)
-                }
-                break
-            }
-        }
-
-        //right check for constraints
-        var right = ng.width - clues.last()
-        var rightOffset = 1
-
-        //check if perfect distance between constraint and nearest cell
-        while (solution[row][right - rightOffset] == 1) {
-            val newRight = ng.width - rightOffset
-
-            drawCross(row, newRight)
-            trackingCols.add(newRight)
-
-            rightOffset++
-        }
-        right -= --rightOffset
-        val rightEnd = ng.width - rightOffset
-        for (col in rightEnd - 1 downTo right) {
-            if (solution[row][col] == 1) {
-                var len = 1
-                for (c in right until col) {
-                    drawTile(row, c, clues.size - 1)
-                    len++
-                }
-                if (len == clues.last()) {
-                    drawCross(row, right--)
-                    trackingCols.addAll(right until ng.width)
-                } else {
-                    trackingCols.addAll(right until col)
-                }
-                break
-            }
-        }
-    }
-
-    private fun colCheck(col: Int) {
-        val clues: List<Int> = ng.colClues[col]
-        val emptyCells: Int = ng.height - (clues.sum() + clues.size - 1)
-        computePosCellClues(clues, emptyCells, cellAt = { row -> solving[row][col] }, false)
-        //top check
-        var top = clues[0]
-        var topOffset = 0
-        while (solution[topOffset][col] == 2) {
-            topOffset++
-        }
-        while (solution[top + topOffset][col] == 1) {
-            drawCross(topOffset++, col)
-            trackingRows.add(topOffset)
-        }
-        top += topOffset
-        for (row in topOffset until top) {
-            if (solution[row][col] == 1) {
-                var len = 0
-                for (r in row until top) {
-                    drawTile(r, col, 0, false)
-                    len++
-                }
-                if (len == clues[0]) {
-                    drawCross(top, col)
-                    trackingRows.addAll(row until top + 1)
-                } else {
-                    trackingRows.addAll(row until top)
-                }
-                break
-            }
-            if (solution[row][col] == 2) {
-                for (r in topOffset until row) {
-                    drawCross(r, col)
-                    trackingRows.add(r)
-                }
-                topOffset = row + 1
-                top += topOffset
-            }
-        }
-
-        //bot check
-        var bot = ng.height - clues.last()
-        var botOffset = 1
-
-        while (solution[bot - botOffset][col] == 1) {
-            val newBot = ng.height - botOffset
-
-            drawCross(newBot, col)
-            trackingRows.add(newBot)
-
-            botOffset++
-        }
-        bot -= --botOffset
-
-        val botEnd = ng.height - botOffset
-        for (row in botEnd - 1 downTo bot) {
-            if (solution[row][col] == 1) {
-                var len = 1
-                for (r in bot until row) {
-                    drawTile(r, col, clues.size - 1, false)
-                    len++
-                }
-                if (len == clues.last()) {
-                    drawCross(bot--, col)
-                    trackingRows.addAll(bot until ng.height)
-                } else {
-                    trackingRows.addAll(bot until row)
-                }
-                break
-            }
-        }
-    }
-
     private fun computePosCellClues(clues: List<Int>, emptyCells: Int, cellAt: (Int) -> Cell, isRow: Boolean = true) {
         var left = 0
         for ((index, clue) in clues.withIndex()) {
             for (i in left until left + clue + emptyCells) {
                 val cell = cellAt(i)
-                if (isRow) {
-                    if (cell.rowClue < 0 && cell.state != 2) {
+                if (cell.state != 2) {
+                    if (isRow) {
                         cell.posRowClues.add(index)
-                    }
-                } else {
-                    if (cell.colClue < 0 && cell.state != 2) {
+                    } else {
                         cell.posColClues.add(index)
                     }
                 }
@@ -486,57 +343,6 @@ class Solver(val ng: Nonogram) {
         trackingCols.add(col)
 
         solution[row][col] = 2
-    }
-
-    private fun fillPart(start: Int, emptyCells: Int, clueIndex: Int, row: Int, isRow: Boolean = true): Int {
-        var l = start
-        val r = start + emptyCells
-        val clue = if (isRow) {
-            ng.rowClues[row][clueIndex]
-        } else {
-            ng.colClues[row][clueIndex]
-        }
-        l += clue
-
-        for (i in l - 1 downTo start) {
-            if (isRow) {
-                if (solution[row][i] == 2) {
-                    l++
-                    for (j in i - 1 downTo start) {
-                        drawCross(row, j)
-                        l++
-                    }
-                    break
-                } else if (solution[row][i] == 1) {
-                    for (j in i + 1 until l) {
-                        drawTile(row, j, clueIndex, isClear = true)
-                    }
-                }
-            } else {
-                if (solution[i][row] == 2) {
-                    l++
-                    for (j in i - 1 downTo start) {
-                        drawCross(j, row)
-                        l++
-                    }
-                    break
-                } else if (solution[i][row] == 1) {
-                    for (j in i + 1 until l) {
-                        drawTile(j, row, clueIndex, isRow = false, isClear = true)
-                    }
-                }
-            }
-        }
-        if (l > r && l - r < clue) {
-            for (col in r until l) {
-                if (isRow) {
-                    drawTile(row, col, clueIndex, true, isClear = true)
-                } else {
-                    drawTile(col, row, clueIndex, false, isClear = true)
-                }
-            }
-        }
-        return l
     }
 
     private fun Array<Array<Cell>>.toSolution(): Array<Array<Int>> {
