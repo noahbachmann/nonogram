@@ -92,19 +92,26 @@ class Solver(val ng: Nonogram) {
                 }
             }
             computePosCellClues(clues, emptyCells, { row -> solving[row][col] }, false)
+        }
 
-            //first partial col check
-            if (col in trackingCols) {
-                colCheck(col)
+        while (trackingRows.isNotEmpty() || trackingCols.isNotEmpty()) {
+
+            val colsToProcess = trackingCols.toList()
+            trackingCols.clear()
+
+            for (col in colsToProcess) {
+                recomputePosCellClues(col, cellAt = { row -> solving[row][col] }, false)
+            }
+
+            val rowsToProcess = trackingRows.toList()
+            trackingRows.clear()
+
+            for (row in rowsToProcess) {
+                trackingRows.remove(row)
+
+                recomputePosCellClues(row, cellAt = { col -> solving[row][col] })
             }
         }
-        trackingCols.clear()
-
-        //first partial row check
-        for (row in trackingRows) {
-            rowCheck(row)
-        }
-        trackingRows.clear()
 
         val check = solving.toSolution()
         return check
@@ -270,10 +277,11 @@ class Solver(val ng: Nonogram) {
         }
     }
 
-    private fun recomputePosCellClues(clues: List<Int>, rowIndex: Int, cellAt: (Int) -> Cell, isRow: Boolean = true) {
+    private fun recomputePosCellClues(rowIndex: Int, cellAt: (Int) -> Cell, isRow: Boolean = true) {
         var leftOffset = 0
         var index = 0
         if (isRow) {
+            val clues = ng.rowClues[rowIndex]
             while (index < ng.width) {
                 val cell = cellAt(index)
                 if (cell.state == 1) {
@@ -297,8 +305,12 @@ class Solver(val ng: Nonogram) {
                             count++
                         }
                         if (count == clue) {
-                            drawCross(rowIndex, index + count)
-                            drawCross(rowIndex, index - 1)
+                            if (index + count < ng.width) {
+                                drawCross(index + count, rowIndex)
+                            }
+                            if (index > 0) {
+                                drawCross(index - 1, rowIndex)
+                            }
                         } else {
                             val diff = clue - count
                             for (cellIndex in 0 until ng.width) {
@@ -333,8 +345,12 @@ class Solver(val ng: Nonogram) {
                             clues[index]
                         }
                         if (clues.toSet().size == 1 && clues.first() == count) {
-                            drawCross(rowIndex, index + count)
-                            drawCross(rowIndex, index - 1)
+                            if (index + count < ng.width) {
+                                drawCross(index + count, rowIndex)
+                            }
+                            if (index > 0) {
+                                drawCross(index - 1, rowIndex)
+                            }
                         }
                     }
                     leftOffset = 0
@@ -351,6 +367,7 @@ class Solver(val ng: Nonogram) {
                 }
             }
         } else {
+            val clues = ng.colClues[rowIndex]
             while (index < ng.height) {
                 val cell = cellAt(index)
                 if (cell.state == 1) {
@@ -370,8 +387,12 @@ class Solver(val ng: Nonogram) {
                             count++
                         }
                         if (count == clue) {
-                            drawCross(index + count, rowIndex)
-                            drawCross(index - 1, rowIndex)
+                            if (index + count < ng.height) {
+                                drawCross(index + count, rowIndex)
+                            }
+                            if (index > 0) {
+                                drawCross(index - 1, rowIndex)
+                            }
                         } else {
                             val diff = clue - count
                             for (cellIndex in 0 until ng.height) {
@@ -406,8 +427,12 @@ class Solver(val ng: Nonogram) {
                             clues[index]
                         }
                         if (clues.toSet().size == 1 && clues.first() == count) {
-                            drawCross(index + count, rowIndex)
-                            drawCross(index - 1, rowIndex)
+                            if (index + count < ng.height) {
+                                drawCross(index + count, rowIndex)
+                            }
+                            if (index > 0) {
+                                drawCross(index - 1, rowIndex)
+                            }
                         }
                     }
                     leftOffset = 0
@@ -456,6 +481,9 @@ class Solver(val ng: Nonogram) {
         cell.state = 2
         cell.posRowClues.clear()
         cell.posColClues.clear()
+
+        trackingRows.add(row)
+        trackingCols.add(col)
 
         solution[row][col] = 2
     }
