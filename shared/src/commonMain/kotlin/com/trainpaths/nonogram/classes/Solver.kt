@@ -138,10 +138,37 @@ class Solver(val ng: Nonogram) {
         rowSize: Int,
         isRow: Boolean = true
     ) {
+        val clues = if (isRow) ng.rowClues[rowIndex] else ng.colClues[rowIndex]
+
+        fun recursive(startIndex: Int, offset: Int = 0, goesBack: Boolean = true): Int {
+            val currIndex = if (goesBack) startIndex - offset else startIndex + offset
+            val currCell = cellAt(currIndex)
+            if (currCell.state == 2) return offset
+
+            val amount = if (currIndex == 0 || currIndex >= rowSize - 1) {
+                if (goesBack) startIndex + 1 else currIndex - startIndex
+            } else {
+                recursive(
+                    startIndex,
+                    offset + 1,
+                    goesBack
+                )
+            }
+
+            val currClues = if (isRow) currCell.posRowClues else currCell.posColClues
+
+            currClues.removeAll { clueIndex ->
+                clues[clueIndex] > amount
+            }
+            if (currClues.isEmpty()) {
+                currCell.state = 2
+            }
+
+            return amount
+        }
+
         var leftOffset = 0
         var index = 0
-
-        val clues = if (isRow) ng.rowClues[rowIndex] else ng.colClues[rowIndex]
 
         while (index < rowSize) {
             val cell = cellAt(index)
@@ -250,17 +277,22 @@ class Solver(val ng: Nonogram) {
                 leftOffset = 0
                 index += ++count
                 continue
-            } else {
+            } else if (cell.state == 0) {
+                leftOffset++
                 index++
-
-                if (cell.state == 0) {
-                    leftOffset++
-                } else if (cell.state == 2) {
-                    leftOffset = 0
+            } else if (cell.state == 2) {
+                val l = index - 1
+                if (l > -1) {
+                    recursive(l)
                 }
+                var r = index + 1
+                if (r < rowSize) {
+                    recursive(r, goesBack = false)
+                    while (cellAt(r).state == 2) r++
+                }
+                index = r
             }
         }
-
     }
 
     private fun drawTile(row: Int, col: Int, index: Int?, isRow: Boolean = true, isClear: Boolean = false) {
