@@ -296,6 +296,41 @@ class Solver(val ng: Nonogram) {
         }
     }
 
+    private fun constraintCheck(rowIndex: Int, rowStart: Int, rowSize: Int, isRow: Boolean = true) {
+        val clues: List<Int> = if (isRow) ng.rowClues[rowIndex] else ng.colClues[rowIndex]
+        val max = clues.sum() + clues.size - 1
+        val emptyCells = rowSize - max
+
+        if (emptyCells == 0) {
+            var l = 0
+            for ((index, clue) in clues.withIndex()) {
+                val r = l + clue
+
+                for (col in l until r) {
+                    drawTile(rowIndex, col, index, isRow = isRow, isClear = true)
+                }
+
+                if (r >= rowSize) continue
+
+                drawCross(rowIndex, r)
+                l = r + 1
+            }
+        } else if (max > emptyCells && clues.max() > emptyCells) {
+            var l = 0
+            var r = emptyCells
+            for ((index, clue) in clues.withIndex()) {
+                l += clue
+                if (l > r && l - r < clue) {
+                    for (col in r until l) {
+                        drawTile(rowIndex, col, index, isRow = isRow, isClear = true)
+                    }
+                }
+                r += clue + 1
+                l++
+            }
+        }
+    }
+
     private fun drawTile(row: Int, col: Int, index: Int?, isRow: Boolean = true, isClear: Boolean = false) {
         val cell = if (isRow) solving[row][col] else solving[col][row]
         cell.state = 1
