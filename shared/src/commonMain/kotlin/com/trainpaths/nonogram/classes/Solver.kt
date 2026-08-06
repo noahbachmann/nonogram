@@ -69,7 +69,7 @@ class Solver(val ng: Nonogram) {
                     val r = l + clue
 
                     for (row in l until r) {
-                        drawTile(row, col, index, false, isClear = true)
+                        drawTile(col, row, index, false, isClear = true)
                     }
 
                     if (r >= ng.height) continue
@@ -84,7 +84,7 @@ class Solver(val ng: Nonogram) {
                     l += clue
                     if (l > r && l - r < clue) {
                         for (row in r until l) {
-                            drawTile(row, col, index, false, isClear = true)
+                            drawTile(col, row, index, false, isClear = true)
                         }
                     }
                     r += clue + 1
@@ -100,14 +100,14 @@ class Solver(val ng: Nonogram) {
             trackingCols.clear()
 
             for (col in colsToProcess) {
-                recomputePosCellClues(col, cellAt = { row -> solving[row][col] }, false)
+                recomputePosCellClues(col, cellAt = { row -> solving[row][col] }, ng.height, false)
             }
 
             val rowsToProcess = trackingRows.toList()
             trackingRows.clear()
 
             for (row in rowsToProcess) {
-                recomputePosCellClues(row, cellAt = { col -> solving[row][col] })
+                recomputePosCellClues(row, cellAt = { col -> solving[row][col] }, ng.width)
             }
         }
 
@@ -132,218 +132,158 @@ class Solver(val ng: Nonogram) {
         }
     }
 
-    private fun recomputePosCellClues(rowIndex: Int, cellAt: (Int) -> Cell, isRow: Boolean = true) {
+    private fun recomputePosCellClues(
+        rowIndex: Int,
+        cellAt: (Int) -> Cell,
+        rowSize: Int,
+        isRow: Boolean = true
+    ) {
         var leftOffset = 0
         var index = 0
-        if (isRow) {
-            val clues = ng.rowClues[rowIndex]
-            while (index < ng.width) {
-                val cell = cellAt(index)
-                if (cell.state == 1) {
-                    var count = 1
 
-                    while (index + count < ng.width && cellAt(index + count).state == 1) {
+        val clues = if (isRow) ng.rowClues[rowIndex] else ng.colClues[rowIndex]
+
+        while (index < rowSize) {
+            val cell = cellAt(index)
+            if (cell.state == 1) {
+                var count = 1
+
+                while (index + count < rowSize && cellAt(index + count).state == 1) {
+                    count++
+                }
+
+                val clueIndex: Int = if (isRow) cell.rowClue else cell.colClue
+
+                if (clueIndex > -1) {
+                    val clue = clues[clueIndex]
+                    while (leftOffset > 0 && count + leftOffset > clue) {
+                        val checkCellClues =
+                            if (isRow) cellAt(index - leftOffset).posRowClues else cellAt(index - leftOffset).posColClues
+                        checkCellClues.remove(clueIndex)
+
+                        if (checkCellClues.isEmpty()) {
+                            if (isRow) drawCross(rowIndex, index - leftOffset)
+                            else drawCross(index - leftOffset, rowIndex)
+                        }
+                        leftOffset--
+                    }
+                    while (count + leftOffset < clue && index + count < rowSize) {
+                        val checkCell = cellAt(index + count)
+                        if (checkCell.state == 0) {
+                            drawTile(rowIndex, index + count, clueIndex, isClear = true, isRow = isRow)
+                        }
                         count++
                     }
-
-                    if (cell.rowClue > -1) {
-                        val clue = clues[cell.rowClue]
-                        while (leftOffset > 0 && count + leftOffset > clue) {
-                            val checkCell = cellAt(index - leftOffset)
-                            checkCell.posRowClues.remove(cell.rowClue)
-                            if (checkCell.posRowClues.isEmpty()) {
-                                drawCross(rowIndex, index - leftOffset)
-                            }
-                            leftOffset--
+                    if (count == clue) {
+                        if (index + count < rowSize) {
+                            if (isRow) drawCross(rowIndex, index + count)
+                            else drawCross(index + count, rowIndex)
                         }
-                        while (count + leftOffset < clue && index + count < ng.width) {
-                            val checkCell = cellAt(index + count)
-                            if (checkCell.state == 0) {
-                                drawTile(rowIndex, index + count, cell.rowClue, isClear = true)
-                            }
-                            count++
-                        }
-                        if (count == clue) {
-                            if (index + count < ng.width) {
-                                drawCross(index + count, rowIndex)
-                            }
-                            if (index > 0) {
-                                drawCross(index - 1, rowIndex)
-                            }
-                        } else {
-                            var missingAmount = clue - count
-                            for (i in missingAmount - 1 downTo 0) {
-                                val checkCell = cellAt(index + count + i)
-                                if (checkCell.rowClue == cell.rowClue && checkCell.state == 1) {
-                                    for (j in i - 1 downTo 0) {
-                                        drawTile(rowIndex, index + count + j, checkCell.rowClue, isClear = true)
-                                    }
-                                    count += i + 1
-                                    missingAmount -= i + 1
-                                    break
-                                }
-                            }
-                            for (cellIndex in 0 until ng.width) {
-                                if (count + index + missingAmount > cellIndex && cellIndex >= index - missingAmount) continue
-                                val crossCell = cellAt(cellIndex)
-                                crossCell.posRowClues.remove(cell.rowClue)
-                                if (crossCell.posRowClues.isEmpty()) {
-                                    drawCross(rowIndex, cellIndex)
-                                }
-                            }
+                        if (index > 0) {
+                            if (isRow) drawCross(rowIndex, index - 1)
+                            else drawCross(index - count, rowIndex)
                         }
                     } else {
-                        val iterator = cell.posRowClues.iterator()
+                        var missingAmount = clue - count
+                        for (i in missingAmount - 1 downTo 0) {
+                            val checkCell = cellAt(index + count + i)
 
-                        while (iterator.hasNext()) {
-                            val posIndex = iterator.next()
-                            val clue = clues[posIndex]
-                            if (count > clue) {
-                                iterator.remove()
-                                continue
-                            }
-                            var counter = count
-                            while (counter + leftOffset < clue && index + counter < ng.width) {
-                                if (cellAt(index + counter).state == 2) {
-                                    iterator.remove()
-                                    break
+                            val checkCellClue = if (isRow) checkCell.rowClue else checkCell.colClue
+
+                            if (checkCellClue == clueIndex && checkCell.state == 1) {
+                                for (j in i - 1 downTo 0) {
+                                    drawTile(rowIndex, index + count + j, checkCellClue, isClear = true, isRow = isRow)
                                 }
-                                counter++
+                                count += i + 1
+                                missingAmount -= i + 1
+                                break
                             }
                         }
-                        val clues = cell.posRowClues.map { index ->
-                            clues[index]
-                        }
-                        if (clues.toSet().size == 1 && clues.first() == count) {
-                            if (index + count < ng.width) {
-                                drawCross(index + count, rowIndex)
-                            }
-                            if (index > 0) {
-                                drawCross(index - 1, rowIndex)
+                        for (cellIndex in 0 until rowSize) {
+                            if (count + index + missingAmount > cellIndex && cellIndex >= index - missingAmount) continue
+
+                            val crossCellClues =
+                                if (isRow) cellAt(cellIndex).posRowClues else cellAt(cellIndex).posColClues
+                            crossCellClues.remove(cellIndex)
+
+                            if (crossCellClues.isEmpty()) {
+                                if (isRow) drawCross(rowIndex, cellIndex)
+                                else drawCross(cellIndex, rowIndex)
                             }
                         }
                     }
-                    leftOffset = 0
-                    index += ++count
-                    continue
                 } else {
-                    index++
+                    val posClues = if (isRow) cell.posRowClues else cell.posColClues
 
-                    if (cell.state == 0) {
-                        leftOffset++
-                    } else if (cell.state == 2) {
-                        leftOffset = 0
+                    val iterator = posClues.iterator()
+
+                    while (iterator.hasNext()) {
+                        val posIndex = iterator.next()
+                        val clue = clues[posIndex]
+                        if (count > clue) {
+                            iterator.remove()
+                            continue
+                        }
+                        var counter = count
+                        while (counter + leftOffset < clue && index + counter < rowSize) {
+                            if (cellAt(index + counter).state == 2) {
+                                iterator.remove()
+                                break
+                            }
+                            counter++
+                        }
+                    }
+                    val clues = posClues.map { index ->
+                        clues[index]
+                    }
+                    if (clues.toSet().size == 1 && clues.first() == count) {
+                        if (index + count < rowSize) {
+                            if (isRow) drawCross(rowIndex, index + count)
+                            else drawCross(index + count, rowIndex)
+                        }
+                        if (index > 0) {
+                            if (isRow) drawCross(rowIndex, index - 1)
+                            else drawCross(index - 1, rowIndex)
+                        }
                     }
                 }
-            }
-        } else {
-            val clues = ng.colClues[rowIndex]
-            while (index < ng.height) {
-                val cell = cellAt(index)
-                if (cell.state == 1) {
-                    var count = 1
+                leftOffset = 0
+                index += ++count
+                continue
+            } else {
+                index++
 
-                    while (index + count < ng.height && cellAt(index + count).state == 1) {
-                        count++
-                    }
-
-                    if (cell.colClue > -1) {
-                        val clue = clues[cell.colClue]
-                        while (count + leftOffset < clue && index + count < ng.height) {
-                            val checkCell = cellAt(index + count)
-                            if (checkCell.state == 0) {
-                                drawTile(index + count, rowIndex, cell.colClue, isRow = false, isClear = true)
-                            }
-                            count++
-                        }
-                        if (count == clue) {
-                            if (index + count < ng.height) {
-                                drawCross(index + count, rowIndex)
-                            }
-                            if (index > 0) {
-                                drawCross(index - 1, rowIndex)
-                            }
-                        } else {
-                            val diff = clue - count
-                            for (cellIndex in 0 until ng.height) {
-                                if (count + index + diff > cellIndex && cellIndex >= index - diff) continue
-                                val crossCell = cellAt(cellIndex)
-                                crossCell.posColClues.remove(cell.colClue)
-                                if (crossCell.posColClues.isEmpty()) {
-                                    drawCross(cellIndex, rowIndex)
-                                }
-                            }
-                        }
-                    } else {
-                        val iterator = cell.posColClues.iterator()
-
-                        while (iterator.hasNext()) {
-                            val posIndex = iterator.next()
-                            val clue = clues[posIndex]
-                            if (count > clue) {
-                                iterator.remove()
-                                continue
-                            }
-                            var counter = count
-                            while (counter + leftOffset < clue && index + counter < ng.height) {
-                                if (cellAt(index + counter).state == 2) {
-                                    iterator.remove()
-                                    break
-                                }
-                                counter++
-                            }
-                        }
-                        val clues = cell.posColClues.map { index ->
-                            clues[index]
-                        }
-                        if (clues.toSet().size == 1 && clues.first() == count) {
-                            if (index + count < ng.height) {
-                                drawCross(index + count, rowIndex)
-                            }
-                            if (index > 0) {
-                                drawCross(index - 1, rowIndex)
-                            }
-                        }
-                    }
+                if (cell.state == 0) {
+                    leftOffset++
+                } else if (cell.state == 2) {
                     leftOffset = 0
-                    index += ++count
-                    continue
-                } else {
-                    index++
-
-                    if (cell.state == 0) {
-                        leftOffset++
-                    } else if (cell.state == 2) {
-                        leftOffset = 0
-                    }
                 }
             }
         }
+
     }
 
     private fun drawTile(row: Int, col: Int, index: Int?, isRow: Boolean = true, isClear: Boolean = false) {
-        val cell = solving[row][col]
+        val cell = if (isRow) solving[row][col] else solving[col][row]
         cell.state = 1
         if (index != null) {
             if (isRow) {
                 if (isClear) {
                     cell.posRowClues.clear()
-                    cell.posRowClues.add(index)
-                } else {
-                    cell.posRowClues.add(index)
                 }
+                cell.posRowClues.add(index)
                 trackingCols.add(col)
+                solution[row][col] = 1
             } else {
                 if (isClear) {
                     cell.posColClues.clear()
-                    cell.posColClues.add(index)
-                } else {
-                    cell.posColClues.add(index)
                 }
-                trackingRows.add(row)
+                cell.posColClues.add(index)
+                trackingRows.add(col)
+                solution[col][row] = 1
             }
         }
-        solution[row][col] = 1
+
     }
 
     private fun drawCross(row: Int, col: Int) {
