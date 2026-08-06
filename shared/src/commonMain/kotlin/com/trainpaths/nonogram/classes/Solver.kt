@@ -204,7 +204,7 @@ class Solver(val ng: Nonogram) {
 
                             val crossCellClues =
                                 if (isRow) cellAt(cellIndex).posRowClues else cellAt(cellIndex).posColClues
-                            crossCellClues.remove(cellIndex)
+                            crossCellClues.remove(clueIndex)
 
                             if (crossCellClues.isEmpty()) {
                                 if (isRow) drawCross(rowIndex, cellIndex)
