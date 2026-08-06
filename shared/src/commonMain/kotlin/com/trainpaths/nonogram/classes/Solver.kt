@@ -149,7 +149,11 @@ class Solver(val ng: Nonogram) {
                     if (cell.rowClue > -1) {
                         val clue = clues[cell.rowClue]
                         while (leftOffset > 0 && count + leftOffset > clue) {
-                            drawCross(rowIndex, index - leftOffset)
+                            val checkCell = cellAt(index - leftOffset)
+                            checkCell.posRowClues.remove(cell.rowClue)
+                            if (checkCell.posRowClues.isEmpty()) {
+                                drawCross(rowIndex, index - leftOffset)
+                            }
                             leftOffset--
                         }
                         while (count + leftOffset < clue && index + count < ng.width) {
