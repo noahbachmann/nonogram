@@ -146,7 +146,7 @@ class Solver(val ng: Nonogram) {
             if (currCell.state == 2) return offset
 
             val amount = if (currIndex == 0 || currIndex >= rowSize - 1) {
-                if (goesBack) startIndex + 1 else currIndex - startIndex
+                if (goesBack) startIndex + 1 else currIndex + 1 - startIndex
             } else {
                 recursive(
                     startIndex,
@@ -288,7 +288,7 @@ class Solver(val ng: Nonogram) {
                 var r = index + 1
                 if (r < rowSize) {
                     recursive(r, goesBack = false)
-                    while (cellAt(r).state == 2) r++
+                    while (r < rowSize && cellAt(r).state == 2) r++
                 }
                 index = r
             }
