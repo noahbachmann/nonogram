@@ -147,7 +147,7 @@ class Solver(val ng: Nonogram) {
                     count++
                 } else {
                     if (count < clue) {
-                        for (j in i downTo i - count) {
+                        for (j in i downTo i + 1 - count) {
                             if (isRow) cellAt(j).posRowClues.remove(index)
                             else cellAt(j).posColClues.remove(index)
                         }
