@@ -134,6 +134,31 @@ class Solver(val ng: Nonogram) {
         }
     }
 
+    private fun constraintDraw(clues: List<Int>, emptyCells: Int, cellAt: (Int) -> Cell, isRow: Boolean = true) {
+        var left = 0
+        for ((index, clue) in clues.withIndex()) {
+            var count = 0
+            for (i in left until left + clue + emptyCells) {
+                val cell = cellAt(i)
+                val posClues = if (isRow) cell.posRowClues else cell.posColClues
+
+                if (cell.state != 2) {
+                    posClues.add(index)
+                    count++
+                } else {
+                    if (count < clue) {
+                        for (j in i downTo i - count) {
+                            if (isRow) cellAt(j).posRowClues.remove(index)
+                            else cellAt(j).posColClues.remove(index)
+                        }
+                        count = 0
+                    }
+                }
+            }
+            left += clue + 1
+        }
+    }
+
     private fun recomputePosCellClues(
         rowIndex: Int,
         cellAt: (Int) -> Cell,
