@@ -40,6 +40,7 @@ class Solver(val ng: Nonogram) {
                     drawCross(row, r)
                     l = r + 1
                 }
+                trackingRows.remove(row)
             } else if (max > emptyCells && clues.max() > emptyCells) {
                 var l = 0
                 var r = emptyCells
@@ -77,6 +78,7 @@ class Solver(val ng: Nonogram) {
                     drawCross(r, col)
                     l = r + 1
                 }
+                trackingCols.remove(col)
             } else if (max > emptyCells && clues.max() > emptyCells) {
                 var l = 0
                 var r = emptyCells
@@ -163,6 +165,57 @@ class Solver(val ng: Nonogram) {
             if (currClues.isEmpty()) {
                 if (isRow) drawCross(rowIndex, currIndex)
                 else drawCross(currIndex, rowIndex)
+            }
+
+            return amount
+        }
+
+        fun constraint(
+            rowIndex: Int,
+            rowSize: Int,
+            startIndex: Int,
+            clueIndex: Int,
+            clueValue: Int,
+            offset: Int = 0,
+            goesBack: Boolean = true,
+            isRow: Boolean = true
+        ): Int {
+            val currIndex = if (goesBack) startIndex - offset else startIndex + offset
+            val currCell = cellAt(currIndex)
+            val currPosClues = if (isRow) currCell.posRowClues else currCell.posColClues
+            val currClue = if (isRow) currCell.rowClue else currCell.colClue
+
+            if (!currPosClues.contains(clueIndex) || currCell.state == 2) return offset
+
+            val amount = if (currIndex == 0 || currIndex >= rowSize - 1) {
+                offset + 1
+            } else {
+                constraint(
+                    rowIndex,
+                    rowSize,
+                    startIndex,
+                    clueIndex,
+                    clueValue,
+                    offset + 1,
+                    goesBack,
+                    isRow
+                )
+            }
+
+            currPosClues.removeAll { clueIndex ->
+                clues[clueIndex] > amount
+            }
+
+            if (currPosClues.isEmpty()) {
+                if (isRow) drawCross(rowIndex, currIndex)
+                else drawCross(currIndex, rowIndex)
+            } else if (currClue > -1) {
+                val emptyCells = offset - currClue
+                val endIndex = startIndex + offset
+                if (currIndex > startIndex + emptyCells && currIndex < endIndex - emptyCells) {
+                    if (isRow) drawTile(rowIndex, currIndex, clueIndex, isClear = true)
+                    else drawTile(currIndex, rowIndex, clueIndex, isRow, isClear = true)
+                }
             }
 
             return amount
@@ -292,41 +345,6 @@ class Solver(val ng: Nonogram) {
                     while (r < rowSize && cellAt(r).state == 2) r++
                 }
                 index = r
-            }
-        }
-    }
-
-    private fun constraintCheck(rowIndex: Int, rowStart: Int, rowSize: Int, isRow: Boolean = true) {
-        val clues: List<Int> = if (isRow) ng.rowClues[rowIndex] else ng.colClues[rowIndex]
-        val max = clues.sum() + clues.size - 1
-        val emptyCells = rowSize - max
-
-        if (emptyCells == 0) {
-            var l = 0
-            for ((index, clue) in clues.withIndex()) {
-                val r = l + clue
-
-                for (col in l until r) {
-                    drawTile(rowIndex, col, index, isRow = isRow, isClear = true)
-                }
-
-                if (r >= rowSize) continue
-
-                drawCross(rowIndex, r)
-                l = r + 1
-            }
-        } else if (max > emptyCells && clues.max() > emptyCells) {
-            var l = 0
-            var r = emptyCells
-            for ((index, clue) in clues.withIndex()) {
-                l += clue
-                if (l > r && l - r < clue) {
-                    for (col in r until l) {
-                        drawTile(rowIndex, col, index, isRow = isRow, isClear = true)
-                    }
-                }
-                r += clue + 1
-                l++
             }
         }
     }
