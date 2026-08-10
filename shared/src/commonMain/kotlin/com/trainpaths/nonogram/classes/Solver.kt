@@ -141,6 +141,7 @@ class Solver(val ng: Nonogram) {
         isRow: Boolean = true
     ) {
         val clues = if (isRow) ng.rowClues[rowIndex] else ng.colClues[rowIndex]
+        val solvedClues = if (isRow) ng.solvedRowClues[rowIndex] else ng.solvedColClues[rowIndex]
         val emptyCells = rowSize - (clues.sum() + clues.size - 1)
 
         fun recursive(startIndex: Int, offset: Int = 0, goesBack: Boolean = true): Int {
@@ -205,6 +206,10 @@ class Solver(val ng: Nonogram) {
                 val diff = max - min
 
                 if (diff >= clue && diff < clue * 2) {
+                    if (diff == clue) {
+                        solvedClues.add(index)
+                    }
+
                     val r = min + clue
                     val l = max - clue
 
@@ -254,6 +259,7 @@ class Solver(val ng: Nonogram) {
                         count++
                     }
                     if (count == clue) {
+                        solvedClues.add(clueIndex)
                         if (index + count < rowSize) {
                             if (isRow) drawCross(rowIndex, index + count)
                             else drawCross(index + count, rowIndex)
@@ -314,10 +320,16 @@ class Solver(val ng: Nonogram) {
                             counter++
                         }
                     }
-                    val clues = posClues.map { index ->
+
+
+                    val filteredClues = posClues.map { index ->
                         clues[index]
                     }
-                    if (clues.toSet().size == 1 && clues.first() == count) {
+
+                    if (filteredClues.toSet().size == 1 && filteredClues.first() == count) {
+                        if (posClues.size == 1) {
+                            solvedClues.add(posClues.first())
+                        }
                         if (index + count < rowSize) {
                             if (isRow) drawCross(rowIndex, index + count)
                             else drawCross(index + count, rowIndex)
@@ -332,6 +344,10 @@ class Solver(val ng: Nonogram) {
                 index += ++count
                 continue
             } else if (cell.state == 0) {
+                if (clues.size == solvedClues.size) {
+                    if (isRow) drawCross(rowIndex, index)
+                    else drawCross(index, rowIndex)
+                }
                 leftOffset++
                 index++
             } else if (cell.state == 2) {
@@ -347,29 +363,28 @@ class Solver(val ng: Nonogram) {
                 index = r
             }
         }
+
     }
 
     private fun drawTile(row: Int, col: Int, index: Int?, isRow: Boolean = true, isClear: Boolean = false) {
         val cell = if (isRow) solving[row][col] else solving[col][row]
-        cell.state = 1
+        val posClues = if (isRow) cell.posRowClues else cell.posColClues
+
         if (index != null) {
+            posClues.add(index)
+            if (cell.state == 1 && !isClear) return
+            if (isClear) posClues.clear()
+            posClues.add(index)
+
             if (isRow) {
-                if (isClear) {
-                    cell.posRowClues.clear()
-                }
-                cell.posRowClues.add(index)
                 trackingCols.add(col)
                 solution[row][col] = 1
             } else {
-                if (isClear) {
-                    cell.posColClues.clear()
-                }
-                cell.posColClues.add(index)
                 trackingRows.add(col)
                 solution[col][row] = 1
             }
         }
-
+        cell.state = 1
     }
 
     private fun drawCross(row: Int, col: Int) {
