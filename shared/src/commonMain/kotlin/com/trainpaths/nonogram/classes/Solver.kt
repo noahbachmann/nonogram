@@ -402,7 +402,8 @@ class Solver(val ng: Nonogram) {
     private fun Array<Array<Cell>>.toSolution(): Array<Array<Int>> {
         return Array(size) { row ->
             Array(this[row].size) { col ->
-                this[row][col].state
+                val state = this[row][col].state
+                if (state > 1) 0 else state
             }
         }
     }
