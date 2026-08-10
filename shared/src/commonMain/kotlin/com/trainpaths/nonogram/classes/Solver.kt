@@ -13,8 +13,6 @@ data class Cell(
 }
 
 class Solver(val ng: Nonogram) {
-
-    val solution: Array<Array<Int>> = Array(ng.height) { Array(ng.width) { 0 } }
     val solving: Array<Array<Cell>> = Array(ng.height) { Array(ng.width) { Cell() } }
     val trackingRows: MutableSet<Int> = mutableSetOf()
     val trackingCols: MutableSet<Int> = mutableSetOf()
@@ -372,31 +370,25 @@ class Solver(val ng: Nonogram) {
 
         if (index != null) {
             posClues.add(index)
-            if (cell.state == 1 && !isClear) return
             if (isClear) posClues.clear()
             posClues.add(index)
+            if (cell.state == 1) return
 
-            if (isRow) {
-                trackingCols.add(col)
-                solution[row][col] = 1
-            } else {
-                trackingRows.add(col)
-                solution[col][row] = 1
-            }
+            if (isRow) trackingCols.add(col)
+            else trackingRows.add(col)
         }
         cell.state = 1
     }
 
     private fun drawCross(row: Int, col: Int) {
         val cell = solving[row][col]
-        cell.state = 2
         cell.posRowClues.clear()
         cell.posColClues.clear()
+        if (cell.state == 2) return
 
+        cell.state = 2
         trackingRows.add(row)
         trackingCols.add(col)
-
-        solution[row][col] = 2
     }
 
     private fun Array<Array<Cell>>.toSolution(): Array<Array<Int>> {
