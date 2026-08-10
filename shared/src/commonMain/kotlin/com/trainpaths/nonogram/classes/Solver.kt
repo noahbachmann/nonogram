@@ -134,27 +134,46 @@ class Solver(val ng: Nonogram) {
         }
     }
 
-    private fun constraintDraw(clues: List<Int>, emptyCells: Int, cellAt: (Int) -> Cell, isRow: Boolean = true) {
+    private fun constraintDraw(rowIndex: Int, emptyCells: Int, cellAt: (Int) -> Cell, isRow: Boolean = true) {
+        val clues = if (isRow) ng.rowClues[rowIndex] else ng.colClues[rowIndex]
         var left = 0
+
         for ((index, clue) in clues.withIndex()) {
+            val range: MutableSet<Int> = mutableSetOf()
             var count = 0
             for (i in left until left + clue + emptyCells) {
                 val cell = cellAt(i)
                 val posClues = if (isRow) cell.posRowClues else cell.posColClues
 
-                if (cell.state != 2) {
-                    posClues.add(index)
+                if (cell.state != 2 && posClues.contains(index)) {
+                    range.add(i)
                     count++
                 } else {
                     if (count < clue) {
-                        for (j in i downTo i + 1 - count) {
+                        for (j in i - 1 downTo i - count) {
                             if (isRow) cellAt(j).posRowClues.remove(index)
                             else cellAt(j).posColClues.remove(index)
+                            range.remove(j)
                         }
-                        count = 0
                     }
+                    count = 0
                 }
             }
+            val min = range.min()
+            val max = range.max() + 1
+
+            val diff = max - min
+
+            if (diff >= clue && diff < clue * 2) {
+                val r = min + clue
+                val l = max - clue
+
+                for (i in l until r) {
+                    if (isRow) drawTile(rowIndex, i, index, isClear = true)
+                    else drawTile(i, rowIndex, index, isRow, isClear = true)
+                }
+            }
+
             left += clue + 1
         }
     }
