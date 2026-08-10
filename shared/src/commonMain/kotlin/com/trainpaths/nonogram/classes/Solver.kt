@@ -209,8 +209,7 @@ class Solver(val ng: Nonogram) {
                     val l = max - clue
 
                     for (i in l until r) {
-                        if (isRow) drawTile(rowIndex, i, index, isClear = true)
-                        else drawTile(i, rowIndex, index, isRow, isClear = true)
+                        drawTile(rowIndex, i, index, isRow, isClear = true)
                     }
                 }
 
@@ -261,11 +260,13 @@ class Solver(val ng: Nonogram) {
                         }
                         if (index > 0) {
                             if (isRow) drawCross(rowIndex, index - 1)
-                            else drawCross(index - count, rowIndex)
+                            else drawCross(index - 1, rowIndex)
                         }
                     } else {
                         var missingAmount = clue - count
                         for (i in missingAmount - 1 downTo 0) {
+                            val checkIndex = index + count + i
+                            if (checkIndex >= rowSize) continue
                             val checkCell = cellAt(index + count + i)
 
                             val checkCellClue = if (isRow) checkCell.rowClue else checkCell.colClue
