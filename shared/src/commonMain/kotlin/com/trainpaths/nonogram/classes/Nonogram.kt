@@ -27,16 +27,16 @@ data class Nonogram(
     val rowClues: List<List<Int>>
         get() = solution.map { row -> computeLineClues(row) }
 
-    val solvedRowClues: List<MutableList<Int>> =
-        List(height) { mutableListOf() }
+    val solvedRowClues: List<MutableSet<Int>> =
+        List(height) { mutableSetOf() }
 
     val colClues: List<List<Int>>
         get() = (0 until width).map { col ->
             computeLineClues((0 until height).map { row -> solution[row][col] })
         }
 
-    val solvedColClues: List<MutableList<Int>> =
-        List(width) { mutableListOf() }
+    val solvedColClues: List<MutableSet<Int>> =
+        List(width) { mutableSetOf() }
 }
 
 private fun computeLineClues(line: List<Int>): List<Int> {
