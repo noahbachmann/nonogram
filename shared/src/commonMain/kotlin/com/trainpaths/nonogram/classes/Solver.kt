@@ -134,50 +134,6 @@ class Solver(val ng: Nonogram) {
         }
     }
 
-    private fun constraintDraw(rowIndex: Int, emptyCells: Int, cellAt: (Int) -> Cell, isRow: Boolean = true) {
-        val clues = if (isRow) ng.rowClues[rowIndex] else ng.colClues[rowIndex]
-        var left = 0
-
-        for ((index, clue) in clues.withIndex()) {
-            val range: MutableSet<Int> = mutableSetOf()
-            var count = 0
-            for (i in left until left + clue + emptyCells) {
-                val cell = cellAt(i)
-                val posClues = if (isRow) cell.posRowClues else cell.posColClues
-
-                if (cell.state != 2 && posClues.contains(index)) {
-                    range.add(i)
-                    count++
-                } else {
-                    if (count < clue) {
-                        for (j in i - 1 downTo i - count) {
-                            if (isRow) cellAt(j).posRowClues.remove(index)
-                            else cellAt(j).posColClues.remove(index)
-                            range.remove(j)
-                        }
-                    }
-                    count = 0
-                }
-            }
-            val min = range.min()
-            val max = range.max() + 1
-
-            val diff = max - min
-
-            if (diff >= clue && diff < clue * 2) {
-                val r = min + clue
-                val l = max - clue
-
-                for (i in l until r) {
-                    if (isRow) drawTile(rowIndex, i, index, isClear = true)
-                    else drawTile(i, rowIndex, index, isRow, isClear = true)
-                }
-            }
-
-            left += clue + 1
-        }
-    }
-
     private fun recomputePosCellClues(
         rowIndex: Int,
         cellAt: (Int) -> Cell,
@@ -185,6 +141,7 @@ class Solver(val ng: Nonogram) {
         isRow: Boolean = true
     ) {
         val clues = if (isRow) ng.rowClues[rowIndex] else ng.colClues[rowIndex]
+        val emptyCells = rowSize - (clues.sum() + clues.size - 1)
 
         fun recursive(startIndex: Int, offset: Int = 0, goesBack: Boolean = true): Int {
             val currIndex = if (goesBack) startIndex - offset else startIndex + offset
@@ -214,56 +171,54 @@ class Solver(val ng: Nonogram) {
             return amount
         }
 
-        fun constraint(
-            rowIndex: Int,
-            rowSize: Int,
-            startIndex: Int,
-            clueIndex: Int,
-            clueValue: Int,
-            offset: Int = 0,
-            goesBack: Boolean = true,
-            isRow: Boolean = true
-        ): Int {
-            val currIndex = if (goesBack) startIndex - offset else startIndex + offset
-            val currCell = cellAt(currIndex)
-            val currPosClues = if (isRow) currCell.posRowClues else currCell.posColClues
-            val currClue = if (isRow) currCell.rowClue else currCell.colClue
+        fun constraintDraw() {
+            var left = 0
 
-            if (!currPosClues.contains(clueIndex) || currCell.state == 2) return offset
+            for ((index, clue) in clues.withIndex()) {
+                val range: MutableSet<Int> = mutableSetOf()
+                var count = 0
+                for (i in left until left + clue + emptyCells) {
+                    val cell = cellAt(i)
+                    val posClues = if (isRow) cell.posRowClues else cell.posColClues
 
-            val amount = if (currIndex == 0 || currIndex >= rowSize - 1) {
-                offset + 1
-            } else {
-                constraint(
-                    rowIndex,
-                    rowSize,
-                    startIndex,
-                    clueIndex,
-                    clueValue,
-                    offset + 1,
-                    goesBack,
-                    isRow
-                )
-            }
-
-            currPosClues.removeAll { clueIndex ->
-                clues[clueIndex] > amount
-            }
-
-            if (currPosClues.isEmpty()) {
-                if (isRow) drawCross(rowIndex, currIndex)
-                else drawCross(currIndex, rowIndex)
-            } else if (currClue > -1) {
-                val emptyCells = offset - currClue
-                val endIndex = startIndex + offset
-                if (currIndex > startIndex + emptyCells && currIndex < endIndex - emptyCells) {
-                    if (isRow) drawTile(rowIndex, currIndex, clueIndex, isClear = true)
-                    else drawTile(currIndex, rowIndex, clueIndex, isRow, isClear = true)
+                    if (cell.state != 2 && posClues.contains(index)) {
+                        range.add(i)
+                        count++
+                    } else {
+                        if (count < clue) {
+                            for (j in i - 1 downTo i - count) {
+                                val currClues = if (isRow) cellAt(j).posRowClues else cellAt(j).posColClues
+                                currClues.remove(index)
+                                if (currClues.isEmpty()) {
+                                    if (isRow) drawCross(rowIndex, j)
+                                    else drawCross(j, rowIndex)
+                                }
+                                range.remove(j)
+                            }
+                        }
+                        count = 0
+                    }
                 }
-            }
+                val min = range.min()
+                val max = range.max() + 1
 
-            return amount
+                val diff = max - min
+
+                if (diff >= clue && diff < clue * 2) {
+                    val r = min + clue
+                    val l = max - clue
+
+                    for (i in l until r) {
+                        if (isRow) drawTile(rowIndex, i, index, isClear = true)
+                        else drawTile(i, rowIndex, index, isRow, isClear = true)
+                    }
+                }
+
+                left += clue + 1
+            }
         }
+
+        constraintDraw()
 
         var leftOffset = 0
         var index = 0
