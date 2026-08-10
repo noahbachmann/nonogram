@@ -48,7 +48,7 @@ kotlin {
         }
     }
 
-    androidLibrary {
+    android {
         namespace = "com.trainpaths.nonogram.shared"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
