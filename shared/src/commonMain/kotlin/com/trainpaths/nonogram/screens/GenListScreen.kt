@@ -18,7 +18,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,10 +33,13 @@ import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.NonogramAppBar
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
+import com.trainpaths.nonogram.screens.viewModel.GeneratorSyncState
 
 @Composable
 fun GenListScreen(
     genViewModel: GenViewModel,
+    generatorSyncState: GeneratorSyncState,
+    onRetrySync: () -> Unit,
     onSwap: () -> Unit,
     onNewClick: () -> Unit,
     onEditClick: (Nonogram) -> Unit,
@@ -58,6 +63,38 @@ fun GenListScreen(
             ),
         ) {
             Text("+ New", style = MaterialTheme.typography.titleMedium)
+        }
+
+        when (generatorSyncState) {
+            GeneratorSyncState.IDLE -> Unit
+            GeneratorSyncState.SYNCING -> {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            }
+
+            GeneratorSyncState.ERROR -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = "Your nonograms couldn't be synced. Check your connection and try again.",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        OutlinedButton(onClick = onRetrySync) {
+                            Text("Retry")
+                        }
+                    }
+                }
+            }
         }
 
         if (genViewModel.isLoadingMine) {

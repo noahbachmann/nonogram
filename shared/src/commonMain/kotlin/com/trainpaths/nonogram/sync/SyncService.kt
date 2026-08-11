@@ -16,28 +16,34 @@ interface SyncService {
     /** Pushes every locally authored puzzle; used once when an account first signs in. */
     suspend fun uploadAllLocalNonograms(firebaseUid: String, localUserId: Long)
 
-    /**
-     * Pulls puzzles visible to this user (own + public) whose remote updatedAt is after [since]
-     * and merges them into the local db. Returns the new sync cursor (max updatedAt seen), or
-     * [since] when nothing new / on failure.
-     */
-    suspend fun pullNonogramsSince(firebaseUid: String, localUserId: Long, since: Long): Long
+    suspend fun pullPublicNonogramsSince(
+        firebaseUid: String,
+        localUserId: Long,
+        since: Long,
+    ): Long?
+
+    suspend fun pullOwnedNonograms(
+        firebaseUid: String,
+        localUserId: Long,
+        since: Long,
+    ): Long?
 }
 
 /**
  * Merge policy for pulled nonograms, shared by both platform implementations: remote newer →
- * upsert locally, local newer and locally authored → push back. Returns the advanced cursor.
+ * upsert locally, local newer and locally authored → push back. Returns the newest received
+ * `updatedAt` timestamp for the next incremental fetch.
  */
 internal suspend fun SyncService.mergeRemoteNonograms(
     sdk: AppSDK,
     firebaseUid: String,
     localUserId: Long,
-    since: Long,
+    lastSyncedAt: Long,
     remotes: List<Nonogram>,
 ): Long {
-    var cursor = since
+    var newestReceivedAt = lastSyncedAt
     for (remote in remotes) {
-        if (remote.updatedAt > cursor) cursor = remote.updatedAt
+        if (remote.updatedAt > newestReceivedAt) newestReceivedAt = remote.updatedAt
         val local = sdk.getNonogramById(remote.id)
         if (local == null || local.updatedAt < remote.updatedAt) {
             sdk.upsertNonogramFromRemote(remote)
@@ -45,5 +51,5 @@ internal suspend fun SyncService.mergeRemoteNonograms(
             pushNonogram(firebaseUid, local)
         }
     }
-    return cursor
+    return newestReceivedAt
 }

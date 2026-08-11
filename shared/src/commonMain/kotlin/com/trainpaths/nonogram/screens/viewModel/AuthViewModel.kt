@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+enum class GeneratorSyncState { IDLE, SYNCING, ERROR }
+
 class AuthViewModel(
     private val authRepository: AuthRepository,
     private val syncService: SyncService,
@@ -25,6 +27,10 @@ class AuthViewModel(
     private val _signInComplete = MutableStateFlow(false)
     val signInComplete = _signInComplete.asStateFlow()
 
+    private val _generatorSyncState =
+        MutableStateFlow(GeneratorSyncState.IDLE)
+    val generatorNonogramSyncState = _generatorSyncState.asStateFlow()
+
     fun onFirebaseSignInSuccess(firebaseUid: String, displayName: String?) {
         _signInComplete.value = false
         viewModelScope.launch(Dispatchers.Default) {
@@ -37,7 +43,6 @@ class AuthViewModel(
                 syncService.uploadAllLocalProgress(firebaseUid, userId)
             }
             syncService.uploadAllLocalNonograms(firebaseUid, userId)
-            pullNonogramsIncremental(firebaseUid, userId)
             _signInComplete.value = true
         }
     }
@@ -57,24 +62,64 @@ class AuthViewModel(
         }
     }
 
-    /** Only fetches docs with updatedAt past the persisted cursor. */
-    fun syncNonograms(onNewData: () -> Unit = {}) {
+    fun syncNonograms(onComplete: () -> Unit = {}) {
         viewModelScope.launch(Dispatchers.Default) {
-            if (authRepository.authState.value != AuthState.SIGNED_IN) return@launch
-            val userId = authRepository.currentUserId.value ?: return@launch
-            val firebaseUid = sdk.getUserById(userId)?.firebaseUid ?: return@launch
-            if (pullNonogramsIncremental(firebaseUid, userId)) {
-                withContext(Dispatchers.Main) { onNewData() }
+            try {
+                if (authRepository.authState.value != AuthState.SIGNED_IN) return@launch
+                val userId = authRepository.currentUserId.value ?: return@launch
+                val firebaseUid = sdk.getUserById(userId)?.firebaseUid ?: return@launch
+                syncPublicNonograms(firebaseUid, userId)
+                syncOwnedNonograms(firebaseUid, userId)
+            } finally {
+                withContext(Dispatchers.Main) { onComplete() }
             }
         }
     }
 
-    private suspend fun pullNonogramsIncremental(firebaseUid: String, userId: Long): Boolean {
-        val cursor = authRepository.getNonogramSyncCursor(firebaseUid)
-        val newCursor = syncService.pullNonogramsSince(firebaseUid, userId, cursor)
-        if (newCursor == cursor) return false
-        authRepository.setNonogramSyncCursor(firebaseUid, newCursor)
-        return true
+    fun retryOwnNonograms(onComplete: () -> Unit = {}) {
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                if (authRepository.authState.value != AuthState.SIGNED_IN) return@launch
+                val userId = authRepository.currentUserId.value ?: return@launch
+                val firebaseUid = sdk.getUserById(userId)?.firebaseUid ?: return@launch
+                syncOwnedNonograms(firebaseUid, userId)
+            } finally {
+                withContext(Dispatchers.Main) { onComplete() }
+            }
+        }
+    }
+
+    private suspend fun syncPublicNonograms(
+        firebaseUid: String,
+        userId: Long,
+    ) {
+        val lastSyncedAt = authRepository.getLastPublicNonogramSyncTimestamp(firebaseUid)
+        val newestReceivedAt = syncService.pullPublicNonogramsSince(firebaseUid, userId, lastSyncedAt)
+        if (newestReceivedAt != null && newestReceivedAt != lastSyncedAt) {
+            authRepository.setLastPublicNonogramSyncTimestamp(firebaseUid, newestReceivedAt)
+        }
+    }
+
+    private suspend fun syncOwnedNonograms(
+        firebaseUid: String,
+        userId: Long,
+    ) {
+        val lastSyncedAt = authRepository.getLastOwnedNonogramSyncTimestamp(firebaseUid)
+        _generatorSyncState.value = GeneratorSyncState.SYNCING
+        try {
+            val newestReceivedAt = syncService.pullOwnedNonograms(firebaseUid, userId, lastSyncedAt)
+            if (newestReceivedAt == null) {
+                _generatorSyncState.value = GeneratorSyncState.ERROR
+                return
+            }
+            if (newestReceivedAt != lastSyncedAt) {
+                authRepository.setLastOwnedNonogramSyncTimestamp(firebaseUid, newestReceivedAt)
+            }
+            _generatorSyncState.value = GeneratorSyncState.IDLE
+        } catch (error: Throwable) {
+            println("FirestoreSync: owned nonogram sync for Generator failed: ${error.message}")
+            _generatorSyncState.value = GeneratorSyncState.ERROR
+        }
     }
 
     fun completeOnboarding() {
