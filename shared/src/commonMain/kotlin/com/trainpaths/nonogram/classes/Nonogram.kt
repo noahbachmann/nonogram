@@ -17,26 +17,25 @@ data class Nonogram(
     val difficulty: Difficulty,
     val solution: List<List<Int>>,
     val authorId: Long = 0,
-    val isValid: Boolean = false,
-    val isPublic: Boolean = false,
+    var isPublic: Boolean = false,
     val updatedAt: Long = 0
 ) {
     val height: Int get() = solution.size
     val width: Int get() = solution.firstOrNull()?.size ?: 0
 
-    val rowClues: List<List<Int>>
-        get() = solution.map { row -> computeLineClues(row) }
+    val rowClues: List<List<Int>> by lazy {
+        solution.map { row -> computeLineClues(row) }
+    }
 
-    val solvedRowClues: List<MutableSet<Int>> =
-        List(height) { mutableSetOf() }
-
-    val colClues: List<List<Int>>
-        get() = (0 until width).map { col ->
+    val colClues: List<List<Int>> by lazy {
+        (0 until width).map { col ->
             computeLineClues((0 until height).map { row -> solution[row][col] })
         }
+    }
 
-    val solvedColClues: List<MutableSet<Int>> =
-        List(width) { mutableSetOf() }
+    val isValid: Boolean by lazy {
+        Solver(this).solveNonogram().map { row -> row.toList() } == solution
+    }
 }
 
 private fun computeLineClues(line: List<Int>): List<Int> {

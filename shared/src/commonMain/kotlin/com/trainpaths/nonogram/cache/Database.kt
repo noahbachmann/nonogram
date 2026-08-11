@@ -43,7 +43,6 @@ internal class Database(driver: SqlDriver) {
         difficulty: String,
         solution: List<List<Int>>,
         authorId: Long = 0,
-        isValid: Boolean = false,
         isPublic: Boolean = false,
         id: Long? = null
     ): Long {
@@ -54,7 +53,6 @@ internal class Database(driver: SqlDriver) {
             difficulty,
             json.encodeToString(solution),
             authorId,
-            isValid.toLong(),
             isPublic.toLong(),
             Clock.System.now().toEpochMilliseconds()
         )
@@ -69,7 +67,6 @@ internal class Database(driver: SqlDriver) {
             nonogram.difficulty.toString(),
             json.encodeToString(nonogram.solution),
             nonogram.authorId,
-            nonogram.isValid.toLong(),
             nonogram.isPublic.toLong(),
             Clock.System.now().toEpochMilliseconds(),
             id
@@ -83,7 +80,6 @@ internal class Database(driver: SqlDriver) {
             nonogram.difficulty.toString(),
             json.encodeToString(nonogram.solution),
             nonogram.authorId,
-            nonogram.isValid.toLong(),
             nonogram.isPublic.toLong(),
             nonogram.updatedAt
         )
@@ -163,7 +159,6 @@ internal class Database(driver: SqlDriver) {
         difficulty: String,
         solution: String,
         authorId: Long,
-        valid: Long,
         status: Long,
         updatedAt: Long
     ): Nonogram = Nonogram(
@@ -171,7 +166,6 @@ internal class Database(driver: SqlDriver) {
         difficulty = Difficulty.valueOf(difficulty),
         solution = json.decodeFromString(solution),
         authorId = authorId,
-        isValid = valid.toBoolean(),
         isPublic = status.toBoolean(),
         updatedAt = updatedAt
     )
@@ -181,7 +175,6 @@ internal class Database(driver: SqlDriver) {
         difficulty: String,
         solution: String,
         authorId: Long,
-        valid: Long,
         status: Long,
         updatedAt: Long,
         boardState: String?,
@@ -192,7 +185,6 @@ internal class Database(driver: SqlDriver) {
             difficulty = Difficulty.valueOf(difficulty),
             solution = json.decodeFromString(solution),
             authorId = authorId,
-            isValid = valid.toBoolean(),
             isPublic = status.toBoolean(),
             updatedAt = updatedAt
         ),

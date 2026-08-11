@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.navigation.NonogramAppBar
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
+import com.trainpaths.nonogram.screens.viewModel.ValidationState
 
 @Composable
 fun GenConfScreen(
@@ -43,24 +44,23 @@ fun GenConfScreen(
     var rows by remember { mutableStateOf(genViewModel.height.toString()) }
     var cols by remember { mutableStateOf(genViewModel.width.toString()) }
     var isPublic by remember {
-        mutableStateOf(genViewModel.nonogram.isValid && genViewModel.nonogram.isPublic)
+        mutableStateOf(genViewModel.nonogram.isPublic)
     }
     val authState by genViewModel.authState.collectAsState()
 
     LaunchedEffect(
         genViewModel.isSaving,
-        genViewModel.nonogram.isValid,
+        genViewModel.validationState,
         genViewModel.nonogram.isPublic,
     ) {
         if (!genViewModel.isSaving) {
-            isPublic =
-                genViewModel.nonogram.isValid && genViewModel.nonogram.isPublic
+            isPublic = genViewModel.nonogram.isPublic
         }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
-            onBack = onBack,
+            onBack = { if (!genViewModel.isSaving) onBack() },
             backArrow = true,
             showSettings = true,
         )
@@ -88,6 +88,7 @@ fun GenConfScreen(
                 label = { Text("Rows") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
+                enabled = !genViewModel.isSaving,
                 colors = textFieldColors,
                 modifier = Modifier.width(200.dp),
             )
@@ -98,17 +99,19 @@ fun GenConfScreen(
                 label = { Text("Columns") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
+                enabled = !genViewModel.isSaving,
                 colors = textFieldColors,
                 modifier = Modifier.width(200.dp).padding(top = 16.dp),
             )
 
             if (editing) {
-                val isValid = genViewModel.nonogram.isValid
+                val validationState = genViewModel.validationState
+                val isValid = validationState == ValidationState.VALID
                 val canMakePublic =
                     !genViewModel.isSaving &&
-                        genViewModel.saveError == null &&
-                        isValid &&
-                        authState == AuthState.SIGNED_IN
+                            genViewModel.saveError == null &&
+                            isValid &&
+                            authState == AuthState.SIGNED_IN
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 28.dp),
@@ -116,7 +119,7 @@ fun GenConfScreen(
                 ) {
                     Text("Validity", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.weight(1f))
-                    if (genViewModel.isSaving) {
+                    if (validationState == ValidationState.CHECKING) {
                         CircularProgressIndicator(
                             modifier = Modifier.width(20.dp).height(20.dp),
                             strokeWidth = 2.dp,
@@ -129,10 +132,11 @@ fun GenConfScreen(
                         )
                     } else {
                         Text(
-                            when {
-                                genViewModel.saveError != null -> "Unavailable"
-                                isValid -> "Valid"
-                                else -> "Invalid"
+                            when (validationState) {
+                                ValidationState.VALID -> "Valid"
+                                ValidationState.INVALID -> "Invalid"
+                                ValidationState.UNAVAILABLE -> "Unavailable"
+                                else -> "Not checked"
                             },
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
@@ -163,6 +167,10 @@ fun GenConfScreen(
                     Text(
                         text = if (authState != AuthState.SIGNED_IN) {
                             "Sign in to make this nonogram public."
+                        } else if (validationState == ValidationState.UNCHECKED) {
+                            "Save the nonogram to check its validity."
+                        } else if (validationState == ValidationState.UNAVAILABLE) {
+                            "Validity must be available before making this nonogram public."
                         } else {
                             "Only valid nonograms can be made public."
                         },
@@ -174,7 +182,11 @@ fun GenConfScreen(
 
                 genViewModel.saveError?.let { error ->
                     Text(
-                        text = "Validity could not be checked: $error",
+                        text = if (validationState == ValidationState.UNAVAILABLE) {
+                            "Validity could not be checked: $error"
+                        } else {
+                            "Save failed: $error"
+                        },
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
@@ -188,8 +200,7 @@ fun GenConfScreen(
                     val w = cols.toIntOrNull() ?: return@Button
                     if (editing) {
                         genViewModel.resizeNonogram(h, w)
-                        genViewModel.setPublic(isPublic)
-                        genViewModel.onSave(onDone)
+                        genViewModel.onSave(requestedPublic = isPublic, onDone = onDone)
                     } else {
                         genViewModel.setNonogram(h, w)
                         onDone()

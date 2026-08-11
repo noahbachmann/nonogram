@@ -52,7 +52,7 @@ class AppSDKTest {
     fun upsertNonogramFromRemote_insertsThenOverwrites() = runTest {
         val remote = Nonogram(
             id = 42, difficulty = Difficulty.HARD, solution = listOf(listOf(1, 0)),
-            authorId = 7, isValid = false, isPublic = true, updatedAt = 123,
+            authorId = 7, isPublic = true, updatedAt = 123,
         )
         sdk.upsertNonogramFromRemote(remote)
         assertEquals(remote, sdk.getNonogramById(42))

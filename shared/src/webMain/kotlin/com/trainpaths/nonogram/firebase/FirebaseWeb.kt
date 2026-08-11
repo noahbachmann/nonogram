@@ -69,7 +69,6 @@ object FirebaseWeb {
         difficulty: String,
         solutionJson: String,
         authorUid: String,
-        isValid: Boolean,
         isPublic: Boolean,
         updatedAt: Long,
     ): JsAny =
@@ -78,7 +77,6 @@ object FirebaseWeb {
                 put("difficulty", difficulty)
                 put("solution", solutionJson)
                 put("authorUid", authorUid)
-                put("valid", isValid.toLong())
                 put("status", isPublic.toLong())
                 put("updatedAt", updatedAt)
             }.toString()

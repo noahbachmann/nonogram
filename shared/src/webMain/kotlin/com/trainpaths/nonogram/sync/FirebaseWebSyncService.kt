@@ -122,7 +122,6 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
                     // Solution stays a JSON string: Firestore rejects nested arrays.
                     solutionJson = json.encodeToString(nonogram.solution),
                     authorUid = firebaseUid,
-                    isValid = nonogram.isValid,
                     isPublic = nonogram.isPublic,
                     updatedAt = nonogram.updatedAt,
                 )
@@ -173,7 +172,6 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
                                 difficulty = Difficulty.valueOf(data.difficulty),
                                 solution = json.decodeFromString(data.solution),
                                 authorId = if (data.authorUid == firebaseUid) localUserId else 0,
-                                isValid = data.valid.toLong().toBoolean(),
                                 isPublic = data.status.toLong().toBoolean(),
                                 updatedAt = data.updatedAt.toLong(),
                             )
