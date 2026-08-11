@@ -14,6 +14,7 @@ internal external interface ProgressDocData : JsAny {
 internal external interface NonogramDocData : JsAny {
     val difficulty: String
     val solution: String
+    val name: String?
     val authorUid: String
     val status: Double
     val updatedAt: Double

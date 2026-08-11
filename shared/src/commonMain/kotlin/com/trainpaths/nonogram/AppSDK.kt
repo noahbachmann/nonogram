@@ -86,9 +86,10 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
         solution: List<List<Int>>,
         authorId: Long = 0,
         isPublic: Boolean = false,
-        id: Long? = null
+        id: Long? = null,
+        name: String? = null,
     ): Long =
-        db().addNonogram(difficulty, solution, authorId, isPublic, id)
+        db().addNonogram(difficulty, solution, authorId, isPublic, id, name)
 
     suspend fun updateNonogram(
         id: Long,

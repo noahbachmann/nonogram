@@ -90,13 +90,20 @@ class GenViewModel(
         setNonogram(DEFAULT_SIZE, DEFAULT_SIZE)
     }
 
-    fun setNonogram(h: Int, w: Int) {
+    fun setNonogram(h: Int, w: Int, name: String? = null) {
         height = h
         width = w
-        nonogram = Nonogram(0, Difficulty.EASY, emptyList())
+        nonogram = Nonogram(0, Difficulty.EASY, emptyList(), name = name)
         tiles = List(h) { List(w) { Tile() } }
         updateNonogram()
         isDirty = false
+    }
+
+    fun updateName(name: String?) {
+        if (nonogram.name == name) return
+        nonogram = nonogram.copy(name = name)
+        isDirty = true
+        saveError = null
     }
 
     /**
@@ -179,6 +186,7 @@ class GenViewModel(
                             solution = nonogram.solution,
                             authorId = userId,
                             isPublic = nonogram.isPublic,
+                            name = nonogram.name,
                         )
                     }
                     // Re-fetch so the UI and pushed copy carry the freshly stamped updatedAt.

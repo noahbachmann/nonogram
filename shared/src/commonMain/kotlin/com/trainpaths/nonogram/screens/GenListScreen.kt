@@ -26,10 +26,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.DrawNonogram
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.classes.UNNAMED_NONOGRAM_TITLE
 import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.NonogramAppBar
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
@@ -148,8 +150,11 @@ private fun MyNonogramCard(nonogram: Nonogram, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Nonogram #${nonogram.id}",
+                    text = nonogram.name ?: UNNAMED_NONOGRAM_TITLE,
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Box(
                     modifier = Modifier.padding(start = 8.dp),
