@@ -68,6 +68,7 @@ object FirebaseWeb {
     internal fun makeNonogramData(
         difficulty: String,
         solutionJson: String,
+        name: String?,
         authorUid: String,
         isPublic: Boolean,
         updatedAt: Long,
@@ -76,6 +77,7 @@ object FirebaseWeb {
             buildJsonObject {
                 put("difficulty", difficulty)
                 put("solution", solutionJson)
+                put("name", name)
                 put("authorUid", authorUid)
                 put("status", isPublic.toLong())
                 put("updatedAt", updatedAt)

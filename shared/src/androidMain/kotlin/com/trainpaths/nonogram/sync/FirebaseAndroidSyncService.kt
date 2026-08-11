@@ -93,6 +93,7 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
                     "difficulty" to nonogram.difficulty.toString(),
                     // Solution stays a JSON string: Firestore rejects nested arrays.
                     "solution" to json.encodeToString(nonogram.solution),
+                    "name" to nonogram.name,
                     "authorUid" to firebaseUid,
                     "status" to nonogram.isPublic.toLong(),
                     "updatedAt" to nonogram.updatedAt,
@@ -162,6 +163,7 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
                         id = nonogramId,
                         difficulty = Difficulty.valueOf(doc.get("difficulty")),
                         solution = json.decodeFromString(doc.get<String>("solution")),
+                        name = doc.get<String?>("name"),
                         authorId = if (doc.get<String>("authorUid") == firebaseUid) localUserId else 0,
                         isPublic = doc.get<Long>("status").toBoolean(),
                         updatedAt = doc.get("updatedAt"),

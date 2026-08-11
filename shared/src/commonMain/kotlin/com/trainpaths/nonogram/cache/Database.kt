@@ -6,6 +6,7 @@ import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.db.SqlDriver
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.classes.normalizeNonogramName
 import com.trainpaths.nonogram.util.toBoolean
 import com.trainpaths.nonogram.util.toLong
 import kotlinx.serialization.json.Json
@@ -44,7 +45,8 @@ internal class Database(driver: SqlDriver) {
         solution: List<List<Int>>,
         authorId: Long = 0,
         isPublic: Boolean = false,
-        id: Long? = null
+        id: Long? = null,
+        name: String? = null,
     ): Long {
         // Random ids in [2^20, 2^53) stay unique across devices (Firestore doc ids) and JS-double-safe.
         val nonogramId = id ?: Random.nextLong(1L shl 20, 1L shl 53)
@@ -54,7 +56,8 @@ internal class Database(driver: SqlDriver) {
             json.encodeToString(solution),
             authorId,
             isPublic.toLong(),
-            Clock.System.now().toEpochMilliseconds()
+            Clock.System.now().toEpochMilliseconds(),
+            name?.let(::normalizeNonogramName),
         )
         return nonogramId
     }
@@ -69,6 +72,7 @@ internal class Database(driver: SqlDriver) {
             nonogram.authorId,
             nonogram.isPublic.toLong(),
             Clock.System.now().toEpochMilliseconds(),
+            nonogram.name?.let(::normalizeNonogramName),
             id
         )
         return id
@@ -81,7 +85,8 @@ internal class Database(driver: SqlDriver) {
             json.encodeToString(nonogram.solution),
             nonogram.authorId,
             nonogram.isPublic.toLong(),
-            nonogram.updatedAt
+            nonogram.updatedAt,
+            nonogram.name?.let(::normalizeNonogramName),
         )
     }
     // ---------- Users ----------
@@ -160,11 +165,13 @@ internal class Database(driver: SqlDriver) {
         solution: String,
         authorId: Long,
         status: Long,
-        updatedAt: Long
+        updatedAt: Long,
+        name: String?,
     ): Nonogram = Nonogram(
         id = id,
         difficulty = Difficulty.valueOf(difficulty),
         solution = json.decodeFromString(solution),
+        name = name,
         authorId = authorId,
         isPublic = status.toBoolean(),
         updatedAt = updatedAt
@@ -177,6 +184,7 @@ internal class Database(driver: SqlDriver) {
         authorId: Long,
         status: Long,
         updatedAt: Long,
+        name: String?,
         boardState: String?,
         beat: Long
     ): NonogramProgress = NonogramProgress(
@@ -184,6 +192,7 @@ internal class Database(driver: SqlDriver) {
             id = id,
             difficulty = Difficulty.valueOf(difficulty),
             solution = json.decodeFromString(solution),
+            name = name,
             authorId = authorId,
             isPublic = status.toBoolean(),
             updatedAt = updatedAt

@@ -11,11 +11,23 @@ import kotlinx.serialization.Serializable
 
 enum class Difficulty { EASY, MEDIUM, HARD, HARDCORE }
 
+const val MAX_NONOGRAM_NAME_LENGTH = 30
+const val UNNAMED_NONOGRAM_TITLE = "no description"
+
+fun normalizeNonogramName(value: String): String? =
+    value
+        .replace('\n', ' ')
+        .replace('\r', ' ')
+        .trim()
+        .take(MAX_NONOGRAM_NAME_LENGTH)
+        .takeIf { it.isNotEmpty() }
+
 @Serializable
 data class Nonogram(
     val id: Long,
     val difficulty: Difficulty,
     val solution: List<List<Int>>,
+    val name: String? = null,
     val authorId: Long = 0,
     var isPublic: Boolean = false,
     val updatedAt: Long = 0

@@ -3,6 +3,7 @@ package com.trainpaths.nonogram.classes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 private data class NonogramTestData(
@@ -234,5 +235,20 @@ class NonogramTest {
                 message = "Unexpected width for ${data.desc}",
             )
         }
+    }
+
+    @Test
+    fun blankNameNormalizesToNull() {
+        assertNull(normalizeNonogramName("   "))
+    }
+
+    @Test
+    fun nameIsTrimmedAndLineBreaksBecomeSpaces() {
+        assertEquals("blue whale", normalizeNonogramName("  blue\nwhale  "))
+    }
+
+    @Test
+    fun nameIsLimitedToThirtyCharacters() {
+        assertEquals("x".repeat(MAX_NONOGRAM_NAME_LENGTH), normalizeNonogramName("x".repeat(31)))
     }
 }

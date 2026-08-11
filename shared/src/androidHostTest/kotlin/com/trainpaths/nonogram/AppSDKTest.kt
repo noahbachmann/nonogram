@@ -52,7 +52,7 @@ class AppSDKTest {
     fun upsertNonogramFromRemote_insertsThenOverwrites() = runTest {
         val remote = Nonogram(
             id = 42, difficulty = Difficulty.HARD, solution = listOf(listOf(1, 0)),
-            authorId = 7, isPublic = true, updatedAt = 123,
+            name = "Comet", authorId = 7, isPublic = true, updatedAt = 123,
         )
         sdk.upsertNonogramFromRemote(remote)
         assertEquals(remote, sdk.getNonogramById(42))
@@ -72,6 +72,17 @@ class AppSDKTest {
         assertEquals(id, all[0].id)
         assertEquals(Difficulty.EASY, all[0].difficulty)
         assertEquals(solution, all[0].solution)
+        assertNull(all[0].name)
+    }
+
+    @Test
+    fun addAndUpdateNonogram_roundTripsNullableName() = runTest {
+        val id = sdk.addNonogram("EASY", listOf(listOf(1)), name = "Tree")
+        assertEquals("Tree", sdk.getNonogramById(id)?.name)
+
+        val existing = assertNotNull(sdk.getNonogramById(id))
+        sdk.updateNonogram(id, existing.copy(name = null))
+        assertNull(sdk.getNonogramById(id)?.name)
     }
 
     @Test

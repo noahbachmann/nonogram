@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.auth.AuthState
+import com.trainpaths.nonogram.classes.MAX_NONOGRAM_NAME_LENGTH
+import com.trainpaths.nonogram.classes.normalizeNonogramName
 import com.trainpaths.nonogram.navigation.NonogramAppBar
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.ValidationState
@@ -41,6 +43,7 @@ fun GenConfScreen(
     onBack: () -> Unit,
     onDone: () -> Unit,
 ) {
+    var name by remember { mutableStateOf(genViewModel.nonogram.name.orEmpty()) }
     var rows by remember { mutableStateOf(genViewModel.height.toString()) }
     var cols by remember { mutableStateOf(genViewModel.width.toString()) }
     var isPublic by remember {
@@ -79,7 +82,25 @@ fun GenConfScreen(
                 unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary,
                 focusedLabelColor = MaterialTheme.colorScheme.secondary,
                 unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
                 cursorColor = MaterialTheme.colorScheme.secondary,
+            )
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = {
+                    name = it
+                        .replace('\n', ' ')
+                        .replace('\r', ' ')
+                        .take(MAX_NONOGRAM_NAME_LENGTH)
+                },
+                label = { Text("Name") },
+                placeholder = { Text("description...") },
+                singleLine = true,
+                enabled = !genViewModel.isSaving,
+                colors = textFieldColors,
+                modifier = Modifier.width(200.dp),
             )
 
             OutlinedTextField(
@@ -90,7 +111,7 @@ fun GenConfScreen(
                 singleLine = true,
                 enabled = !genViewModel.isSaving,
                 colors = textFieldColors,
-                modifier = Modifier.width(200.dp),
+                modifier = Modifier.width(200.dp).padding(top = 16.dp),
             )
 
             OutlinedTextField(
@@ -198,11 +219,13 @@ fun GenConfScreen(
                 onClick = {
                     val h = rows.toIntOrNull() ?: return@Button
                     val w = cols.toIntOrNull() ?: return@Button
+                    val normalizedName = normalizeNonogramName(name)
                     if (editing) {
+                        genViewModel.updateName(normalizedName)
                         genViewModel.resizeNonogram(h, w)
                         genViewModel.onSave(requestedPublic = isPublic, onDone = onDone)
                     } else {
-                        genViewModel.setNonogram(h, w)
+                        genViewModel.setNonogram(h, w, normalizedName)
                         onDone()
                     }
                 },
