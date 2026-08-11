@@ -21,6 +21,14 @@ import kotlinx.coroutines.withContext
 internal fun publicationStatus(isPublic: Boolean, isValid: Boolean, isSignedIn: Boolean): Boolean =
     isPublic && isValid && isSignedIn
 
+enum class ValidationState {
+    UNCHECKED,
+    CHECKING,
+    VALID,
+    INVALID,
+    UNAVAILABLE,
+}
+
 class GenViewModel(
     private val sdk: AppSDK,
     private val authRepository: AuthRepository,
@@ -52,7 +60,10 @@ class GenViewModel(
     var isDirty by mutableStateOf(false)
         private set
 
-    /** True while the current puzzle is being persisted (and, eventually, validated). */
+    var validationState by mutableStateOf(ValidationState.UNCHECKED)
+        private set
+
+    /** True while the current puzzle is being validated and persisted. */
     var isSaving by mutableStateOf(false)
         private set
 
@@ -114,6 +125,8 @@ class GenViewModel(
             row.map { cell -> Tile().apply { if (cell == 1) state = TileState.FILLED } }
         }
         isDirty = false
+        validationState = ValidationState.UNCHECKED
+        saveError = null
     }
 
     fun updateNonogram() {
@@ -127,65 +140,64 @@ class GenViewModel(
         }
         nonogram = nonogram.copy(solution = solution)
         isDirty = true
+        validationState = ValidationState.UNCHECKED
+        saveError = null
     }
 
-    fun setPublic(isPublic: Boolean) {
-        val isPublicAllowed = publicationStatus(
-            isPublic = isPublic,
-            isValid = nonogram.isValid,
-            isSignedIn = authRepository.authState.value == AuthState.SIGNED_IN,
-        )
-        if (nonogram.isPublic != isPublicAllowed) {
-            nonogram = nonogram.copy(isPublic = isPublicAllowed)
-            isDirty = true
-        }
-    }
-
-    fun onSave(onDone: () -> Unit = {}) {
+    fun onSave(
+        requestedPublic: Boolean = nonogram.isPublic,
+        onDone: () -> Unit = {},
+    ) {
         if (isSaving) return
         val userId = authRepository.currentUserId.value ?: return
         val nonogramId = nonogram.id
         val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
+        nonogram = nonogram.copy(solution = board)
+        val isSignedIn = authRepository.authState.value == AuthState.SIGNED_IN
         isSaving = true
+        validationState = ValidationState.CHECKING
         saveError = null
         viewModelScope.launch {
+            var validationCompleted = false
             try {
-                withContext(Dispatchers.Default) {
-                    // Invalid puzzles must never be persisted as public, including legacy data.
-                    val puzzleToSave = nonogram.copy(
-                        solution = board,
-                        isPublic = publicationStatus(
-                            isPublic = nonogram.isPublic,
-                            isValid = nonogram.isValid,
-                            isSignedIn = authRepository.authState.value == AuthState.SIGNED_IN,
-                        ),
-                    )
+                val isValid = withContext(Dispatchers.Default) { nonogram.isValid }
+                validationCompleted = true
+                // Invalid puzzles must never be persisted as public, including legacy data.
+                nonogram.isPublic = publicationStatus(
+                    isPublic = requestedPublic,
+                    isValid = isValid,
+                    isSignedIn = isSignedIn,
+                )
+                validationState = if (isValid) ValidationState.VALID else ValidationState.INVALID
+
+                val savedNonogram = withContext(Dispatchers.Default) {
                     val savedId = if (nonogramId != 0L) {
-                        sdk.updateNonogram(nonogramId, puzzleToSave)
+                        sdk.updateNonogram(nonogramId, nonogram)
                     } else {
                         sdk.addNonogram(
-                            difficulty = puzzleToSave.difficulty.toString(),
-                            solution = board,
+                            difficulty = nonogram.difficulty.toString(),
+                            solution = nonogram.solution,
                             authorId = userId,
-                            isValid = puzzleToSave.isValid,
-                            isPublic = puzzleToSave.isPublic,
+                            isPublic = nonogram.isPublic,
                         )
                     }
-                    // Re-fetch so the UI and pushed copy carry validator output and updatedAt.
-                    val saved = sdk.getNonogramById(savedId)
-                    if (saved != null) {
-                        nonogram = saved
+                    // Re-fetch so the UI and pushed copy carry the freshly stamped updatedAt.
+                    val persistedNonogram = sdk.getNonogramById(savedId)
+                    if (persistedNonogram != null) {
                         val firebaseUid = sdk.getUserById(userId)?.firebaseUid
                         if (firebaseUid != null) {
-                            syncService.pushNonogram(firebaseUid, saved)
+                            syncService.pushNonogram(firebaseUid, persistedNonogram)
                         }
                     }
+                    persistedNonogram
                 }
+                if (savedNonogram != null) nonogram = savedNonogram
                 isDirty = false
                 onDone()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
+                if (!validationCompleted) validationState = ValidationState.UNAVAILABLE
                 saveError = error.message ?: "Unable to save this nonogram."
             } finally {
                 isSaving = false

@@ -2,6 +2,8 @@ package com.trainpaths.nonogram.classes
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 private data class NonogramTestData(
     val desc: String,
@@ -168,6 +170,41 @@ class NonogramTest {
                 message = "Unexpected solution for ${data.desc}",
             )
         }
+    }
+
+    @Test
+    fun isValid_isDerivedFromSolverOutput() {
+        val valid = nonogramData.first { it.verifySolver }.nonogram
+        val invalid = Nonogram(
+            id = 13,
+            difficulty = Difficulty.EASY,
+            solution = listOf(
+                listOf(1, 0),
+                listOf(0, 1),
+            ),
+        )
+
+        assertTrue(valid.isValid)
+        assertFalse(invalid.isValid)
+    }
+
+    @Test
+    fun solverAndDerivedValidity_areRepeatable() {
+        val nonogram = nonogramData.first { it.verifySolver }.nonogram
+
+        val first = Solver(nonogram).solveNonogram().map { row -> row.toList() }
+        val second = Solver(nonogram).solveNonogram().map { row -> row.toList() }
+
+        assertEquals(first, second)
+        assertTrue(nonogram.isValid)
+        assertTrue(nonogram.isValid)
+    }
+
+    @Test
+    fun emptySolution_usesSolverEquality() {
+        val empty = nonogramData.first { it.desc == "empty solution" }.nonogram
+
+        assertTrue(empty.isValid)
     }
 
     @Test

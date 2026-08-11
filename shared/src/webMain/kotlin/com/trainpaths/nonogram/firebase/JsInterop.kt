@@ -15,7 +15,6 @@ internal external interface NonogramDocData : JsAny {
     val difficulty: String
     val solution: String
     val authorUid: String
-    val valid: Double
     val status: Double
     val updatedAt: Double
 }

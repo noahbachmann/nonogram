@@ -59,6 +59,7 @@ fun Board(
     nonogram: Nonogram,
     tiles: List<List<Tile>>,
     modifier: Modifier = Modifier,
+    isEditable: Boolean = true,
     onTileClick: () -> Unit = {},
 ) {
     // Clues key on the nonogram *object*: GenViewModel builds a new Nonogram on every tap, and the
@@ -74,6 +75,7 @@ fun Board(
     val state = remember(nonogram.width, nonogram.height) { BoardTransformState() }
 
     val currentTiles = rememberUpdatedState(tiles)
+    val currentIsEditable = rememberUpdatedState(isEditable)
     val currentOnTileClick = rememberUpdatedState(onTileClick)
 
     // Gutters are sized by the thin CLUE_CELL, not CELL: a 50-wide row can hold 25 clues.
@@ -134,6 +136,10 @@ fun Board(
                     var lastTileState: TileState? = null
                     detectBoardTaps(
                         onTap = { position ->
+                            if (!currentIsEditable.value) {
+                                lastTile = null
+                                return@detectBoardTaps
+                            }
                             val hit = state.hitTest(position)
                             if (hit == null) {
                                 lastTile = null

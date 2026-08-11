@@ -16,6 +16,10 @@ class Solver(val ng: Nonogram) {
     val solving: Array<Array<Cell>> = Array(ng.height) { Array(ng.width) { Cell() } }
     val trackingRows: MutableSet<Int> = mutableSetOf()
     val trackingCols: MutableSet<Int> = mutableSetOf()
+    private val solvedRowClues: List<MutableSet<Int>> =
+        List(ng.height) { mutableSetOf() }
+    private val solvedColClues: List<MutableSet<Int>> =
+        List(ng.width) { mutableSetOf() }
 
     fun solveNonogram(): Array<Array<Int>> {
         // first time ROWS
@@ -139,7 +143,7 @@ class Solver(val ng: Nonogram) {
         isRow: Boolean = true
     ) {
         val clues = if (isRow) ng.rowClues[rowIndex] else ng.colClues[rowIndex]
-        val solvedClues = if (isRow) ng.solvedRowClues[rowIndex] else ng.solvedColClues[rowIndex]
+        val solvedClues = if (isRow) solvedRowClues[rowIndex] else solvedColClues[rowIndex]
         val emptyCells = rowSize - (clues.sum() + clues.size - 1)
 
         fun recursive(startIndex: Int, offset: Int = 0, goesBack: Boolean = true): Int {
@@ -400,4 +404,3 @@ class Solver(val ng: Nonogram) {
         }
     }
 }
-

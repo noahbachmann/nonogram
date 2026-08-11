@@ -35,14 +35,18 @@ fun GenScreen(
 ) {
     var showSaveDialog by remember { mutableStateOf(false) }
 
-    val attemptLeave = { if (genViewModel.isDirty) showSaveDialog = true else onExitToList() }
+    val attemptLeave = {
+        if (!genViewModel.isSaving) {
+            if (genViewModel.isDirty) showSaveDialog = true else onExitToList()
+        }
+    }
     
     val backState = rememberNavigationEventState(currentInfo = NavigationEventInfo.None)
     NavigationBackHandler(state = backState) { attemptLeave() }
 
     Column(modifier = Modifier.fillMaxSize()) {
         NonogramAppBar(
-            onBack = onConfig,
+            onBack = { if (!genViewModel.isSaving) onConfig() },
             showSettings = true,
             mode = AppBarMode.GENERATOR,
             onSwapMode = { attemptLeave() },
@@ -54,6 +58,7 @@ fun GenScreen(
                 nonogram = nonogram,
                 tiles = genViewModel.tiles,
                 modifier = Modifier.fillMaxWidth().weight(1f),
+                isEditable = !genViewModel.isSaving,
                 onTileClick = { genViewModel.updateNonogram() },
             )
         } else {
@@ -63,6 +68,7 @@ fun GenScreen(
 
         Button(
             onClick = { genViewModel.onSave { onExitToList() } },
+            enabled = !genViewModel.isSaving,
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
