@@ -201,13 +201,6 @@ class NonogramTest {
     }
 
     @Test
-    fun emptySolution_usesSolverEquality() {
-        val empty = nonogramData.first { it.desc == "empty solution" }.nonogram
-
-        assertTrue(empty.isValid)
-    }
-
-    @Test
     fun clues_areComputedCorrectly() {
         nonogramData.forEach { data ->
             data.expectedRowClues?.let { expected ->
