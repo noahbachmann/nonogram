@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +41,7 @@ import com.trainpaths.nonogram.screens.SettingsScreen
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
+import com.trainpaths.nonogram.screens.viewModel.GeneratorSyncState
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
 
 @Composable
@@ -83,7 +85,9 @@ fun App(
                     )
                 }
                 composable<MenuRoute> {
-                    LaunchedEffect(Unit) { authViewModel.syncNonograms { menuViewModel.loadAll() } }
+                    LaunchedEffect(Unit) {
+                        authViewModel.syncNonograms { menuViewModel.loadAll() }
+                    }
                     MenuScreen(
                         viewModel = menuViewModel,
                         onNonogramClick = { id -> navController.navigate(PlayDialogRoute(id)) },
@@ -93,9 +97,18 @@ fun App(
                     )
                 }
                 composable<GenListRoute> {
-                    LaunchedEffect(Unit) { genViewModel.loadMyNonograms() }
+                    val generatorSyncState by authViewModel.generatorNonogramSyncState.collectAsState()
+                    LaunchedEffect(generatorSyncState) {
+                        if (generatorSyncState != GeneratorSyncState.SYNCING) {
+                            genViewModel.loadMyNonograms()
+                        }
+                    }
                     GenListScreen(
                         genViewModel = genViewModel,
+                        generatorSyncState = generatorSyncState,
+                        onRetrySync = {
+                            authViewModel.retryOwnNonograms()
+                        },
                         onSwap = {
                             navController.navigate(MenuRoute) {
                                 popUpTo(MenuRoute) { inclusive = true }

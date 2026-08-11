@@ -39,7 +39,7 @@ class MergeRemoteNonogramsTest {
     fun noLocalCopy_insertsRemote() = runTest {
         val remote = nonogram(id = 1, updatedAt = 100)
 
-        sync.mergeRemoteNonograms(sdk, uid, localUserId, since = 0, remotes = listOf(remote))
+        sync.mergeRemoteNonograms(sdk, uid, localUserId, lastSyncedAt = 0, remotes = listOf(remote))
 
         assertEquals(remote, sdk.getNonogramById(1))
         assertTrue(sync.pushedNonograms.isEmpty())
@@ -51,7 +51,7 @@ class MergeRemoteNonogramsTest {
         sdk.upsertNonogramFromRemote(local)
         val remote = nonogram(id = 1, updatedAt = 200, solution = listOf(listOf(0, 1)))
 
-        sync.mergeRemoteNonograms(sdk, uid, localUserId, since = 0, remotes = listOf(remote))
+        sync.mergeRemoteNonograms(sdk, uid, localUserId, lastSyncedAt = 0, remotes = listOf(remote))
 
         assertEquals(remote, sdk.getNonogramById(1))
         assertTrue(sync.pushedNonograms.isEmpty())
@@ -63,7 +63,7 @@ class MergeRemoteNonogramsTest {
         sdk.upsertNonogramFromRemote(local)
         val remote = nonogram(id = 1, updatedAt = 100, solution = listOf(listOf(0, 1)))
 
-        sync.mergeRemoteNonograms(sdk, uid, localUserId, since = 0, remotes = listOf(remote))
+        sync.mergeRemoteNonograms(sdk, uid, localUserId, lastSyncedAt = 0, remotes = listOf(remote))
 
         assertEquals(listOf(uid to local), sync.pushedNonograms)
         assertEquals(local, sdk.getNonogramById(1))
@@ -75,7 +75,7 @@ class MergeRemoteNonogramsTest {
         sdk.upsertNonogramFromRemote(local)
         val remote = nonogram(id = 1, updatedAt = 100, authorId = localUserId + 1)
 
-        sync.mergeRemoteNonograms(sdk, uid, localUserId, since = 0, remotes = listOf(remote))
+        sync.mergeRemoteNonograms(sdk, uid, localUserId, lastSyncedAt = 0, remotes = listOf(remote))
 
         assertTrue(sync.pushedNonograms.isEmpty())
         assertEquals(local, sdk.getNonogramById(1))
@@ -87,40 +87,42 @@ class MergeRemoteNonogramsTest {
         sdk.upsertNonogramFromRemote(local)
         val remote = nonogram(id = 1, updatedAt = 100, solution = listOf(listOf(0, 1)))
 
-        sync.mergeRemoteNonograms(sdk, uid, localUserId, since = 0, remotes = listOf(remote))
+        sync.mergeRemoteNonograms(sdk, uid, localUserId, lastSyncedAt = 0, remotes = listOf(remote))
 
         assertTrue(sync.pushedNonograms.isEmpty())
         assertEquals(local, sdk.getNonogramById(1))
     }
 
     @Test
-    fun cursorAdvancesToMaxRemoteUpdatedAt() = runTest {
+    fun returnsNewestRemoteUpdateTimestamp() = runTest {
         val remotes = listOf(
             nonogram(id = 1, updatedAt = 100),
             nonogram(id = 2, updatedAt = 300),
             nonogram(id = 3, updatedAt = 40),
         )
 
-        val cursor = sync.mergeRemoteNonograms(sdk, uid, localUserId, since = 50, remotes = remotes)
+        val newestReceivedAt = sync.mergeRemoteNonograms(sdk, uid, localUserId, lastSyncedAt = 50, remotes = remotes)
 
-        assertEquals(300, cursor)
+        assertEquals(300, newestReceivedAt)
     }
 
     @Test
-    fun remotesOlderThanSince_keepCursorAtSince() = runTest {
-        val cursor = sync.mergeRemoteNonograms(
-            sdk, uid, localUserId, since = 500,
+    fun olderRemotes_keepLastSyncTimestamp() = runTest {
+        val newestReceivedAt = sync.mergeRemoteNonograms(
+            sdk, uid, localUserId, lastSyncedAt = 500,
             remotes = listOf(nonogram(id = 1, updatedAt = 100)),
         )
 
-        assertEquals(500, cursor)
+        assertEquals(500, newestReceivedAt)
     }
 
     @Test
-    fun emptyRemotes_returnsSince() = runTest {
-        val cursor = sync.mergeRemoteNonograms(sdk, uid, localUserId, since = 42, remotes = emptyList())
+    fun emptyRemotes_returnLastSyncTimestamp() = runTest {
+        val newestReceivedAt = sync.mergeRemoteNonograms(
+            sdk, uid, localUserId, lastSyncedAt = 42, remotes = emptyList()
+        )
 
-        assertEquals(42, cursor)
+        assertEquals(42, newestReceivedAt)
         assertTrue(sync.pushedNonograms.isEmpty())
     }
 
@@ -135,8 +137,8 @@ class MergeRemoteNonogramsTest {
         val remoteStale = nonogram(id = 2, updatedAt = 300)
         val remoteUnknown = nonogram(id = 3, updatedAt = 250)
 
-        val cursor = sync.mergeRemoteNonograms(
-            sdk, uid, localUserId, since = 0,
+        val newestReceivedAt = sync.mergeRemoteNonograms(
+            sdk, uid, localUserId, lastSyncedAt = 0,
             remotes = listOf(remoteNewer, remoteStale, remoteUnknown),
         )
 
@@ -144,8 +146,9 @@ class MergeRemoteNonogramsTest {
         assertEquals(freshLocal, sdk.getNonogramById(2))
         assertEquals(remoteUnknown, sdk.getNonogramById(3))
         assertEquals(listOf(uid to freshLocal), sync.pushedNonograms)
-        assertEquals(300, cursor)
+        assertEquals(300, newestReceivedAt)
     }
+
 }
 
 /** Records pushNonogram calls; every other SyncService method is out of scope for the merge policy. */
@@ -172,6 +175,15 @@ private class RecordingSyncService : SyncService {
     override suspend fun uploadAllLocalNonograms(firebaseUid: String, localUserId: Long) =
         fail("unexpected uploadAllLocalNonograms")
 
-    override suspend fun pullNonogramsSince(firebaseUid: String, localUserId: Long, since: Long): Long =
-        fail("unexpected pullNonogramsSince")
+    override suspend fun pullPublicNonogramsSince(
+        firebaseUid: String,
+        localUserId: Long,
+        since: Long,
+    ): Long = fail("unexpected pullPublicNonogramsForPuzzleList")
+
+    override suspend fun pullOwnedNonograms(
+        firebaseUid: String,
+        localUserId: Long,
+        since: Long,
+    ): Long = fail("unexpected pullOwnedNonogramsForGenerator")
 }

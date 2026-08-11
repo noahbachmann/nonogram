@@ -6,6 +6,7 @@ import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.util.toBoolean
 import com.trainpaths.nonogram.util.toLong
 import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.firestore
 import kotlinx.serialization.json.Json
 
@@ -42,8 +43,8 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
     override suspend fun uploadAllLocalProgress(firebaseUid: String, localUserId: Long) {
         try {
             val allProgress = sdk.getProgressForUserWithTimestamp(localUserId)
-            for (progress in allProgress) {
-                pushProgress(firebaseUid, progress.nonogramId, progress.boardState, progress.updatedAt)
+            for ((nonogramId, boardState, updatedAt) in allProgress) {
+                pushProgress(firebaseUid, nonogramId, boardState, updatedAt)
             }
         } catch (e: Exception) {
             println("FirestoreSync: upload all failed: ${e.message}")
@@ -112,24 +113,52 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
         }
     }
 
-    override suspend fun pullNonogramsSince(firebaseUid: String, localUserId: Long, since: Long): Long {
-        return try {
-            val publicDocs = nonogramsCollection()
-                .where { "status" equalTo 1L }
-                .where { "updatedAt" greaterThan since }
-                .get().documents
-            val ownDocs = nonogramsCollection()
-                .where { "authorUid" equalTo firebaseUid }
-                .where { "updatedAt" greaterThan since }
-                .get().documents
+    override suspend fun pullPublicNonogramsSince(
+        firebaseUid: String,
+        localUserId: Long,
+        since: Long,
+    ): Long? = try {
+        val documents = nonogramsCollection()
+            .where { "status" equalTo 1L }
+            .where { "updatedAt" greaterThan since }
+            .get().documents
+        mergeRemoteNonograms(
+            sdk, firebaseUid, localUserId, since,
+            parseNonograms(documents, firebaseUid, localUserId),
+        )
+    } catch (e: Exception) {
+        println("FirestoreSync: pull public nonograms for puzzle list failed: ${e.message}")
+        null
+    }
 
-            val seen = mutableSetOf<Long>()
-            val remotes = mutableListOf<Nonogram>()
-            for (doc in publicDocs + ownDocs) {
-                val nonogramId = doc.id.toLongOrNull() ?: continue
-                if (!seen.add(nonogramId)) continue
-                try {
-                    remotes += Nonogram(
+    override suspend fun pullOwnedNonograms(
+        firebaseUid: String,
+        localUserId: Long,
+        since: Long,
+    ): Long? = try {
+        val documents = nonogramsCollection()
+            .where { "authorUid" equalTo firebaseUid }
+            .where { "updatedAt" greaterThan since }
+            .get().documents
+        mergeRemoteNonograms(
+            sdk, firebaseUid, localUserId, since,
+            parseNonograms(documents, firebaseUid, localUserId),
+        )
+    } catch (e: Exception) {
+        println("FirestoreSync: pull owned nonograms for Generator failed: ${e.message}")
+        null
+    }
+
+    private fun parseNonograms(
+        documents: List<DocumentSnapshot>,
+        firebaseUid: String,
+        localUserId: Long,
+    ): List<Nonogram> = buildList {
+        for (doc in documents) {
+            val nonogramId = doc.id.toLongOrNull() ?: continue
+            try {
+                add(
+                    Nonogram(
                         id = nonogramId,
                         difficulty = Difficulty.valueOf(doc.get("difficulty")),
                         solution = json.decodeFromString(doc.get<String>("solution")),
@@ -137,14 +166,10 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
                         isPublic = doc.get<Long>("status").toBoolean(),
                         updatedAt = doc.get("updatedAt"),
                     )
-                } catch (e: Exception) {
-                    println("FirestoreSync: skipping malformed nonogram doc ${doc.id}: ${e.message}")
-                }
+                )
+            } catch (e: Exception) {
+                println("FirestoreSync: skipping malformed nonogram doc ${doc.id}: ${e.message}")
             }
-            mergeRemoteNonograms(sdk, firebaseUid, localUserId, since, remotes)
-        } catch (e: Exception) {
-            println("FirestoreSync: pull nonograms failed: ${e.message}")
-            since
         }
     }
 }
