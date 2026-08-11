@@ -115,4 +115,21 @@ class AuthRepositoryTest {
         authRepo.linkFirebaseUser("firebase-xyz", "User")
         assertTrue(authRepo.hasCompletedOnboarding)
     }
+
+    @Test
+    fun nonogramSyncTimestamps_defaultToZero() {
+        assertEquals(0L, authRepo.getLastPublicNonogramSyncTimestamp("firebase-user"))
+        assertEquals(0L, authRepo.getLastOwnedNonogramSyncTimestamp("firebase-user"))
+    }
+
+    @Test
+    fun nonogramSyncTimestamps_areIndependentByListAndUser() {
+        authRepo.setLastPublicNonogramSyncTimestamp("firebase-user", 100)
+        authRepo.setLastOwnedNonogramSyncTimestamp("firebase-user", 200)
+
+        assertEquals(100L, authRepo.getLastPublicNonogramSyncTimestamp("firebase-user"))
+        assertEquals(200L, authRepo.getLastOwnedNonogramSyncTimestamp("firebase-user"))
+        assertEquals(0L, authRepo.getLastPublicNonogramSyncTimestamp("other-user"))
+        assertEquals(0L, authRepo.getLastOwnedNonogramSyncTimestamp("other-user"))
+    }
 }
