@@ -85,7 +85,7 @@ fun Board(
     val gridW = CELL * nonogram.width
     val gridH = CELL * nonogram.height
     val background = MaterialTheme.colorScheme.background
-    val separatorColor = Color.Black
+    val separatorColor = Color.DarkGray
 
     // safeContentPadding sits outside the clip, so the safe area is the viewport and the clip rect.
     BoxWithConstraints(modifier.safeContentPadding()) {
@@ -454,12 +454,12 @@ private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx
     for (column in 1 until cols) {
         val w = if (column % BLOCK_SIZE == 0) thick else thin
         val x = column * cellPx
-        drawLine(Color.Black, Offset(x, 0f), Offset(x, height), strokeWidth = w)
+        drawLine(Color.DarkGray, Offset(x, 0f), Offset(x, height), strokeWidth = w)
     }
     for (row in 1 until rows) {
         val w = if (row % BLOCK_SIZE == 0) thick else thin
         val y = row * cellPx
-        drawLine(Color.Black, Offset(0f, y), Offset(width, y), strokeWidth = w)
+        drawLine(Color.DarkGray, Offset(0f, y), Offset(width, y), strokeWidth = w)
     }
 
     // The playing field's right and bottom edges. Their left and top counterparts are the pinned
@@ -467,8 +467,8 @@ private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx
     // The strokes straddle the boundary (drawLine centres them) and spill half a stroke outside this
     // node, which the gesture Box's clipToBounds contains. Insetting them instead would eat a visible
     // slice of the last row and column when zoomed in.
-    drawLine(Color.Black, Offset(width, 0f), Offset(width, height), strokeWidth = frame)
-    drawLine(Color.Black, Offset(0f, height), Offset(width, height), strokeWidth = frame)
+    drawLine(Color.Gray, Offset(width, 0f), Offset(width, height), strokeWidth = frame)
+    drawLine(Color.Gray, Offset(0f, height), Offset(width, height), strokeWidth = frame)
 }
 
 @Composable
