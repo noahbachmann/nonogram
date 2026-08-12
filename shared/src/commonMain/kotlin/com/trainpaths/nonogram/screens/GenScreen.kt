@@ -4,25 +4,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.trainpaths.nonogram.navigation.AppBarMode
-import com.trainpaths.nonogram.navigation.NonogramAppBar
+import com.trainpaths.nonogram.navigation.BottomToolBar
+import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.classes.Board
 import com.trainpaths.nonogram.dialogs.GenSaveConfirmDialog
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
@@ -34,18 +27,19 @@ fun GenScreen(
     onExitToList: () -> Unit,
 ) {
     var showSaveDialog by remember { mutableStateOf(false) }
+    var isLocked by remember { mutableStateOf(true) }
 
     val attemptLeave = {
         if (!genViewModel.isSaving) {
             if (genViewModel.isDirty) showSaveDialog = true else onExitToList()
         }
     }
-    
+
     val backState = rememberNavigationEventState(currentInfo = NavigationEventInfo.None)
     NavigationBackHandler(state = backState) { attemptLeave() }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        NonogramAppBar(
+        TopAppBar(
             onBack = { if (!genViewModel.isSaving) onConfig() },
             showSettings = true,
             mode = AppBarMode.GENERATOR,
@@ -57,30 +51,24 @@ fun GenScreen(
             Board(
                 nonogram = nonogram,
                 tiles = genViewModel.tiles,
+                isLocked = isLocked,
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 isEditable = !genViewModel.isSaving,
                 onTilesChanged = { genViewModel.updateNonogram() },
             )
         } else {
-            // Keep the Save button anchored to the bottom while the board is empty.
+            // Keep the bottom app bar anchored while the board is empty.
             Spacer(modifier = Modifier.weight(1f))
         }
 
-        Button(
-            onClick = { genViewModel.onSave { onExitToList() } },
-            enabled = !genViewModel.isSaving,
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .padding(horizontal = 32.dp, vertical = 16.dp)
-                .height(48.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = MaterialTheme.colorScheme.primary,
-            ),
-        ) {
-            Text("Save", style = MaterialTheme.typography.titleMedium)
-        }
+        BottomToolBar(
+            isLocked = isLocked,
+            onLockToggle = { isLocked = !isLocked },
+            onPlaceholderClick = {},
+            showSave = true,
+            saveEnabled = genViewModel.canSave,
+            onSave = { genViewModel.onSave() },
+        )
     }
 
     if (showSaveDialog) {

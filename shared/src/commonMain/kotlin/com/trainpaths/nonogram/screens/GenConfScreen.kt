@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.MAX_NONOGRAM_NAME_LENGTH
 import com.trainpaths.nonogram.classes.normalizeNonogramName
-import com.trainpaths.nonogram.navigation.NonogramAppBar
+import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.ValidationState
 
@@ -62,7 +62,7 @@ fun GenConfScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        NonogramAppBar(
+        TopAppBar(
             onBack = { if (!genViewModel.isSaving) onBack() },
             backArrow = true,
             showSettings = true,
