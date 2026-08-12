@@ -74,7 +74,12 @@ fun MenuScreen(
 }
 
 @Composable
-private fun NonogramCard(nonogram: Nonogram, progress: List<List<Int>>, beatCount: Long, onClick: () -> Unit) {
+fun NonogramCard(
+    nonogram: Nonogram,
+    progress: List<List<Int>> = emptyList(),
+    beatCount: Long = -1,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -123,7 +128,7 @@ private fun NonogramCard(nonogram: Nonogram, progress: List<List<Int>>, beatCoun
                     ) {
                         Text(
                             text = nonogram.difficulty.name.first().toString(),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelLarge,
                             color = Color.Black,
                         )
@@ -131,7 +136,7 @@ private fun NonogramCard(nonogram: Nonogram, progress: List<List<Int>>, beatCoun
                 }
             }
             Row(Modifier.fillMaxSize()) {
-                DrawNonogram(if (beatCount > 0 && progress.all { row -> row.all { it == 0 } }) nonogram.solution else progress)
+                DrawNonogram(if (beatCount != 0L && progress.all { row -> row.all { it == 0 } }) nonogram.solution else progress)
             }
         }
     }
