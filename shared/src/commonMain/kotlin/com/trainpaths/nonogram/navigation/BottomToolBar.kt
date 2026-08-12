@@ -39,7 +39,7 @@ fun BottomToolBar(
             Icon(
                 imageVector = if (isLocked) lockClosed else lockOpen,
                 contentDescription = if (isLocked) "Unlock board" else "Lock board",
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(32.dp),
             )
         }
 
@@ -47,7 +47,7 @@ fun BottomToolBar(
             Icon(
                 imageVector = moreHorizontal,
                 contentDescription = "Placeholder tool",
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(32.dp),
             )
         }
 
@@ -58,7 +58,7 @@ fun BottomToolBar(
                 Icon(
                     imageVector = save,
                     contentDescription = "Save nonogram",
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(32.dp),
                 )
             }
         }

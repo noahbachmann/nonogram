@@ -57,7 +57,7 @@ fun TopAppBar(
                     Icon(
                         imageVector = if (backArrow || mode == AppBarMode.PUZZLE) arrowBack else build,
                         contentDescription = "Back",
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(32.dp),
                     )
                 }
             }
@@ -68,7 +68,7 @@ fun TopAppBar(
                     Icon(
                         settings,
                         contentDescription = "Settings",
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(32.dp),
                     )
                 }
             }
