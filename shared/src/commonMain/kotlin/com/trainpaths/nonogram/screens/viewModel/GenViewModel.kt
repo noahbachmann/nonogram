@@ -18,8 +18,32 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-internal fun publicationStatus(isPublic: Boolean, isValid: Boolean, isSignedIn: Boolean): Boolean =
-    isPublic && isValid && isSignedIn
+internal fun publicationStatus(isPublic: Boolean, isValid: Boolean?, isSignedIn: Boolean): Boolean =
+    isPublic && isValid == true && isSignedIn
+
+internal data class SaveValidationResult(
+    val isValid: Boolean?,
+    val state: ValidationState,
+    val error: String? = null,
+)
+
+/** Validation is advisory for saving; failure only prevents publishing the puzzle. */
+internal inline fun validationForSave(validate: () -> Boolean): SaveValidationResult =
+    try {
+        val isValid = validate()
+        SaveValidationResult(
+            isValid = isValid,
+            state = if (isValid) ValidationState.VALID else ValidationState.INVALID,
+        )
+    } catch (error: CancellationException) {
+        throw error
+    } catch (error: Throwable) {
+        SaveValidationResult(
+            isValid = null,
+            state = ValidationState.UNAVAILABLE,
+            error = error.message ?: "Unable to validate this nonogram.",
+        )
+    }
 
 enum class ValidationState {
     UNCHECKED,
@@ -71,6 +95,10 @@ class GenViewModel(
     var saveError by mutableStateOf<String?>(null)
         private set
 
+    /** A non-blocking warning when the puzzle could not be validated before it was saved. */
+    var validationError by mutableStateOf<String?>(null)
+        private set
+
     val authState = authRepository.authState
 
     fun loadMyNonograms() {
@@ -104,6 +132,7 @@ class GenViewModel(
         nonogram = nonogram.copy(name = name)
         isDirty = true
         saveError = null
+        validationError = null
     }
 
     /**
@@ -134,6 +163,7 @@ class GenViewModel(
         isDirty = false
         validationState = ValidationState.UNCHECKED
         saveError = null
+        validationError = null
     }
 
     fun updateNonogram() {
@@ -149,6 +179,7 @@ class GenViewModel(
         isDirty = true
         validationState = ValidationState.UNCHECKED
         saveError = null
+        validationError = null
     }
 
     fun onSave(
@@ -164,18 +195,23 @@ class GenViewModel(
         isSaving = true
         validationState = ValidationState.CHECKING
         saveError = null
+        validationError = null
         viewModelScope.launch {
-            var validationCompleted = false
             try {
-                val isValid = withContext(Dispatchers.Default) { nonogram.isValid }
-                validationCompleted = true
-                // Invalid puzzles must never be persisted as public, including legacy data.
+                val validation = withContext(Dispatchers.Default) {
+                    validationForSave { nonogram.isValid }
+                }
+                validationState = validation.state
+                validationError = validation.error
+
+                // Invalid or unvalidated puzzles must never be persisted as public, including
+                // legacy data. Validation failure is otherwise non-blocking: continue to save the
+                // private puzzle so the user's work is not lost.
                 nonogram.isPublic = publicationStatus(
                     isPublic = requestedPublic,
-                    isValid = isValid,
+                    isValid = validation.isValid,
                     isSignedIn = isSignedIn,
                 )
-                validationState = if (isValid) ValidationState.VALID else ValidationState.INVALID
 
                 val savedNonogram = withContext(Dispatchers.Default) {
                     val savedId = if (nonogramId != 0L) {
@@ -205,7 +241,6 @@ class GenViewModel(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                if (!validationCompleted) validationState = ValidationState.UNAVAILABLE
                 saveError = error.message ?: "Unable to save this nonogram."
             } finally {
                 isSaving = false
