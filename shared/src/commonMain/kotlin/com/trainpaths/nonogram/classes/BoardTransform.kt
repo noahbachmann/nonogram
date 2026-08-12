@@ -10,6 +10,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.unit.dp
+import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -79,6 +80,39 @@ fun lineUnitPx(scale: Float, tileBorderPx: Float): Float =
     max(tileBorderPx, LINE_MIN_DEVICE_PX / scale)
 
 data class TileCoord(val row: Int, val col: Int)
+
+/**
+ * One drag-paint stroke. Its target is picked once from the starting tile and every tile is visited
+ * at most once, so crossing back over part of a stroke never advances those cells again.
+ */
+internal class TileStroke private constructor(
+    private val tiles: List<List<Tile>>,
+    private val targetState: TileState,
+) {
+    private val visited = mutableSetOf<TileCoord>()
+
+    /** Paints a batch and reports whether at least one tile actually changed. */
+    fun paint(coords: Iterable<TileCoord>): Boolean {
+        var changed = false
+        for (coord in coords) {
+            if (!visited.add(coord)) continue
+            val tile = tiles.getOrNull(coord.row)?.getOrNull(coord.col) ?: continue
+            if (tile.state != targetState) {
+                tile.state = targetState
+                changed = true
+            }
+        }
+        return changed
+    }
+
+    companion object {
+        /** Picks the stroke state by advancing the starting cell without changing it yet. */
+        fun begin(tiles: List<List<Tile>>, start: TileCoord): TileStroke? {
+            val startTile = tiles.getOrNull(start.row)?.getOrNull(start.col) ?: return null
+            return TileStroke(tiles = tiles, targetState = startTile.state.next())
+        }
+    }
+}
 
 /** Which part of the board a viewport position falls in. Drives gesture routing. */
 enum class BoardRegion { GRID, ROW_GUTTER, COL_HEADER, CORNER }
@@ -398,6 +432,95 @@ class BoardTransformState {
         val row = floor(gy / cellPx).toInt()
         if (row !in 0 until rows || col !in 0 until cols) return null
         return TileCoord(row, col)
+    }
+
+    /**
+     * Hit-tests a whole pointer segment rather than only its latest sample.
+     *
+     * Pointer events can be farther apart than one rendered cell during a fast stroke. Sampling at
+     * half a rendered cell guarantees ordinary horizontal, vertical, and diagonal strokes cannot
+     * jump over an intervening tile.
+     */
+    internal fun hitTestSegment(from: Offset, to: Offset): List<TileCoord> {
+        val sampleDistance = cellPx * scale / 2f
+        if (sampleDistance <= 0f || !sampleDistance.isFinite()) return emptyList()
+
+        val delta = to - from
+        val steps = max(1, ceil(delta.getDistance() / sampleDistance).toInt())
+        return buildList {
+            var previous: TileCoord? = null
+            for (step in 0..steps) {
+                val position = from + delta * (step.toFloat() / steps)
+                val coord = hitTest(position)
+                if (coord != null && coord != previous) {
+                    add(coord)
+                    previous = coord
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Detects locked-mode one-pointer drawing without interfering with taps or pinch zoom.
+ *
+ * The gesture is not committed until it passes touch slop. A second pointer before that point hands
+ * the gesture to [detectTransformGestures]; after commitment all changes are consumed and the stroke
+ * owns the gesture until every pointer is up.
+ */
+internal suspend fun PointerInputScope.detectBoardDrawGestures(
+    state: BoardTransformState,
+    tiles: () -> List<List<Tile>>,
+    isEditable: () -> Boolean,
+    onTilesChanged: () -> Unit,
+) {
+    val slop = viewConfiguration.touchSlop
+
+    awaitPointerEventScope {
+        while (true) {
+            val down = awaitFirstDown(requireUnconsumed = true, pass = PointerEventPass.Main)
+            var previousPosition = down.position
+            var committed = false
+            var surrenderedToPinch = false
+            var stroke: TileStroke? = null
+
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Main)
+                val tracked = event.changes.firstOrNull { it.id == down.id }
+
+                if (!committed && event.changes.any { it.id != down.id && it.pressed }) {
+                    surrenderedToPinch = true
+                }
+
+                if (!committed && !surrenderedToPinch && tracked != null &&
+                    (tracked.position - down.position).getDistance() > slop
+                ) {
+                    committed = true
+                    if (isEditable()) {
+                        stroke = state.hitTest(down.position)?.let { start ->
+                            TileStroke.begin(tiles(), start)
+                        }
+                    }
+                }
+
+                if (committed) {
+                    // The drawing detector is the innermost Main-pass node. Consuming here prevents
+                    // the transform detector from panning the board for this one-pointer gesture.
+                    event.changes.forEach { it.consume() }
+
+                    var changed = false
+                    if (tracked != null) {
+                        stroke?.let {
+                            changed = it.paint(state.hitTestSegment(previousPosition, tracked.position))
+                        }
+                        previousPosition = tracked.position
+                    }
+                    if (changed) onTilesChanged()
+                }
+
+                if (event.changes.none { it.pressed }) break
+            }
+        }
     }
 }
 
