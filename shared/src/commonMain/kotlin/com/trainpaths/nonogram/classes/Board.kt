@@ -16,19 +16,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -45,8 +40,6 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -65,6 +58,7 @@ import kotlin.math.pow
 fun Board(
     nonogram: Nonogram,
     tiles: List<List<Tile>>,
+    isLocked: Boolean,
     modifier: Modifier = Modifier,
     isEditable: Boolean = true,
     onTilesChanged: () -> Unit = {},
@@ -80,7 +74,6 @@ fun Board(
     // The transform keys on *dimensions*: in GenScreen the nonogram identity changes on every tap
     // while the size does not, and re-fitting the view mid-drawing would snap the board around.
     val state = remember(nonogram.width, nonogram.height) { BoardTransformState() }
-    var isLocked by remember { mutableStateOf(true) }
 
     val currentTiles = rememberUpdatedState(tiles)
     val currentIsEditable = rememberUpdatedState(isEditable)
@@ -321,31 +314,8 @@ fun Board(
             )
         }
 
-        // Siblings of the gesture Box, not children: Compose commits to the first hit path among
-        // overlapping siblings, so pressing a button never also starts a pan or drawing stroke.
-        Button(
-            onClick = { isLocked = !isLocked },
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(16.dp)
-                .semantics {
-                    contentDescription = if (isLocked) {
-                        "Unlock board; drag currently draws tiles"
-                    } else {
-                        "Lock board; drag currently moves the board"
-                    }
-                },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = MaterialTheme.colorScheme.primary,
-            ),
-        ) {
-            Text(
-                text = if (isLocked) "Locked" else "Unlocked",
-                style = MaterialTheme.typography.labelLarge,
-            )
-        }
-
+        // A sibling of the gesture Box, not a child: Compose commits to the first hit path among
+        // overlapping siblings, so pressing a zoom control never starts a pan or drawing stroke.
         if (maxWidth >= ZOOM_CONTROLS_MIN_WIDTH) {
             ZoomControls(
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),

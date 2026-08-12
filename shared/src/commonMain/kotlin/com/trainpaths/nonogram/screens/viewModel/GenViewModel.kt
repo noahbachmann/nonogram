@@ -18,6 +18,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+internal fun canSaveNonogram(isSaving: Boolean, isDirty: Boolean, nonogramId: Long): Boolean =
+    !isSaving && (isDirty || nonogramId == 0L)
+
 internal fun publicationStatus(isPublic: Boolean, isValid: Boolean?, isSignedIn: Boolean): Boolean =
     isPublic && isValid == true && isSignedIn
 
@@ -98,6 +101,14 @@ class GenViewModel(
     /** A non-blocking warning when the puzzle could not be validated before it was saved. */
     var validationError by mutableStateOf<String?>(null)
         private set
+
+    /** Whether the editor has a new or changed puzzle that can currently be persisted. */
+    val canSave: Boolean
+        get() = canSaveNonogram(
+            isSaving = isSaving,
+            isDirty = isDirty,
+            nonogramId = nonogram.id,
+        )
 
     val authState = authRepository.authState
 
@@ -204,9 +215,6 @@ class GenViewModel(
                 validationState = validation.state
                 validationError = validation.error
 
-                // Invalid or unvalidated puzzles must never be persisted as public, including
-                // legacy data. Validation failure is otherwise non-blocking: continue to save the
-                // private puzzle so the user's work is not lost.
                 nonogram.isPublic = publicationStatus(
                     isPublic = requestedPublic,
                     isValid = validation.isValid,

@@ -21,7 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import com.trainpaths.nonogram.navigation.AppBarMode
-import com.trainpaths.nonogram.navigation.NonogramAppBar
+import com.trainpaths.nonogram.navigation.TopAppBar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,7 +40,7 @@ fun MenuScreen(
     onGenClick: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        NonogramAppBar(
+        TopAppBar(
             showSettings = true,
             mode = AppBarMode.PUZZLE,
             onSwapMode = { onGenClick() },

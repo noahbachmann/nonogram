@@ -44,37 +44,39 @@ SQLDelight driver — uses `TestDatabaseFactory` with the SQLite JVM driver).
 
 ## Documenting changes
 
-Don't over-document via code comments. When a change is architecturally significant (a new subsystem, a
-cross-cutting refactor, a platform port), explain the design in a `.md` file under `docs/` instead — see
-`docs/web-architecture.md` for the shape this should take. Code comments stay minimal (one line, only for
-genuinely non-obvious *why*).
+Don't over-document via code comments. When a change is architecturally significant (a new subsystem, a cross-cutting
+refactor, a platform port), explain the design in a `.md` file under `docs/` instead — see
+`docs/web-architecture.md` for the shape this should take. Code comments stay minimal (one line, only for genuinely
+non-obvious *why*).
 
 ## Architecture
 
 All shared code lives in `shared/src/commonMain/`, with platform-specific code in `shared/src/androidMain/` and
-`shared/src/webMain/` (shared by the `jsMain`/`wasmJsMain` source sets — see `docs/web-architecture.md`).
-Platform apps (`androidApp/`, `webApp/`, `iosApp/`) are thin shells that initialize Koin DI and host the Compose UI.
+`shared/src/webMain/` (shared by the `jsMain`/`wasmJsMain` source sets — see `docs/web-architecture.md`). Platform apps
+(`androidApp/`, `webApp/`, `iosApp/`) are thin shells that initialize Koin DI and host the Compose UI.
 
 ### Layers
 
 - **`AppSDK`** — facade over the database. All data access goes through here; every method is `suspend` (SQLDelight
-  `generateAsync` is on so the web worker driver can be async). Builds its `Database` lazily behind a mutex on first
-  use so the constructor itself stays synchronous for DI.
+  `generateAsync` is on so the web worker driver can be async). Builds its `Database` lazily behind a mutex on first use
+  so the constructor itself stays synchronous for DI.
 - **`cache/Database`** — internal class wrapping SQLDelight-generated `NonogramDb`. Maps DB rows to domain types. Not
   accessed directly outside `AppSDK`.
-- **`cache/DatabaseFactory`** — `suspend fun createDriver(): SqlDriver`, implemented per platform: `AndroidDatabaseFactory`
+- **`cache/DatabaseFactory`** — `suspend fun createDriver(): SqlDriver`, implemented per platform:
+  `AndroidDatabaseFactory`
   (androidMain, `Schema.synchronous()`), `WebDatabaseFactory` (webMain, OPFS worker driver + explicit
-  `PRAGMA user_version` migration — see `docs/web-architecture.md`), `TestDatabaseFactory` (androidHostTest, in-memory JDBC).
+  `PRAGMA user_version` migration — see `docs/web-architecture.md`), `TestDatabaseFactory` (androidHostTest, in-memory
+  JDBC).
 - **`auth/AuthRepository`** — manages auth state (`GUEST` / `SIGNED_IN`), local user ID, and onboarding flag via
   `multiplatform-settings`. Links guest accounts to Firebase UIDs on sign-in. `initialize()`/`linkFirebaseUser()` are
   suspend (call the suspend `AppSDK`).
 - **`sync/SyncService`** — interface for progress sync (push/pull/merge). `sync/FirestoreSyncService` (androidMain)
   implements it with `dev.gitlive:firebase-firestore`; web binds `sync/FirebaseWebSyncService` (webMain), built on
-  hand-written Kotlin externals to the Firebase JS SDK in `firebase/` (see `docs/web-architecture.md` for the
-  externals pattern and the auth-session gate). Same Firestore shape on both platforms, so progress interoperates.
+  hand-written Kotlin externals to the Firebase JS SDK in `firebase/` (see `docs/web-architecture.md` for the externals
+  pattern and the auth-session gate). Same Firestore shape on both platforms, so progress interoperates.
 - **`screens/GoogleSignInSection`** — `expect`/`actual` composable for the Google sign-in button; Android wires
-  `kmpauth-firebase`, web wires kmpauth's `GoogleButtonUiContainer` + `FirebaseWeb.signInWithGoogle` (note: the
-  web flow yields an access token, not an ID token — see `docs/web-architecture.md`).
+  `kmpauth-firebase`, web wires kmpauth's `GoogleButtonUiContainer` + `FirebaseWeb.signInWithGoogle` (note: the web flow
+  yields an access token, not an ID token — see `docs/web-architecture.md`).
 - **ViewModels** (`screens/viewModel/`) — Compose state holders using `mutableStateOf`. `GameViewModel` manages the tile
   board and save/sync. `MenuViewModel` holds the nonogram list and progress preview map. `AuthViewModel` orchestrates
   login flow and sync-on-start. All depend on the suspend `AppSDK`/`SyncService` from inside `viewModelScope.launch`.
@@ -88,20 +90,24 @@ Type-safe navigation via `navigation-compose` with `@Serializable` route objects
 
 **Generator flow.** `GenConfRoute` is *linked to a specific `GeneratorRoute`* via its `editing` flag:
 
-- **New:** `GenList` → `+New` (`startNew()`) → `GenConf(editing=false)` → *Generate* (`setNonogram`) → `GenScreen`. GenConf's
+- **New:** `GenList` → `+New` (`startNew()`) → `GenConf(editing=false)` → *Generate* (`setNonogram`) → `GenScreen`.
+  GenConf's
   "Done" navigates forward to `GeneratorRoute` (`popUpTo(GenListRoute)`); back cancels to the list.
-- **Edit:** `GenList` → card (`loadForEdit`) → `GenScreen`. The top-left wrench opens `GenConf(editing=true)` pre-filled with
-  the current dims; *Save* applies `resizeNonogram` (preserves overlapping cells, keeps the puzzle id) **and persists via
+- **Edit:** `GenList` → card (`loadForEdit`) → `GenScreen`. The top-left wrench opens `GenConf(editing=true)` pre-filled
+  with the current dims; *Save* applies `resizeNonogram` (preserves overlapping cells, keeps the puzzle id) **and
+  persists via
   `onSave`**, *Back* discards — both `popBackStack()` to the same `GenScreen`.
 
-**Save-state guard.** `GenViewModel.isDirty` tracks unsaved edits (set on tile edit/`resize`, cleared on load/save). Leaving
+**Save-state guard.** `GenViewModel.isDirty` tracks unsaved edits (set on tile edit/`resize`, cleared on load/save).
+Leaving
 `GenScreen` toward the list — via the swap button *or* system/predictive back (`NavigationBackHandler` +
 `rememberNavigationEventState` from `androidx.navigationevent:navigationevent-compose`, the modern non-deprecated back
 API — NOT the deprecated `androidx.compose.ui.backhandler.BackHandler`) — routes through `attemptLeave`:
 if dirty it shows `GenSaveConfirmDialog` (Save / Don't save / cancel-by-dismiss) before navigating; otherwise it goes
-straight to `GenListRoute`. The board's bottom **Save** button is an explicit save-and-exit.
+straight to `GenListRoute`. The board's bottom app-bar Save icon saves in place and is enabled only for a new or dirty
+puzzle; the leave dialog's Save action remains save-and-exit.
 
-`NonogramAppBar` navigation icon: GENERATOR mode shows the `build` wrench (used as the "config" affordance in `GenScreen`);
+`TopAppBar` navigation icon: GENERATOR mode shows the `build` wrench (used as the "config" affordance in `GenScreen`);
 pass `backArrow = true` to force a plain back arrow (used in `GenConf`).
 
 ### DI (Koin)
@@ -148,15 +154,14 @@ content. Text on main background uses `onPrimary`.
 
 ### Firebase / Auth
 
-- Google sign-in via `kmpauth` (`io.github.mirzemehdi:kmpauth-google/firebase`) — `kmpauth-firebase` is Android-only
-  (no web target published), so it's an androidMain-only dependency; `kmpauth-google`/`kmpauth-uihelper` are
-  commonMain (both publish js+wasmJs).
+- Google sign-in via `kmpauth` (`io.github.mirzemehdi:kmpauth-google/firebase`) — `kmpauth-firebase` is Android-only (no
+  web target published), so it's an androidMain-only dependency; `kmpauth-google`/`kmpauth-uihelper` are commonMain
+  (both publish js+wasmJs).
 - `AppInitializer.onApplicationStart()` sets up `GoogleAuthProvider` with a web client ID. Android passes
   `R.string.default_web_client_id` (generated from `androidApp/google-services.json`); web passes
-  `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID` (committed constants in `webApp` — Firebase web config is
-  public-by-design).
-- Firestore paths: `users/{firebaseUid}/progress/{nonogramId}` (progress) and `nonograms/{id}` (puzzles — own +
-  public per the `status` column, pulled incrementally on menu entry via a per-account `updatedAt` cursor stored in
+  `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID` (committed constants in `webApp` — Firebase web config is public-by-design).
+- Firestore paths: `users/{firebaseUid}/progress/{nonogramId}` (progress) and `nonograms/{id}` (puzzles — own + public
+  per the `status` column, pulled incrementally on menu entry via a per-account `updatedAt` cursor stored in
   `Settings`; merge policy lives in `sync/SyncService.kt` `mergeRemoteNonograms`) on both platforms — Android via
   `dev.gitlive:firebase-firestore` (androidMain), web via hand-written Firebase JS SDK externals (webMain), both
   isolated behind `sync/SyncService`. The `nonograms` queries need security rules (read: public or own; write: own)
@@ -169,6 +174,6 @@ grid size, `GenScreen` is the tile-drawing board, all driven by the shared `GenV
 and edit existing ones (with non-destructive resize). See **Navigation → Generator flow** above. Difficulty is still
 hardcoded to `EASY` in `GenViewModel` (no selector yet), and puzzles aren't validated for a unique solution.
 
-Web (js + wasmJs) has persistent OPFS storage plus Google sign-in and Firestore sync via hand-written Firebase JS
-SDK externals in `shared/src/webMain` (no gitlive — it doesn't publish wasmJs; see `docs/web-architecture.md` for
-the externals pattern, the kmpauth access-token caveat, and the auth-session restore gate).
+Web (js + wasmJs) has persistent OPFS storage plus Google sign-in and Firestore sync via hand-written Firebase JS SDK
+externals in `shared/src/webMain` (no gitlive — it doesn't publish wasmJs; see `docs/web-architecture.md` for the
+externals pattern, the kmpauth access-token caveat, and the auth-session restore gate).

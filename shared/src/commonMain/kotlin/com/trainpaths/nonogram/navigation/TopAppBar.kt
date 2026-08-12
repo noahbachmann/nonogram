@@ -28,7 +28,7 @@ enum class AppBarMode { PUZZLE, GENERATOR }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NonogramAppBar(
+fun TopAppBar(
     title: String = "",
     onBack: (() -> Unit)? = null,
     showSettings: Boolean = false,

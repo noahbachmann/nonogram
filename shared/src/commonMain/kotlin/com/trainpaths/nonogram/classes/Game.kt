@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 fun Game(
     nonogram: Nonogram,
     tiles: List<List<Tile>>,
+    isLocked: Boolean,
     onWin: () -> Unit,
 ) {
     fun checkSolved() {
@@ -26,6 +27,7 @@ fun Game(
     Board(
         nonogram = nonogram,
         tiles = tiles,
+        isLocked = isLocked,
         modifier = Modifier.fillMaxSize(),
         onTilesChanged = ::checkSolved,
     )
