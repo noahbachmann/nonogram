@@ -201,13 +201,18 @@ fun GenConfScreen(
                     )
                 }
 
+                genViewModel.validationError?.let { error ->
+                    Text(
+                        text = "Validity could not be checked; saving will continue privately: $error",
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+
                 genViewModel.saveError?.let { error ->
                     Text(
-                        text = if (validationState == ValidationState.UNAVAILABLE) {
-                            "Validity could not be checked: $error"
-                        } else {
-                            "Save failed: $error"
-                        },
+                        text = "Save failed: $error",
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
