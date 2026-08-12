@@ -59,7 +59,7 @@ fun GenScreen(
                 tiles = genViewModel.tiles,
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 isEditable = !genViewModel.isSaving,
-                onTileClick = { genViewModel.updateNonogram() },
+                onTilesChanged = { genViewModel.updateNonogram() },
             )
         } else {
             // Keep the Save button anchored to the bottom while the board is empty.

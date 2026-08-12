@@ -27,6 +27,6 @@ fun Game(
         nonogram = nonogram,
         tiles = tiles,
         modifier = Modifier.fillMaxSize(),
-        onTileClick = ::checkSolved,
+        onTilesChanged = ::checkSolved,
     )
 }
