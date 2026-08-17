@@ -528,9 +528,7 @@ internal suspend fun PointerInputScope.detectBoardDrawGestures(
  * Tap detector for the board.
  *
  * Unlike `detectTapGestures`, [onTap] fires immediately on UP rather than being deferred by the
- * ~300ms double-tap timeout — filling a tile must not feel laggy. If a second qualifying tap lands
- * inside the window, [onDoubleTap] fires *instead of* a second [onTap], and the caller is expected
- * to undo the first tap's side effect.
+ * ~300ms double-tap timeout — filling a tile must not feel laggy.
  *
  * Never consumes, so a sibling `detectTransformGestures` is unaffected. Cancels its pending tap
  * whenever that detector consumes — i.e. once the drag passes touch slop — which is what makes
@@ -538,14 +536,8 @@ internal suspend fun PointerInputScope.detectBoardDrawGestures(
  */
 suspend fun PointerInputScope.detectBoardTaps(
     onTap: (Offset) -> Unit,
-    onDoubleTap: (Offset) -> Unit,
 ) {
     val slop = viewConfiguration.touchSlop
-    val doubleTapTimeout = viewConfiguration.doubleTapTimeoutMillis
-    val doubleTapMinTime = viewConfiguration.doubleTapMinTimeMillis
-    val never = Long.MIN_VALUE / 4
-    var lastUpTime = never
-    var lastUpPos = Offset.Zero
 
     awaitPointerEventScope {
         while (true) {
@@ -570,21 +562,7 @@ suspend fun PointerInputScope.detectBoardTaps(
             }
 
             val u = up
-            if (!cancelled && u != null) {
-                val dt = u.uptimeMillis - lastUpTime
-                val isDouble = dt in doubleTapMinTime..<doubleTapTimeout &&
-                        (u.position - lastUpPos).getDistance() <= slop * 2f
-                if (isDouble) {
-                    lastUpTime = never
-                    onDoubleTap(u.position)
-                } else {
-                    lastUpTime = u.uptimeMillis
-                    lastUpPos = u.position
-                    onTap(u.position)
-                }
-            } else {
-                lastUpTime = never
-            }
+            if (!cancelled && u != null) onTap(u.position)
         }
     }
 }

@@ -26,7 +26,6 @@ val LocalNavController = staticCompositionLocalOf<NavController> {
 
 enum class AppBarMode { PUZZLE, GENERATOR }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopAppBar(
     title: String = "",

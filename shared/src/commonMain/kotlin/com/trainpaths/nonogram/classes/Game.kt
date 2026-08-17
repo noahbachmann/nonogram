@@ -9,6 +9,7 @@ fun Game(
     nonogram: Nonogram,
     tiles: List<List<Tile>>,
     isLocked: Boolean,
+    state: BoardTransformState,
     onWin: () -> Unit,
 ) {
     fun checkSolved() {
@@ -29,6 +30,7 @@ fun Game(
         tiles = tiles,
         isLocked = isLocked,
         modifier = Modifier.fillMaxSize(),
+        state = state,
         onTilesChanged = ::checkSolved,
     )
 }

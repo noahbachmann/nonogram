@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.icons.expand_content
 import com.trainpaths.nonogram.icons.lockClosed
 import com.trainpaths.nonogram.icons.lockOpen
 import com.trainpaths.nonogram.icons.moreHorizontal
@@ -30,6 +31,7 @@ fun BottomToolBar(
     isLocked: Boolean,
     onLockToggle: () -> Unit,
     onPlaceholderClick: () -> Unit,
+    onZoomOut: (() -> Unit)? = null,
     showSave: Boolean = false,
     saveEnabled: Boolean = false,
     onSave: () -> Unit = {},
@@ -52,6 +54,15 @@ fun BottomToolBar(
             contentDescription = "Color",
             onClick = onPlaceholderClick,
         )
+
+        if (onZoomOut != null) {
+            BottomBarItem(
+                label = "Zoom out",
+                imageVector = expand_content,
+                contentDescription = "Zoom out to fit",
+                onClick = onZoomOut,
+            )
+        }
 
         Spacer(Modifier.weight(1f))
 
