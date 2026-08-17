@@ -17,6 +17,7 @@ import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.BottomToolBar
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
+import com.trainpaths.nonogram.classes.BoardTransformState
 import com.trainpaths.nonogram.classes.Game
 
 @Composable
@@ -28,6 +29,9 @@ fun GameScreen(
 ) {
     var isLocked by remember { mutableStateOf(true) }
 
+    val nonogram = viewModel.nonogram
+    val boardState = remember(nonogram?.width, nonogram?.height) { BoardTransformState() }
+
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             onBack = onBack,
@@ -37,7 +41,6 @@ fun GameScreen(
         )
 
         Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-            val nonogram = viewModel.nonogram
             if (nonogram == null) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
             } else {
@@ -45,6 +48,7 @@ fun GameScreen(
                     nonogram = nonogram,
                     tiles = viewModel.tiles,
                     isLocked = isLocked,
+                    state = boardState,
                     onWin = onWin,
                 )
             }
@@ -54,6 +58,7 @@ fun GameScreen(
             isLocked = isLocked,
             onLockToggle = { isLocked = !isLocked },
             onPlaceholderClick = {},
+            onZoomOut = { boardState.reset() },
         )
     }
 }

@@ -47,13 +47,6 @@ import com.trainpaths.nonogram.icons.refresh
 import kotlin.math.max
 import kotlin.math.pow
 
-/**
- * The nonogram board: a viewport onto a content plane of 48.dp cells, pannable and zoomable.
- *
- * Opens fit-and-centred and locked, so a one-pointer drag paints while the board stays in place.
- * Unlocking restores drag-to-pan; pinch or scroll-wheel zooms and double-tap resets in either mode.
- * The clue gutters pin to the left and top edges so the row/column being solved is always labelled.
- */
 @Composable
 fun Board(
     nonogram: Nonogram,
@@ -61,6 +54,7 @@ fun Board(
     isLocked: Boolean,
     modifier: Modifier = Modifier,
     isEditable: Boolean = true,
+    state: BoardTransformState = remember(nonogram.width, nonogram.height) { BoardTransformState() },
     onTilesChanged: () -> Unit = {},
 ) {
     // Clues key on the nonogram *object*: GenViewModel builds a new Nonogram on every tap, and the
@@ -72,9 +66,8 @@ fun Board(
     val maxColClues = remember(colClues) { colClues.maxOfOrNull { it.size } ?: 1 }
 
     // The transform keys on *dimensions*: in GenScreen the nonogram identity changes on every tap
-    // while the size does not, and re-fitting the view mid-drawing would snap the board around.
-    val state = remember(nonogram.width, nonogram.height) { BoardTransformState() }
-
+    // while the size does not, and re-fitting the view mid-drawing would snap the board around. The
+    // default is remembered here; GameScreen hoists it so the bottom-bar zoom-out button can reset it.
     val currentTiles = rememberUpdatedState(tiles)
     val currentIsEditable = rememberUpdatedState(isEditable)
     val currentOnTilesChanged = rememberUpdatedState(onTilesChanged)
@@ -131,36 +124,12 @@ fun Board(
                     }
                 }
                 .pointerInput(state) {
-                    // onTap fires immediately, so a double-tap would have already advanced the tile
-                    // once. Remember enough to put it back.
-                    var lastTile: Tile? = null
-                    var lastTileState: TileState? = null
                     detectBoardTaps(
                         onTap = { position ->
-                            if (!currentIsEditable.value) {
-                                lastTile = null
-                                return@detectBoardTaps
-                            }
-                            val hit = state.hitTest(position)
-                            if (hit == null) {
-                                lastTile = null
-                            } else {
-                                val tile = currentTiles.value[hit.row][hit.col]
-                                lastTile = tile
-                                lastTileState = tile.state
-                                tile.click()
-                                currentOnTilesChanged.value()
-                            }
-                        },
-                        onDoubleTap = {
-                            val tile = lastTile
-                            val previous = lastTileState
-                            if (tile != null && previous != null) {
-                                tile.state = previous
-                                currentOnTilesChanged.value()
-                            }
-                            lastTile = null
-                            state.reset()
+                            if (!currentIsEditable.value) return@detectBoardTaps
+                            val hit = state.hitTest(position) ?: return@detectBoardTaps
+                            currentTiles.value[hit.row][hit.col].click()
+                            currentOnTilesChanged.value()
                         },
                     )
                 }

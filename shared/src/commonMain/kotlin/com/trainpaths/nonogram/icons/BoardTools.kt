@@ -123,6 +123,54 @@ val moreHorizontal: ImageVector
         return _moreHorizontal!!
     }
 
+@Suppress("CheckReturnValue")
+public val expand_content: ImageVector
+    get() {
+        if (_expand_content != null) {
+            return _expand_content!!
+        }
+        _expand_content =
+            ImageVector.Builder(
+                name = "expand_content",
+                defaultWidth = 24.dp,
+                defaultHeight = 24.dp,
+                viewportWidth = 24f,
+                viewportHeight = 24f,
+            )
+                .apply {
+                    path(
+                        fill = SolidColor(Color.Black),
+                        fillAlpha = 1f,
+                        stroke = null,
+                        strokeAlpha = 1f,
+                        strokeLineWidth = 1f,
+                        strokeLineCap = StrokeCap.Butt,
+                        strokeLineJoin = StrokeJoin.Bevel,
+                        strokeLineMiter = 1f,
+                        pathFillType = PathFillType.Companion.NonZero,
+                    ) {
+                        moveTo(5f, 19f)
+                        verticalLineTo(13f)
+                        horizontalLineTo(7f)
+                        verticalLineToRelative(4f)
+                        horizontalLineToRelative(4f)
+                        verticalLineToRelative(2f)
+                        horizontalLineTo(5f)
+                        close()
+                        moveTo(17f, 11f)
+                        verticalLineTo(7f)
+                        horizontalLineTo(13f)
+                        verticalLineTo(5f)
+                        horizontalLineToRelative(6f)
+                        verticalLineToRelative(6f)
+                        horizontalLineTo(17f)
+                        close()
+                    }
+                }
+                .build()
+        return _expand_content!!
+    }
+
 private inline fun toolIcon(
     name: String,
     crossinline pathData: PathBuilder.() -> Unit,
@@ -151,6 +199,7 @@ private var _lockClosed: ImageVector? = null
 private var _lockOpen: ImageVector? = null
 private var _save: ImageVector? = null
 private var _moreHorizontal: ImageVector? = null
+private var _expand_content: ImageVector? = null
 
 private fun PathBuilder.cubicTo(
     x1: Float,
