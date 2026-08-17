@@ -19,15 +19,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.classes.BoardHistory
 import com.trainpaths.nonogram.classes.DrawMode
 import com.trainpaths.nonogram.icons.expand_content
 import com.trainpaths.nonogram.icons.lockClosed
 import com.trainpaths.nonogram.icons.lockOpen
+import com.trainpaths.nonogram.icons.redo
 import com.trainpaths.nonogram.icons.save
 import com.trainpaths.nonogram.icons.stylus
 import com.trainpaths.nonogram.icons.tileCross
 import com.trainpaths.nonogram.icons.tileErase
 import com.trainpaths.nonogram.icons.tileFill
+import com.trainpaths.nonogram.icons.undo
 
 @Composable
 fun BottomToolBar(
@@ -36,6 +39,7 @@ fun BottomToolBar(
     drawMode: DrawMode,
     onDrawModeToggle: () -> Unit,
     resetZoom: (() -> Unit)? = null,
+    history: BoardHistory? = null,
     showSave: Boolean = false,
     saveEnabled: Boolean = false,
     onSave: () -> Unit = {},
@@ -76,6 +80,23 @@ fun BottomToolBar(
                 imageVector = expand_content,
                 contentDescription = "Zoom out to fit",
                 onClick = resetZoom,
+            )
+        }
+
+        if (history != null) {
+            BottomBarItem(
+                label = "Undo",
+                imageVector = undo,
+                contentDescription = "Undo",
+                onClick = { history.undo() },
+                enabled = history.canUndo,
+            )
+            BottomBarItem(
+                label = "Redo",
+                imageVector = redo,
+                contentDescription = "Redo",
+                onClick = { history.redo() },
+                enabled = history.canRedo,
             )
         }
 

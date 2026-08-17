@@ -62,6 +62,7 @@ fun Board(
     drawMode: DrawMode = DrawMode.TOGGLE,
     state: BoardTransformState = remember(nonogram.width, nonogram.height) { BoardTransformState() },
     onTilesChanged: () -> Unit = {},
+    onEdits: (List<TileEdit>) -> Unit = {},
 ) {
     // Clues key on the nonogram *object*: GenViewModel builds a new Nonogram on every tap, and the
     // clues must recompute so they update live as the user draws.
@@ -80,6 +81,7 @@ fun Board(
     val currentIsEditable = rememberUpdatedState(isEditable)
     val currentDrawMode = rememberUpdatedState(drawMode)
     val currentOnTilesChanged = rememberUpdatedState(onTilesChanged)
+    val currentOnEdits = rememberUpdatedState(onEdits)
 
     // Gutters are sized by the thin CLUE_CELL, not CELL: a 50-wide row can hold 25 clues.
     val gutterW = CLUE_CELL * maxRowClues
@@ -137,7 +139,14 @@ fun Board(
                         onTap = { position ->
                             if (!currentIsEditable.value) return@detectBoardTaps
                             val hit = state.hitTest(position) ?: return@detectBoardTaps
-                            currentTiles.value[hit.row][hit.col].click(currentDrawMode.value)
+                            val tile = currentTiles.value[hit.row][hit.col]
+                            val before = tile.state
+                            tile.click(currentDrawMode.value)
+                            if (tile.state != before) {
+                                currentOnEdits.value(
+                                    listOf(TileEdit(hit.row, hit.col, before = before, after = tile.state)),
+                                )
+                            }
                             currentOnTilesChanged.value()
                         },
                     )
@@ -167,16 +176,14 @@ fun Board(
                             isEditable = { currentIsEditable.value },
                             drawMode = { currentDrawMode.value },
                             onTilesChanged = { currentOnTilesChanged.value() },
+                            onEdits = { currentOnEdits.value(it) },
                         )
                     }
                 },
             contentAlignment = Alignment.TopStart,
         ) {
             // Each region is measured at its unscaled size (requiredSize beats the viewport
-            // constraints), placed at (0,0), and moved into place by its own layer matrix. Reading
-            // the transform inside the graphicsLayer lambda scopes the snapshot read to the layer,
-            // so panning invalidates the layer only — no recomposition, no relayout. Do not inline
-            // these into the value form of graphicsLayer.
+            // constraints), placed at (0,0), and moved into place by its own layer matrix.
             Canvas(
                 modifier = Modifier
                     .oversized(gridW, gridH)

@@ -55,6 +55,33 @@ class BoardInteractionTest {
     }
 
     @Test
+    fun strokeReportsExactlyTheCellsItChangedWithBeforeAndAfterStates() {
+        val tiles = listOf(listOf(tile(TileState.NONE), tile(TileState.CROSSED)))
+        val stroke = assertNotNull(TileStroke.begin(tiles, TileCoord(0, 0)))
+
+        stroke.paint(listOf(TileCoord(0, 0), TileCoord(0, 1)))
+
+        assertEquals(
+            listOf(
+                TileEdit(0, 0, before = TileState.NONE, after = TileState.FILLED),
+                TileEdit(0, 1, before = TileState.CROSSED, after = TileState.FILLED),
+            ),
+            stroke.edits(),
+        )
+    }
+
+    @Test
+    fun repaintingAnAlreadyVisitedCellReportsNoFurtherEdits() {
+        val tiles = listOf(listOf(tile(TileState.NONE)))
+        val stroke = assertNotNull(TileStroke.begin(tiles, TileCoord(0, 0)))
+
+        stroke.paint(listOf(TileCoord(0, 0)))
+        stroke.paint(listOf(TileCoord(0, 0)))
+
+        assertEquals(listOf(TileEdit(0, 0, before = TileState.NONE, after = TileState.FILLED)), stroke.edits())
+    }
+
+    @Test
     fun sparsePointerSegmentIncludesInterveningCells() {
         val state = BoardTransformState().apply {
             updateGeometry(
