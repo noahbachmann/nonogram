@@ -32,6 +32,17 @@ class BoardInteractionTest {
             expectedState = TileState.NONE,
         )
     }
+    
+    @Test
+    fun strokeInAnExplicitModeIgnoresTheStartingCell() {
+        for (start in TileState.entries) {
+            assertStrokeResult(
+                startingState = start,
+                expectedState = TileState.FILLED,
+                mode = DrawMode.FILL,
+            )
+        }
+    }
 
     @Test
     fun strokeOnlyProcessesEachCoordinateOnce() {
@@ -65,7 +76,11 @@ class BoardInteractionTest {
         assertEquals((0 until 5).map { TileCoord(row = 0, col = it) }, coords)
     }
 
-    private fun assertStrokeResult(startingState: TileState, expectedState: TileState) {
+    private fun assertStrokeResult(
+        startingState: TileState,
+        expectedState: TileState,
+        mode: DrawMode = DrawMode.TOGGLE,
+    ) {
         val tiles = listOf(
             listOf(
                 tile(startingState),
@@ -74,7 +89,7 @@ class BoardInteractionTest {
                 tile(TileState.CROSSED),
             ),
         )
-        val stroke = assertNotNull(TileStroke.begin(tiles, TileCoord(0, 0)))
+        val stroke = assertNotNull(TileStroke.begin(tiles, TileCoord(0, 0), mode))
 
         assertTrue(stroke.paint(tiles.single().indices.map { TileCoord(row = 0, col = it) }))
         assertEquals(List(tiles.single().size) { expectedState }, tiles.single().map { it.state })

@@ -19,17 +19,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.classes.DrawMode
 import com.trainpaths.nonogram.icons.expand_content
 import com.trainpaths.nonogram.icons.lockClosed
 import com.trainpaths.nonogram.icons.lockOpen
-import com.trainpaths.nonogram.icons.moreHorizontal
 import com.trainpaths.nonogram.icons.save
+import com.trainpaths.nonogram.icons.stylus
+import com.trainpaths.nonogram.icons.tileCross
+import com.trainpaths.nonogram.icons.tileErase
+import com.trainpaths.nonogram.icons.tileFill
 
 @Composable
 fun BottomToolBar(
     isLocked: Boolean,
     onLockToggle: () -> Unit,
-    onPlaceholderClick: () -> Unit,
+    drawMode: DrawMode,
+    onDrawModeToggle: () -> Unit,
     resetZoom: (() -> Unit)? = null,
     showSave: Boolean = false,
     saveEnabled: Boolean = false,
@@ -47,11 +52,22 @@ fun BottomToolBar(
             onClick = onLockToggle,
         )
 
+        val drawModeLabel = when (drawMode) {
+            DrawMode.TOGGLE -> "Draw"
+            DrawMode.FILL -> "Fill"
+            DrawMode.CROSS -> "Cross"
+            DrawMode.ERASE -> "Erase"
+        }
         BottomBarItem(
-            label = "Color",
-            imageVector = moreHorizontal,
-            contentDescription = "Color",
-            onClick = onPlaceholderClick,
+            label = drawModeLabel,
+            imageVector = when (drawMode) {
+                DrawMode.TOGGLE -> stylus
+                DrawMode.FILL -> tileFill
+                DrawMode.CROSS -> tileCross
+                DrawMode.ERASE -> tileErase
+            },
+            contentDescription = "Draw mode: $drawModeLabel",
+            onClick = onDrawModeToggle,
         )
 
         if (resetZoom != null) {
@@ -85,10 +101,9 @@ private fun BottomBarItem(
     onClick: () -> Unit,
     enabled: Boolean = true,
 ) {
-    val contentColor = if (enabled) {
-        MaterialTheme.colorScheme.onSecondary
-    } else {
-        MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.38f)
+    val contentColor = when {
+        !enabled -> MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.50f)
+        else -> MaterialTheme.colorScheme.onSecondary
     }
 
     Column(

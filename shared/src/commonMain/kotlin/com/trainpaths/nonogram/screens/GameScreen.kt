@@ -18,6 +18,7 @@ import com.trainpaths.nonogram.navigation.BottomToolBar
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.classes.BoardTransformState
+import com.trainpaths.nonogram.classes.DrawMode
 import com.trainpaths.nonogram.classes.Game
 
 @Composable
@@ -28,6 +29,7 @@ fun GameScreen(
     onSwapMode: () -> Unit,
 ) {
     var isLocked by remember { mutableStateOf(true) }
+    var drawMode by remember { mutableStateOf(DrawMode.TOGGLE) }
 
     val nonogram = viewModel.nonogram
     val boardState = remember(nonogram?.width, nonogram?.height) { BoardTransformState() }
@@ -48,6 +50,7 @@ fun GameScreen(
                     nonogram = nonogram,
                     tiles = viewModel.tiles,
                     isLocked = isLocked,
+                    drawMode = drawMode,
                     state = boardState,
                     onWin = onWin,
                 )
@@ -57,7 +60,8 @@ fun GameScreen(
         BottomToolBar(
             isLocked = isLocked,
             onLockToggle = { isLocked = !isLocked },
-            onPlaceholderClick = {},
+            drawMode = drawMode,
+            onDrawModeToggle = { drawMode = drawMode.next() },
             resetZoom = { boardState.reset() },
         )
     }

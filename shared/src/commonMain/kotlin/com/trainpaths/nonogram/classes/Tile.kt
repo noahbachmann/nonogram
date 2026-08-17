@@ -16,10 +16,31 @@ enum class TileState {
     }
 }
 
+enum class DrawMode {
+    TOGGLE,
+    FILL,
+    CROSS,
+    ERASE;
+
+    fun next(): DrawMode = when (this) {
+        TOGGLE -> FILL
+        FILL -> CROSS
+        CROSS -> ERASE
+        ERASE -> TOGGLE
+    }
+
+    fun apply(current: TileState): TileState = when (this) {
+        TOGGLE -> current.next()
+        FILL -> TileState.FILLED
+        CROSS -> TileState.CROSSED
+        ERASE -> TileState.NONE
+    }
+}
+
 class Tile {
     var state by mutableStateOf(TileState.NONE)
 
-    fun click() {
-        state = state.next()
+    fun click(mode: DrawMode = DrawMode.TOGGLE) {
+        state = mode.apply(state)
     }
 }

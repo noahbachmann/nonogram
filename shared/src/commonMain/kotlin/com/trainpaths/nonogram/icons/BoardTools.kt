@@ -97,30 +97,53 @@ val save: ImageVector
     }
 
 @Suppress("CheckReturnValue")
-val moreHorizontal: ImageVector
+val tileFill: ImageVector
     get() {
-        if (_moreHorizontal != null) return _moreHorizontal!!
-        _moreHorizontal = toolIcon("more_horizontal") {
-            moveTo(6f, 10f)
-            cubicTo(4.9f, 10f, 4f, 10.9f, 4f, 12f)
-            reflectiveCubicTo(4.9f, 14f, 6f, 14f)
-            reflectiveCubicTo(8f, 13.1f, 8f, 12f)
-            reflectiveCubicTo(7.1f, 10f, 6f, 10f)
-            close()
-            moveTo(12f, 10f)
-            cubicTo(10.9f, 10f, 10f, 10.9f, 10f, 12f)
-            reflectiveCubicTo(10.9f, 14f, 12f, 14f)
-            reflectiveCubicTo(14f, 13.1f, 14f, 12f)
-            reflectiveCubicTo(13.1f, 10f, 12f, 10f)
-            close()
-            moveTo(18f, 10f)
-            cubicTo(16.9f, 10f, 16f, 10.9f, 16f, 12f)
-            reflectiveCubicTo(16.9f, 14f, 18f, 14f)
-            reflectiveCubicTo(20f, 13.1f, 20f, 12f)
-            reflectiveCubicTo(19.1f, 10f, 18f, 10f)
+        if (_tileFill != null) return _tileFill!!
+        _tileFill = toolIcon("tile_fill") {
+            moveTo(3f, 3f)
+            horizontalLineTo(21f)
+            verticalLineTo(21f)
+            horizontalLineTo(3f)
             close()
         }
-        return _moreHorizontal!!
+        return _tileFill!!
+    }
+
+@Suppress("CheckReturnValue")
+val tileCross: ImageVector
+    get() {
+        if (_tileCross != null) return _tileCross!!
+        _tileCross = toolIcon("tile_cross", fillType = PathFillType.EvenOdd) {
+            squareOutline()
+            // One traced X outline, not two crossed bars: under even-odd two overlapping bars would
+            // cancel where they meet and punch a hole through the middle of the cross. Sits inside
+            // the ring's hole, so even-odd never subtracts it either.
+            moveTo(17f, 8f)
+            lineTo(16f, 7f)
+            lineTo(12f, 11f)
+            lineTo(8f, 7f)
+            lineTo(7f, 8f)
+            lineTo(11f, 12f)
+            lineTo(7f, 16f)
+            lineTo(8f, 17f)
+            lineTo(12f, 13f)
+            lineTo(16f, 17f)
+            lineTo(17f, 16f)
+            lineTo(13f, 12f)
+            close()
+        }
+        return _tileCross!!
+    }
+
+@Suppress("CheckReturnValue")
+val tileErase: ImageVector
+    get() {
+        if (_tileErase != null) return _tileErase!!
+        _tileErase = toolIcon("tile_erase", fillType = PathFillType.EvenOdd) {
+            squareOutline()
+        }
+        return _tileErase!!
     }
 
 @Suppress("CheckReturnValue")
@@ -171,8 +194,64 @@ public val expand_content: ImageVector
         return _expand_content!!
     }
 
+@Suppress("CheckReturnValue")
+public val stylus: ImageVector
+    get() {
+        if (_stylus != null) {
+            return _stylus!!
+        }
+        _stylus =
+            ImageVector.Builder(
+                name = "stylus",
+                defaultWidth = 24.dp,
+                defaultHeight = 24.dp,
+                viewportWidth = 24f,
+                viewportHeight = 24f,
+            )
+                .apply {
+                    path(
+                        fill = SolidColor(Color.Black),
+                        fillAlpha = 1f,
+                        stroke = null,
+                        strokeAlpha = 1f,
+                        strokeLineWidth = 1f,
+                        strokeLineCap = StrokeCap.Butt,
+                        strokeLineJoin = StrokeJoin.Bevel,
+                        strokeLineMiter = 1f,
+                        pathFillType = PathFillType.Companion.NonZero,
+                    ) {
+                        moveTo(4.18f, 21f)
+                        quadTo(3.65f, 21.13f, 3.26f, 20.74f)
+                        reflectiveQuadTo(3f, 19.83f)
+                        lineTo(4f, 15.05f)
+                        lineTo(8.95f, 20f)
+                        lineTo(4.18f, 21f)
+                        close()
+                        moveTo(8.95f, 20f)
+                        lineTo(4f, 15.05f)
+                        lineTo(15.45f, 3.6f)
+                        quadTo(16.03f, 3.02f, 16.88f, 3.02f)
+                        quadToRelative(0.85f, 0f, 1.43f, 0.57f)
+                        lineToRelative(2.1f, 2.1f)
+                        quadToRelative(0.57f, 0.57f, 0.57f, 1.43f)
+                        quadToRelative(0f, 0.85f, -0.57f, 1.42f)
+                        lineTo(8.95f, 20f)
+                        close()
+                        moveTo(16.88f, 5f)
+                        lineTo(6.53f, 15.35f)
+                        lineToRelative(2.13f, 2.13f)
+                        lineTo(19f, 7.13f)
+                        lineTo(16.88f, 5f)
+                        close()
+                    }
+                }
+                .build()
+        return _stylus!!
+    }
+
 private inline fun toolIcon(
     name: String,
+    fillType: PathFillType = PathFillType.NonZero,
     crossinline pathData: PathBuilder.() -> Unit,
 ): ImageVector =
     ImageVector.Builder(
@@ -191,14 +270,36 @@ private inline fun toolIcon(
             strokeLineCap = StrokeCap.Butt,
             strokeLineJoin = StrokeJoin.Bevel,
             strokeLineMiter = 1f,
-            pathFillType = PathFillType.NonZero,
+            pathFillType = fillType,
         ) { pathData() }
     }.build()
+
+@Suppress("CheckReturnValue")
+private fun PathBuilder.squareOutline(inset: Float = 3f, thickness: Float = 2f) {
+    val outer = 24f - inset
+    val innerStart = inset + thickness
+    val innerEnd = outer - thickness
+
+    moveTo(inset, inset)
+    horizontalLineTo(outer)
+    verticalLineTo(outer)
+    horizontalLineTo(inset)
+    close()
+
+    moveTo(innerStart, innerStart)
+    horizontalLineTo(innerEnd)
+    verticalLineTo(innerEnd)
+    horizontalLineTo(innerStart)
+    close()
+}
 
 private var _lockClosed: ImageVector? = null
 private var _lockOpen: ImageVector? = null
 private var _save: ImageVector? = null
-private var _moreHorizontal: ImageVector? = null
+private var _stylus: ImageVector? = null
+private var _tileFill: ImageVector? = null
+private var _tileCross: ImageVector? = null
+private var _tileErase: ImageVector? = null
 private var _expand_content: ImageVector? = null
 
 private fun PathBuilder.cubicTo(

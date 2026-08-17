@@ -120,7 +120,9 @@ puzzle; the leave dialog's Save action remains save-and-exit.
 pass `backArrow = true` to force a plain back arrow (used in `GenConf`).
 
 `navigation/BottomToolBar.kt` is the board's bottom bar (GameScreen + GenScreen): a **lock/unlock** toggle (locked =
-one-finger drag draws, unlocked = drag pans — see `docs/board-rendering.md`), a color placeholder, an optional
+one-finger drag draws, unlocked = drag pans — see `docs/board-rendering.md`), a **draw-mode** button cycling
+`DrawMode` (Toggle → Fill → Cross → Erase; Toggle keeps the classic `TileState.next()` cycle, the other three
+write that state idempotently), an optional
 **reset-zoom** button, and (GenScreen) the **Save** icon (enabled only for a new or dirty puzzle). Icons come from the
 hand-built `icons/` package of `ImageVector`s.
 

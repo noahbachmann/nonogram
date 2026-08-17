@@ -54,6 +54,7 @@ fun Board(
     isLocked: Boolean,
     modifier: Modifier = Modifier,
     isEditable: Boolean = true,
+    drawMode: DrawMode = DrawMode.TOGGLE,
     state: BoardTransformState = remember(nonogram.width, nonogram.height) { BoardTransformState() },
     onTilesChanged: () -> Unit = {},
 ) {
@@ -70,6 +71,7 @@ fun Board(
     // default is remembered here; GameScreen hoists it so the bottom-bar zoom-out button can reset it.
     val currentTiles = rememberUpdatedState(tiles)
     val currentIsEditable = rememberUpdatedState(isEditable)
+    val currentDrawMode = rememberUpdatedState(drawMode)
     val currentOnTilesChanged = rememberUpdatedState(onTilesChanged)
 
     // Gutters are sized by the thin CLUE_CELL, not CELL: a 50-wide row can hold 25 clues.
@@ -128,7 +130,7 @@ fun Board(
                         onTap = { position ->
                             if (!currentIsEditable.value) return@detectBoardTaps
                             val hit = state.hitTest(position) ?: return@detectBoardTaps
-                            currentTiles.value[hit.row][hit.col].click()
+                            currentTiles.value[hit.row][hit.col].click(currentDrawMode.value)
                             currentOnTilesChanged.value()
                         },
                     )
@@ -156,6 +158,7 @@ fun Board(
                             state = state,
                             tiles = { currentTiles.value },
                             isEditable = { currentIsEditable.value },
+                            drawMode = { currentDrawMode.value },
                             onTilesChanged = { currentOnTilesChanged.value() },
                         )
                     }
