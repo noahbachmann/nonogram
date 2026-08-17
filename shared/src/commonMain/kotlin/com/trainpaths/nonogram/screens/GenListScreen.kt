@@ -53,7 +53,7 @@ fun GenListScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .height(48.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary,
+                containerColor = MaterialTheme.colorScheme.onPrimary,
                 contentColor = MaterialTheme.colorScheme.primary,
             ),
         ) {
