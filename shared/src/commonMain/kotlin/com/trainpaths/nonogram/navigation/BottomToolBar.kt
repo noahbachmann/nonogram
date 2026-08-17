@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.BottomAppBar
@@ -31,7 +30,7 @@ fun BottomToolBar(
     isLocked: Boolean,
     onLockToggle: () -> Unit,
     onPlaceholderClick: () -> Unit,
-    onZoomOut: (() -> Unit)? = null,
+    resetZoom: (() -> Unit)? = null,
     showSave: Boolean = false,
     saveEnabled: Boolean = false,
     onSave: () -> Unit = {},
@@ -55,12 +54,12 @@ fun BottomToolBar(
             onClick = onPlaceholderClick,
         )
 
-        if (onZoomOut != null) {
+        if (resetZoom != null) {
             BottomBarItem(
-                label = "Zoom out",
+                label = "Reset Zoom",
                 imageVector = expand_content,
                 contentDescription = "Zoom out to fit",
-                onClick = onZoomOut,
+                onClick = resetZoom,
             )
         }
 

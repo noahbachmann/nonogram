@@ -58,7 +58,7 @@ fun GameScreen(
             isLocked = isLocked,
             onLockToggle = { isLocked = !isLocked },
             onPlaceholderClick = {},
-            onZoomOut = { boardState.reset() },
+            resetZoom = { boardState.reset() },
         )
     }
 }
