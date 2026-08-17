@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.auth.AuthState
@@ -77,14 +78,14 @@ fun GenConfScreen(
         ) {
             val textFieldColors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                focusedBorderColor = MaterialTheme.colorScheme.secondary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary,
-                focusedLabelColor = MaterialTheme.colorScheme.secondary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                cursorColor = MaterialTheme.colorScheme.secondary,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSecondary,
+                focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSecondary,
+                focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSecondary,
+                focusedPlaceholderColor = MaterialTheme.colorScheme.onSecondary,
+                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSecondary,
+                cursorColor = MaterialTheme.colorScheme.onPrimary,
             )
 
             OutlinedTextField(
@@ -138,13 +139,17 @@ fun GenConfScreen(
                     modifier = Modifier.fillMaxWidth().padding(top = 28.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Validity", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "Validity",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                     Spacer(Modifier.weight(1f))
                     if (validationState == ValidationState.CHECKING) {
                         CircularProgressIndicator(
                             modifier = Modifier.width(20.dp).height(20.dp),
                             strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.secondary,
+                            color = MaterialTheme.colorScheme.onPrimary,
                         )
                         Text(
                             "Checking…",
@@ -169,7 +174,11 @@ fun GenConfScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column {
-                        Text("Visibility", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Visibility",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
                         Text(
                             if (isPublic) "Public" else "Private",
                             style = MaterialTheme.typography.bodyMedium,
@@ -240,7 +249,7 @@ fun GenConfScreen(
                     .padding(top = 32.dp)
                     .height(48.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
+                    containerColor = MaterialTheme.colorScheme.onPrimary,
                     contentColor = MaterialTheme.colorScheme.primary,
                 ),
             ) {
