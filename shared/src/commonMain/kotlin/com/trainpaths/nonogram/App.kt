@@ -17,14 +17,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.trainpaths.nonogram.dialogs.LeaveConfirmDialog
 import com.trainpaths.nonogram.dialogs.PlayConfirmDialog
 import com.trainpaths.nonogram.dialogs.WinConfirmDialog
 import com.trainpaths.nonogram.navigation.GameRoute
 import com.trainpaths.nonogram.navigation.GenConfRoute
 import com.trainpaths.nonogram.navigation.GenListRoute
 import com.trainpaths.nonogram.navigation.GeneratorRoute
-import com.trainpaths.nonogram.navigation.LeaveDialogRoute
 import com.trainpaths.nonogram.navigation.LocalNavController
 import com.trainpaths.nonogram.navigation.LoginRoute
 import com.trainpaths.nonogram.navigation.MenuRoute
@@ -180,7 +178,7 @@ fun App(
                             viewModel.currentNonogramId?.let { id ->
                                 menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
                             }
-                            navController.navigate(LeaveDialogRoute)
+                            navController.popBackStack(MenuRoute, inclusive = false)
                         },
                         onWin = {
                             viewModel.saveCurrentProgress(true)
@@ -212,12 +210,6 @@ fun App(
                             onResetBoard?.invoke()
                             navController.popBackStack()
                         },
-                    )
-                }
-                dialog<LeaveDialogRoute> {
-                    LeaveConfirmDialog(
-                        onConfirm = { navController.popBackStack(MenuRoute, inclusive = false) },
-                        onDismiss = { navController.popBackStack() },
                     )
                 }
                 composable<SettingsRoute> {
