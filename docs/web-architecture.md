@@ -56,8 +56,9 @@ browser, and **hand-written Kotlin externals to the Firebase JS SDK** (`npm("fir
 `webMain`) do the credential exchange and Firestore I/O. Both v1 seams are now filled:
 
 - **`sync/SyncService`** — web binds `sync/FirebaseWebSyncService` (webMain), which mirrors the androidMain
-  `FirestoreSyncService` method-for-method against the same Firestore shape (`users/{uid}/progress/{nonogramId}`,
-  fields `boardState: String?` + `updatedAt: number`), so Android and web sync interoperate.
+  `FirebaseAndroidSyncService` method-for-method against the same Firestore shape, so Android and web sync
+  interoperate. Two collections: progress (`users/{uid}/progress/{nonogramId}`, fields `boardState: String?` +
+  `updatedAt: number`) and the shared `nonograms/{id}` puzzle collection (own + public).
 - **`screens/GoogleSignInSection`** — the web actual renders kmpauth's `GoogleButtonUiContainer` +
   `GoogleSignInButton`, exchanges the Google token via `FirebaseWeb.signInWithGoogle`, and feeds the resulting
   Firebase `uid`/`displayName` into the unchanged common login flow.

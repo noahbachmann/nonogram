@@ -70,16 +70,25 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
 - **`auth/AuthRepository`** — manages auth state (`GUEST` / `SIGNED_IN`), local user ID, and onboarding flag via
   `multiplatform-settings`. Links guest accounts to Firebase UIDs on sign-in. `initialize()`/`linkFirebaseUser()` are
   suspend (call the suspend `AppSDK`).
-- **`sync/SyncService`** — interface for progress sync (push/pull/merge). `sync/FirestoreSyncService` (androidMain)
+- **`sync/SyncService`** — interface for syncing *both* progress and the shared `nonograms` collection
+  (push/pull/merge; `mergeRemoteNonograms` is the shared merge policy). `sync/FirebaseAndroidSyncService` (androidMain)
   implements it with `dev.gitlive:firebase-firestore`; web binds `sync/FirebaseWebSyncService` (webMain), built on
   hand-written Kotlin externals to the Firebase JS SDK in `firebase/` (see `docs/web-architecture.md` for the externals
-  pattern and the auth-session gate). Same Firestore shape on both platforms, so progress interoperates.
+  pattern and the auth-session gate). Same Firestore shape on both platforms, so data interoperates.
+- **`classes/` board + game** — the interactive grid (clues, tiles, pan/zoom, drag-to-draw) is a self-contained
+  Compose engine: `Board`/`BoardTransform` (one Canvas for all tiles + a layer-transform pan/zoom model),
+  `Game` (win check), `Tile`/`TileState`. Performance-critical and gesture-heavy — see `docs/board-rendering.md`.
+- **`classes/Solver`** — line-logic solver; run via `Nonogram.isValid` to check a puzzle is uniquely solvable (gates
+  publishing). **User-owned and actively changing — do not document its internals or modify it.**
+- **`network/NonogramApi`** — an unused stub (bare Ktor `HttpClient`, no callers). Not a live data path.
 - **`screens/GoogleSignInSection`** — `expect`/`actual` composable for the Google sign-in button; Android wires
   `kmpauth-firebase`, web wires kmpauth's `GoogleButtonUiContainer` + `FirebaseWeb.signInWithGoogle` (note: the web flow
   yields an access token, not an ID token — see `docs/web-architecture.md`).
 - **ViewModels** (`screens/viewModel/`) — Compose state holders using `mutableStateOf`. `GameViewModel` manages the tile
-  board and save/sync. `MenuViewModel` holds the nonogram list and progress preview map. `AuthViewModel` orchestrates
-  login flow and sync-on-start. All depend on the suspend `AppSDK`/`SyncService` from inside `viewModelScope.launch`.
+  board and save/sync. `GenViewModel` drives the generator (draw/resize/save + validation). `MenuViewModel` holds the
+  nonogram list and progress preview map. `AuthViewModel` orchestrates login flow, progress sync-on-start, **and
+  nonogram sync** (`syncNonograms`/`retryOwnNonograms`) with separate public/owned cursors read via `AuthRepository`.
+  All depend on the suspend `AppSDK`/`SyncService` from inside `viewModelScope.launch`.
 
 ### Navigation
 
@@ -110,26 +119,34 @@ puzzle; the leave dialog's Save action remains save-and-exit.
 `TopAppBar` navigation icon: GENERATOR mode shows the `build` wrench (used as the "config" affordance in `GenScreen`);
 pass `backArrow = true` to force a plain back arrow (used in `GenConf`).
 
+`navigation/BottomToolBar.kt` is the board's bottom bar (GameScreen + GenScreen): a **lock/unlock** toggle (locked =
+one-finger drag draws, unlocked = drag pans — see `docs/board-rendering.md`), a color placeholder, an optional
+**reset-zoom** button, and (GenScreen) the **Save** icon (enabled only for a new or dirty puzzle). Icons come from the
+hand-built `icons/` package of `ImageVector`s.
+
 ### DI (Koin)
 
 - `di/AppModule.kt` — common singletons: `AppSDK`, `Settings`, `AuthRepository`, plus all ViewModel registrations via
   `viewModelOf` (koin-core-viewmodel, shared across platforms).
 - `di/AndroidModule.kt` — platform bindings: `DatabaseFactory` → `AndroidDatabaseFactory`, `SyncService` →
-  `FirestoreSyncService`.
+  `FirebaseAndroidSyncService`.
 - `di/WebModule.kt` (webMain) — platform bindings: `DatabaseFactory` → `WebDatabaseFactory`, `SyncService` →
   `FirebaseWebSyncService`.
 
 ### Data Model
 
 - **`Nonogram`** — `id`, `difficulty` (enum: EASY/MEDIUM/HARD/HARDCORE), `solution` (List<List<Int>> stored as JSON),
-  `authorId`, `valid`, `status`. Computes `rowClues`/`colClues` on the fly.
+  `name: String?`, `authorId`, `isPublic: Boolean`, `updatedAt`. Computes `rowClues`/`colClues` on the fly, and
+  `isValid` lazily via the `Solver`. Note: `isPublic` is backed by the DB column named `status` (0/1). Name helpers
+  live alongside: `MAX_NONOGRAM_NAME_LENGTH` (30), `normalizeNonogramName()`, `UNNAMED_NONOGRAM_TITLE`.
 - **`Tile`** — mutable Compose state. Cycles: NONE → FILLED → CROSSED → NONE.
 - Board state is serialized as `List<List<Int>>` (0/1) for persistence and sync.
 
 ### SQLDelight
 
 Schema: `shared/src/commonMain/sqldelight/com/trainpaths/nonogram/cache/database.sq`
-Migrations: numbered `.sqm` files in subdirectories (e.g., `1.sqm`, `2/2.sqm`)
+Migrations: numbered `.sqm` files in the same dir — currently `1.sqm`–`4.sqm` (UserProgress.beat;
+NonogramData.authorId + status; NonogramData.updatedAt; NonogramData.name).
 Database name: `NonogramDb`, package: `com.trainpaths.nonogram.cache`
 
 Tables: `NonogramData`, `User`, `UserProgress` (composite PK: userId + nonogramId).
@@ -140,17 +157,18 @@ adapt via `NonogramDb.Schema.synchronous()`; the web worker driver uses the asyn
 
 ### AppTheme
 
-Defined in `AppTheme.kt`. Material 3 `lightColorScheme`, dark-teal palette.
+Defined in `AppTheme.kt`. Material 3 `lightColorScheme`, dark-teal palette with a warm orange accent.
+(The exact hexes are being iterated on — re-check the file before relying on a specific value.)
 
 - `primary` `#153D36` dark teal — background, TopAppBar, main surface
-- `onPrimary` white — text/icons on primary
-- `secondary` `#C2EFFF` light blue — accents, focused borders, button fills
+- `onPrimary` `#EF7F71` orange — the accent; content on primary (e.g. app-bar icons/text)
+- `secondary` `#08211C` deep teal — accents, focused borders, button/toolbar fills
 - `tertiary` `#FFD700` gold — highlights (beat badges, win borders)
+- `outline` `#9A9A9A` gray — separators/dividers
 - `background` `#153D36` — same as primary, full-screen bg
 - `onBackground` white — text on background
 
-Use `MaterialTheme.colorScheme.*`, never hardcode hex. Interactive elements pair `secondary` container + `primary`
-content. Text on main background uses `onPrimary`.
+Use `MaterialTheme.colorScheme.*`, never hardcode hex.
 
 ### Firebase / Auth
 
@@ -161,8 +179,10 @@ content. Text on main background uses `onPrimary`.
   `R.string.default_web_client_id` (generated from `androidApp/google-services.json`); web passes
   `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID` (committed constants in `webApp` — Firebase web config is public-by-design).
 - Firestore paths: `users/{firebaseUid}/progress/{nonogramId}` (progress) and `nonograms/{id}` (puzzles — own + public
-  per the `status` column, pulled incrementally on menu entry via a per-account `updatedAt` cursor stored in
-  `Settings`; merge policy lives in `sync/SyncService.kt` `mergeRemoteNonograms`) on both platforms — Android via
+  per the `status` column). Puzzles are pulled incrementally by `AuthViewModel.syncNonograms` in **two independent
+  streams** — public and owned — each with its own `updatedAt` cursor persisted via `AuthRepository`
+  (`getLast{Public,Owned}NonogramSyncTimestamp`); merge policy is `sync/SyncService.kt` `mergeRemoteNonograms` (remote
+  newer → upsert; local newer & locally authored → push back). On both platforms — Android via
   `dev.gitlive:firebase-firestore` (androidMain), web via hand-written Firebase JS SDK externals (webMain), both
   isolated behind `sync/SyncService`. The `nonograms` queries need security rules (read: public or own; write: own)
   and two composite indexes — `(status, updatedAt)`, `(authorUid, updatedAt)` — set up in the Firebase console.
@@ -171,8 +191,10 @@ content. Text on main background uses `onPrimary`.
 
 The generator is implemented end-to-end: `GenListScreen` lists the signed-in user's puzzles, `GenConfScreen` sets the
 grid size, `GenScreen` is the tile-drawing board, all driven by the shared `GenViewModel`. Users can create new puzzles
-and edit existing ones (with non-destructive resize). See **Navigation → Generator flow** above. Difficulty is still
-hardcoded to `EASY` in `GenViewModel` (no selector yet), and puzzles aren't validated for a unique solution.
+and edit existing ones (with non-destructive resize). See **Navigation → Generator flow** above. On save, `GenViewModel`
+runs `Nonogram.isValid` (the `Solver`) to check the puzzle is uniquely solvable — validation is *advisory* (the puzzle
+still saves if it fails or the check throws) and only gates whether it may be published as public. Difficulty is still
+hardcoded to `EASY` in `GenViewModel` (no selector yet).
 
 Web (js + wasmJs) has persistent OPFS storage plus Google sign-in and Firestore sync via hand-written Firebase JS SDK
 externals in `shared/src/webMain` (no gitlive — it doesn't publish wasmJs; see `docs/web-architecture.md` for the
