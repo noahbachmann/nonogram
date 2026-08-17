@@ -42,6 +42,15 @@ const val BLOCK_LINE_UNITS = 2f
 /** Weight of the divider between the clue gutters and the playing field, in [lineUnitPx] units. */
 const val SEPARATOR_UNITS = 4f
 
+/** Height of a block-index label, as a fraction of [CELL]. Sized off the cell so it scales with the board. */
+const val BLOCK_LABEL_FONT_FRACTION = 0.30f
+
+/** Gap between a block-index label and the lines it is tucked against, as a fraction of [CELL]. */
+const val BLOCK_LABEL_INSET_FRACTION = 0.12f
+
+/** Below this rendered height the labels are illegible mush, so they are skipped entirely. */
+const val BLOCK_LABEL_MIN_DEVICE_PX = 7f
+
 /** No line ever renders thinner than this, or it antialiases into nothing. */
 const val LINE_MIN_DEVICE_PX = 1f
 
