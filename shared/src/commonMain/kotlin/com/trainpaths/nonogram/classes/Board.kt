@@ -40,6 +40,11 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -65,6 +70,8 @@ fun Board(
     // maxOfOrNull: a zero-size nonogram yields no clue lines at all, and maxOf would throw.
     val maxRowClues = remember(rowClues) { rowClues.maxOfOrNull { it.size } ?: 1 }
     val maxColClues = remember(colClues) { colClues.maxOfOrNull { it.size } ?: 1 }
+    // cacheSize 32: the default of 8 thrashes on a board with more than a handful of block labels.
+    val labelMeasurer = rememberTextMeasurer(cacheSize = 32)
 
     // The transform keys on *dimensions*: in GenScreen the nonogram identity changes on every tap
     // while the size does not, and re-fitting the view mid-drawing would snap the board around. The
@@ -184,9 +191,15 @@ fun Board(
                 drawTiles(currentTiles.value, cellPx, borderPx, state.scale)
             }
 
-            // The gutters are clipped to a window of at most half the viewport and scroll inside it.
-            // Clipping happens in the draw phase (`clipRect` reads the transform) rather than by
-            // sizing a node, so zooming never triggers a relayout.
+            // Block-index labels, pinned to the visible field edge
+            Spacer(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        drawBlockLabels(state, nonogram.width, nonogram.height, cellPx, labelMeasurer)
+                    },
+            )
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -395,8 +408,6 @@ private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx
         for (column in tiles[row].indices) {
             val left = column * cellPx
             when (tiles[row][column].state) {
-                // Full-cell, so a run of filled tiles reads as one solid block once the gridlines
-                // land on top of it in black.
                 TileState.FILLED -> drawRect(Color.Black, Offset(left, top), Size(cellPx, cellPx))
 
                 TileState.CROSSED -> {
@@ -421,8 +432,7 @@ private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx
         }
     }
 
-    // Gridlines last, over the tiles. Every fifth is heavy: at fit on a 30x30 a tile is a handful of
-    // pixels, and the 5-blocks are the only way to count a clue off against a row.
+    // Gridlines last, over the tiles. Every fifth is heavy with number
     for (column in 1 until cols) {
         val w = if (column % BLOCK_SIZE == 0) thick else thin
         val x = column * cellPx
@@ -434,13 +444,58 @@ private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx
         drawLine(Color.Gray, Offset(0f, y), Offset(width, y), strokeWidth = w)
     }
 
-    // The playing field's right and bottom edges. Their left and top counterparts are the pinned
-    // divider the overlay draws, at the same weight — the field ends up framed on all four sides.
-    // The strokes straddle the boundary (drawLine centres them) and spill half a stroke outside this
-    // node, which the gesture Box's clipToBounds contains. Insetting them instead would eat a visible
-    // slice of the last row and column when zoomed in.
+    // The playing field's right and bottom edges
     drawLine(Color.DarkGray, Offset(width, 0f), Offset(width, height), strokeWidth = frame)
     drawLine(Color.DarkGray, Offset(0f, height), Offset(width, height), strokeWidth = frame)
+}
+
+/**
+ * Draws the every-[BLOCK_SIZE]th line's index number, pinned to the *visible* right/bottom edge of
+ * the field rather than the field's own edge — so the ruler stays legible no matter how far the
+ * board is panned, including once the last row/column has scrolled off-screen.
+ */
+private fun DrawScope.drawBlockLabels(
+    state: BoardTransformState,
+    cols: Int,
+    rows: Int,
+    cellPx: Float,
+    labelMeasurer: TextMeasurer,
+) {
+    val s = state.scale
+    if (s <= 0f || cols == 0 || rows == 0) return
+
+    val cell = cellPx * s
+    val fontPx = cellPx * BLOCK_LABEL_FONT_FRACTION * s
+    if (fontPx < BLOCK_LABEL_MIN_DEVICE_PX) return
+    val inset = cellPx * BLOCK_LABEL_INSET_FRACTION * s
+
+    val labelStyle = TextStyle(
+        color = Color.Gray,
+        fontSize = fontPx.toSp(),
+        lineHeight = fontPx.toSp(),
+        lineHeightStyle = LineHeightStyle(
+            alignment = LineHeightStyle.Alignment.Center,
+            trim = LineHeightStyle.Trim.Both,
+        ),
+    )
+
+    val anchorX = (state.gridTx + state.gridWpx * s).coerceAtMost(size.width).coerceAtLeast(state.gridTx)
+    val anchorY = (state.gridTy + state.gridHpx * s).coerceAtMost(size.height).coerceAtLeast(state.gridTy)
+
+    for (column in 1 until cols) {
+        if (column % BLOCK_SIZE != 0) continue
+        val x = state.gridTx + column * cell
+        if (x < 0f || x > size.width) continue // line itself is off-screen; nothing to label
+        val label = labelMeasurer.measure(column.toString(), labelStyle)
+        drawText(label, topLeft = Offset(x - inset - label.size.width, anchorY - inset - label.size.height))
+    }
+    for (row in 1 until rows) {
+        if (row % BLOCK_SIZE != 0) continue
+        val y = state.gridTy + row * cell
+        if (y < 0f || y > size.height) continue
+        val label = labelMeasurer.measure(row.toString(), labelStyle)
+        drawText(label, topLeft = Offset(anchorX - inset - label.size.width, y - inset - label.size.height))
+    }
 }
 
 @Composable

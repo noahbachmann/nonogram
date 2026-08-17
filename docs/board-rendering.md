@@ -38,13 +38,18 @@ fit-scale flash — unlike `onSizeChanged`). Then a `clipToBounds` Box stacks, i
 
 1. **Grid Canvas** — `drawTiles`: white bg, filled cells (full black rects), crossed cells (two
    lines), then gridlines on top (every `BLOCK_SIZE`th line heavy), then the field's right/bottom edge.
-2. **Row-clue gutter** (`Column` of `RowClueLine`) — clipped to a horizontal window (`rowClueWindowW`),
+2. **Block-label overlay** (`Spacer` + `drawBehind`, `drawBlockLabels`) — the every-`BLOCK_SIZE`th
+   line's index number, pinned to the *visible* field edge rather than the field's own edge (see
+   "Line metrics" below). Its position in the stack — after the grid Canvas, before the gutters and
+   the frame overlay — is what makes a label sliding under a pinned gutter get occluded, for free,
+   by draw order; no extra culling math needed.
+3. **Row-clue gutter** (`Column` of `RowClueLine`) — clipped to a horizontal window (`rowClueWindowW`),
    scrolls inside it via `clueScrollX`.
-3. **Col-clue header** (`Row` of `ColClueLine`) — clipped to a vertical window, scrolls via `clueScrollY`.
-4. **Frame overlay** (`Spacer` + `drawBehind`) — masks the corner where gutters would overlap when
+4. **Col-clue header** (`Row` of `ColClueLine`) — clipped to a vertical window, scrolls via `clueScrollY`.
+5. **Frame overlay** (`Spacer` + `drawBehind`) — masks the corner where gutters would overlap when
    both axes are panned, and paints the field's *left/top* divider edges (the grid Canvas paints the
    matching right/bottom, so the field ends framed on all four sides).
-5. **`ZoomControls`** (+/−/fit) — only when `maxWidth >= ZOOM_CONTROLS_MIN_WIDTH` (600.dp); a *sibling*
+6. **`ZoomControls`** (+/−/fit) — only when `maxWidth >= ZOOM_CONTROLS_MIN_WIDTH` (600.dp); a *sibling*
    of the gesture Box so pressing a button never starts a pan/stroke.
 
 Clue gutters use the thin `CLUE_CELL` (20.dp) along their own axis, not `CELL` (40.dp), because a row
@@ -110,3 +115,15 @@ line is a multiple of this unit, giving a stable **1 : 2 : 4** hierarchy: hairli
 (`TILE_BORDER`) < block line every `BLOCK_SIZE`=5 (`BLOCK_LINE_UNITS`) < gutter/field separator
 (`SEPARATOR_UNITS`). The separator width is *reserved* in the content plane (`separatorContentPx`) so
 it scales with everything and the clip leaves room for it rather than painting over the clues.
+
+Each heavy block line also carries its index, so counting blocks off a clue doesn't mean counting
+lines from the edge by hand. The number belongs to the *line*, not to the last cell in it: it tracks
+its line on the cross axis (right-aligned against a vertical line, sitting above a horizontal one) but
+pins to the *visible* right/bottom edge of the field on the other axis (`drawBlockLabels`), not the
+field's own edge — so it stays legible under any pan, even once the last row/column has scrolled off
+screen. That pinning is why the labels are a separate overlay (`Board.kt`, drawn in viewport px)
+rather than living inside `drawTiles`, which paints in content px under the grid's own
+`graphicsLayer` and would drag the numbers along with a pan same as the tiles. Font size is a fraction
+of `CELL` (`BLOCK_LABEL_FONT_FRACTION`), so it scales with the board like everything else, but a
+numeral can't be widened the way a line's stroke can: below `BLOCK_LABEL_MIN_DEVICE_PX` rendered
+height the labels are dropped outright rather than floored.
