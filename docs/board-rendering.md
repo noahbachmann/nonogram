@@ -7,7 +7,8 @@ The interactive grid — clues, tiles, pan, zoom, and drawing — is a self-cont
 - **`BoardTransform.kt`** — `BoardTransformState` (the pan/zoom model), gesture detectors, and every
   layout constant.
 - **`Game.kt`** — thin wrapper: hosts `Board` and fires `onWin` when tiles match the solution.
-- **`Tile.kt`** — `Tile` (a Compose `mutableStateOf` cell) and `TileState` (NONE → FILLED → CROSSED → …).
+- **`Tile.kt`** — `Tile` (a Compose `mutableStateOf` cell), `TileState` (NONE → FILLED → CROSSED → …)
+  and `DrawMode` (which state an edit writes).
 
 Used by both `GameScreen` (playing) and `GenScreen` (drawing). This doc exists so I don't have to
 re-read ~1000 lines to remember how it fits together — the source has the fine-grained *why* in
@@ -86,11 +87,20 @@ innermost-outward, so the *last* modifier sees each event *first*. Order (top �
 5. **`detectBoardDrawGestures`** (only when `isLocked`) — innermost, so in locked mode it gets first
    refusal. Commits a one-pointer stroke only after touch slop (a second finger before that hands off
    to pinch); once committed it consumes every change so the transform detector can't also pan.
-   `TileStroke` picks its target state once from the start tile (`startTile.state.next()`) and visits
-   each cell at most once, so crossing back over a stroke doesn't re-toggle.
+   `TileStroke` picks its target state once from the start tile (`mode.apply(startTile.state)`) and
+   visits each cell at most once, so crossing back over a stroke doesn't re-toggle.
 
 **Lock mode** (`isLocked`): `true` → one-finger drag *draws*; `false` → one-finger drag *pans*. Pinch
-zoom and tap-to-cycle work in both. Toggled from `BottomToolBar` (the lock/unlock button).
+zoom and tap-to-edit work in both. Toggled from `BottomToolBar` (the lock/unlock button).
+
+**Draw mode** (`DrawMode`, cycled by the `BottomToolBar` tool button): what an edit *writes*.
+`TOGGLE` is the historical behaviour — advance the cell by `TileState.next()`. `FILL` / `CROSS` /
+`ERASE` write that one state and are idempotent, so re-tapping or re-crossing a cell never undoes
+it. Both mutation paths — the tap in `Board` and `TileStroke.begin` — resolve through
+`DrawMode.apply(current)`, which is the single answer to "what does this edit write?". The mode
+reaches the long-lived gesture coroutines as a lambda (`drawMode: () -> DrawMode`) read at stroke
+commit, and is *not* a `pointerInput` key: changing tools mid-board must not tear down and restart
+the detectors. It is per-screen composable state, like `isLocked`, and resets to `TOGGLE`.
 
 ## Line metrics
 

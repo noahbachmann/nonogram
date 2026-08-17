@@ -106,10 +106,14 @@ internal class TileStroke private constructor(
     }
 
     companion object {
-        /** Picks the stroke state by advancing the starting cell without changing it yet. */
-        fun begin(tiles: List<List<Tile>>, start: TileCoord): TileStroke? {
+        /** Resolves the stroke state from the starting cell and [mode], without changing it yet. */
+        fun begin(
+            tiles: List<List<Tile>>,
+            start: TileCoord,
+            mode: DrawMode = DrawMode.TOGGLE,
+        ): TileStroke? {
             val startTile = tiles.getOrNull(start.row)?.getOrNull(start.col) ?: return null
-            return TileStroke(tiles = tiles, targetState = startTile.state.next())
+            return TileStroke(tiles = tiles, targetState = mode.apply(startTile.state))
         }
     }
 }
@@ -472,6 +476,7 @@ internal suspend fun PointerInputScope.detectBoardDrawGestures(
     state: BoardTransformState,
     tiles: () -> List<List<Tile>>,
     isEditable: () -> Boolean,
+    drawMode: () -> DrawMode,
     onTilesChanged: () -> Unit,
 ) {
     val slop = viewConfiguration.touchSlop
@@ -498,7 +503,7 @@ internal suspend fun PointerInputScope.detectBoardDrawGestures(
                     committed = true
                     if (isEditable()) {
                         stroke = state.hitTest(down.position)?.let { start ->
-                            TileStroke.begin(tiles(), start)
+                            TileStroke.begin(tiles(), start, drawMode())
                         }
                     }
                 }

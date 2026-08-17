@@ -17,6 +17,7 @@ import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.BottomToolBar
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.classes.Board
+import com.trainpaths.nonogram.classes.DrawMode
 import com.trainpaths.nonogram.dialogs.GenSaveConfirmDialog
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 
@@ -28,6 +29,7 @@ fun GenScreen(
 ) {
     var showSaveDialog by remember { mutableStateOf(false) }
     var isLocked by remember { mutableStateOf(true) }
+    var drawMode by remember { mutableStateOf(DrawMode.TOGGLE) }
 
     val attemptLeave = {
         if (!genViewModel.isSaving) {
@@ -54,6 +56,7 @@ fun GenScreen(
                 isLocked = isLocked,
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 isEditable = !genViewModel.isSaving,
+                drawMode = drawMode,
                 onTilesChanged = { genViewModel.updateNonogram() },
             )
         } else {
@@ -64,7 +67,8 @@ fun GenScreen(
         BottomToolBar(
             isLocked = isLocked,
             onLockToggle = { isLocked = !isLocked },
-            onPlaceholderClick = {},
+            drawMode = drawMode,
+            onDrawModeToggle = { drawMode = drawMode.next() },
             showSave = true,
             saveEnabled = genViewModel.canSave,
             onSave = { genViewModel.onSave() },

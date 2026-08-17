@@ -34,6 +34,31 @@ class TileTest {
         tile.click() // CROSSED -> NONE
         assertEquals(TileState.NONE, tile.state)
     }
+    
+    @Test
+    fun click_withExplicitMode_writesThatStateFromAnyStartingState() {
+        val targets = mapOf(
+            DrawMode.FILL to TileState.FILLED,
+            DrawMode.CROSS to TileState.CROSSED,
+            DrawMode.ERASE to TileState.NONE,
+        )
+
+        for ((mode, target) in targets) {
+            for (start in TileState.entries) {
+                val tile = Tile().apply { state = start }
+                tile.click(mode)
+                assertEquals(target, tile.state, "$mode from $start")
+            }
+        }
+    }
+
+    @Test
+    fun drawMode_nextCyclesThroughEveryMode() {
+        assertEquals(DrawMode.FILL, DrawMode.TOGGLE.next())
+        assertEquals(DrawMode.CROSS, DrawMode.FILL.next())
+        assertEquals(DrawMode.ERASE, DrawMode.CROSS.next())
+        assertEquals(DrawMode.TOGGLE, DrawMode.ERASE.next())
+    }
 
     @Test
     fun click_fullCycleTwice() {
