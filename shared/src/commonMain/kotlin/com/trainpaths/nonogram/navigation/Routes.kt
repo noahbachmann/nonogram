@@ -21,9 +21,6 @@ object GeneratorRoute
 object SettingsRoute
 
 @Serializable
-object LeaveDialogRoute
-
-@Serializable
 data class GameRoute(val nonogramId: Long)
 
 @Serializable
