@@ -38,7 +38,7 @@ fun BottomToolBar(
     BottomAppBar(
         modifier = Modifier.fillMaxWidth(),
         containerColor = MaterialTheme.colorScheme.secondary,
-        contentColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onSecondary,
     ) {
         BottomBarItem(
             label = if (isLocked) "Locked" else "Unlocked",
@@ -56,7 +56,7 @@ fun BottomToolBar(
 
         if (resetZoom != null) {
             BottomBarItem(
-                label = "Reset Zoom",
+                label = "Zoom out",
                 imageVector = expand_content,
                 contentDescription = "Zoom out to fit",
                 onClick = resetZoom,
@@ -86,9 +86,9 @@ private fun BottomBarItem(
     enabled: Boolean = true,
 ) {
     val contentColor = if (enabled) {
-        MaterialTheme.colorScheme.primary
+        MaterialTheme.colorScheme.onSecondary
     } else {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
+        MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.38f)
     }
 
     Column(
