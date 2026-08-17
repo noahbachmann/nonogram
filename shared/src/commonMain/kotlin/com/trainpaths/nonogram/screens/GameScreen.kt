@@ -53,6 +53,7 @@ fun GameScreen(
                     drawMode = drawMode,
                     state = boardState,
                     onWin = onWin,
+                    onEdits = viewModel.history::record,
                 )
             }
         }
@@ -63,6 +64,7 @@ fun GameScreen(
             drawMode = drawMode,
             onDrawModeToggle = { drawMode = drawMode.next() },
             resetZoom = { boardState.reset() },
+            history = viewModel.history,
         )
     }
 }

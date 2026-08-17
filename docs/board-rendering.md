@@ -107,6 +107,36 @@ reaches the long-lived gesture coroutines as a lambda (`drawMode: () -> DrawMode
 commit, and is *not* a `pointerInput` key: changing tools mid-board must not tear down and restart
 the detectors. It is per-screen composable state, like `isLocked`, and resets to `TOGGLE`.
 
+## Edit history (undo/redo)
+
+`BoardHistory` (`classes/BoardHistory.kt`) is a capped (10-step) undo/redo journal, owned by
+`GameViewModel` and used only in `GameScreen` — `GenScreen` has no history. A "move" is one drag
+stroke or one tap, recorded as a single `List<TileEdit>` so one undo reverses the whole gesture, not
+one cell at a time. Undo/redo write `TileState` back into the *existing* `Tile` objects (never
+replace the `tiles` list), so the single-Canvas draw invalidation above still applies — no
+recomposition.
+
+Capture happens at the same two mutation sites as everything else in this doc, but at gesture
+*granularity*, not the coarser `onTilesChanged` (which fires many times per drag — once per pointer
+event batch):
+
+- **Tap** (`Board.kt`) — the tap handler now reads the tile's state before `click()` and emits a
+  single-edit list if it changed, via a new `onEdits: (List<TileEdit>) -> Unit` param threaded
+  alongside `onTilesChanged`.
+- **Stroke** (`BoardTransform.kt`) — `TileStroke` now records a `TileEdit` (with the prior state)
+  every time `paint` actually changes a cell, exposed via `edits()`. `detectBoardDrawGestures` emits
+  the accumulated `edits()` exactly **once**, at the same point the inner gesture loop exits
+  (`event.changes.none { it.pressed }`) — i.e. gesture end, not per-batch.
+
+`Game.kt` threads `onEdits` through to `Board`; its win check is otherwise untouched by history. No
+re-check is needed after undo/redo: every recorded move's `after` state was already checked the
+moment that move was first applied (and its `before` state was checked before that), so undo/redo can
+only ever revisit board states that have already been through `checkSolved`.
+
+`BoardHistory` owns the board it journals (set via `reset(tiles)`, called from `GameViewModel` on
+every `loadNonogram`), so `undo()`/`redo()` take no argument and `BottomToolBar` can drive a
+`GameViewModel`'s `history` directly — no per-screen wiring beyond passing the instance through.
+
 ## Line metrics
 
 `lineUnitPx(scale, tileBorderPx) = max(tileBorderPx, LINE_MIN_DEVICE_PX / scale)` — a stroke width

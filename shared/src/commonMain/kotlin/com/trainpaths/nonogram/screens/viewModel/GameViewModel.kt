@@ -8,8 +8,10 @@ import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.auth.AuthState
+import com.trainpaths.nonogram.classes.BoardHistory
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.Tile
+import com.trainpaths.nonogram.classes.TileEdit
 import com.trainpaths.nonogram.classes.TileState
 import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +29,8 @@ class GameViewModel(
         private set
     var tiles: List<List<Tile>> by mutableStateOf(emptyList())
         private set
+
+    val history = BoardHistory()
 
     val currentNonogramId: Long?
         get() = nonogram?.id
@@ -62,6 +66,7 @@ class GameViewModel(
                     }
                 }
                     ?: List(loaded.height) { List(loaded.width) { Tile() } }
+                history.reset(tiles)
             }
         }
     }
@@ -87,10 +92,15 @@ class GameViewModel(
     }
 
     fun resetBoard() {
-        for (row in tiles) {
-            for (tile in row) {
-                tile.state = TileState.NONE
+        val edits = mutableListOf<TileEdit>()
+        for ((rowIndex, row) in tiles.withIndex()) {
+            for ((colIndex, tile) in row.withIndex()) {
+                if (tile.state != TileState.NONE) {
+                    edits.add(TileEdit(rowIndex, colIndex, before = tile.state, after = TileState.NONE))
+                    tile.state = TileState.NONE
+                }
             }
         }
+        history.record(edits)
     }
 }

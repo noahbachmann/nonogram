@@ -99,6 +99,8 @@ internal class TileStroke private constructor(
     private val targetState: TileState,
 ) {
     private val visited = mutableSetOf<TileCoord>()
+    private val edits = mutableListOf<TileEdit>()
+    fun edits(): List<TileEdit> = edits.toList()
 
     /** Paints a batch and reports whether at least one tile actually changed. */
     fun paint(coords: Iterable<TileCoord>): Boolean {
@@ -107,6 +109,7 @@ internal class TileStroke private constructor(
             if (!visited.add(coord)) continue
             val tile = tiles.getOrNull(coord.row)?.getOrNull(coord.col) ?: continue
             if (tile.state != targetState) {
+                edits.add(TileEdit(coord.row, coord.col, before = tile.state, after = targetState))
                 tile.state = targetState
                 changed = true
             }
@@ -487,6 +490,7 @@ internal suspend fun PointerInputScope.detectBoardDrawGestures(
     isEditable: () -> Boolean,
     drawMode: () -> DrawMode,
     onTilesChanged: () -> Unit,
+    onEdits: (List<TileEdit>) -> Unit = {},
 ) {
     val slop = viewConfiguration.touchSlop
 
@@ -532,7 +536,10 @@ internal suspend fun PointerInputScope.detectBoardDrawGestures(
                     if (changed) onTilesChanged()
                 }
 
-                if (event.changes.none { it.pressed }) break
+                if (event.changes.none { it.pressed }) {
+                    stroke?.let { onEdits(it.edits()) }
+                    break
+                }
             }
         }
     }

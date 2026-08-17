@@ -12,6 +12,7 @@ fun Game(
     drawMode: DrawMode,
     state: BoardTransformState,
     onWin: () -> Unit,
+    onEdits: (List<TileEdit>) -> Unit = {},
 ) {
     fun checkSolved() {
         val values: List<List<Int>> = tiles.map { row ->
@@ -34,5 +35,6 @@ fun Game(
         drawMode = drawMode,
         state = state,
         onTilesChanged = ::checkSolved,
+        onEdits = onEdits,
     )
 }
