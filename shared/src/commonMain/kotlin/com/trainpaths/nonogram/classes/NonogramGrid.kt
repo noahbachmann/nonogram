@@ -102,9 +102,9 @@ fun NonogramCard(
                             .size(12.dp)
                             .background(
                                 color = when (nonogram.difficulty) {
-                                    Difficulty.EASY -> Color.Green
-                                    Difficulty.MEDIUM -> Color.Yellow
-                                    Difficulty.HARD -> Color.Red
+                                    Difficulty.EASY -> MaterialTheme.colorScheme.onTertiary
+                                    Difficulty.MEDIUM -> MaterialTheme.colorScheme.tertiary
+                                    Difficulty.HARD -> MaterialTheme.colorScheme.tertiaryFixed
                                     Difficulty.HARDCORE -> Color.Black
                                 },
                                 shape = CircleShape,
