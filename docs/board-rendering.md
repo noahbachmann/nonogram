@@ -109,12 +109,18 @@ the detectors. It is per-screen composable state, like `isLocked`, and resets to
 
 ## Edit history (undo/redo)
 
-`BoardHistory` (`classes/BoardHistory.kt`) is a capped (10-step) undo/redo journal, owned by
-`GameViewModel` and used only in `GameScreen` — `GenScreen` has no history. A "move" is one drag
-stroke or one tap, recorded as a single `List<TileEdit>` so one undo reverses the whole gesture, not
-one cell at a time. Undo/redo write `TileState` back into the *existing* `Tile` objects (never
-replace the `tiles` list), so the single-Canvas draw invalidation above still applies — no
-recomposition.
+`BoardHistory` (`classes/BoardHistory.kt`) is a capped (10-step) undo/redo journal, one instance
+owned by each of `GameViewModel` and `GenViewModel`. A "move" is one drag stroke or one tap,
+recorded as a single `List<TileEdit>` so one undo reverses the whole gesture, not one cell at a
+time. Undo/redo write `TileState` back into the *existing* `Tile` objects (never replace the
+`tiles` list), so the single-Canvas draw invalidation above still applies — no recomposition.
+
+`GenViewModel` passes an `onApply` callback (`= { updateNonogram() }`) to its `BoardHistory`, run
+after every successful `undo()`/`redo()`. It needs this because `Board` keys clue recomputation on
+the `nonogram` *object identity*, which only `updateNonogram()` refreshes — undo/redo otherwise
+mutate tiles without going through it, leaving clues (and `isDirty`/`validationState`) stale.
+`GameViewModel` doesn't need the hook (its win check re-derives from `tiles` directly on every
+`onTilesChanged`), so it leaves `onApply` at its no-op default.
 
 Capture happens at the same two mutation sites as everything else in this doc, but at gesture
 *granularity*, not the coarser `onTilesChanged` (which fires many times per drag — once per pointer
@@ -133,9 +139,11 @@ re-check is needed after undo/redo: every recorded move's `after` state was alre
 moment that move was first applied (and its `before` state was checked before that), so undo/redo can
 only ever revisit board states that have already been through `checkSolved`.
 
-`BoardHistory` owns the board it journals (set via `reset(tiles)`, called from `GameViewModel` on
-every `loadNonogram`), so `undo()`/`redo()` take no argument and `BottomToolBar` can drive a
-`GameViewModel`'s `history` directly — no per-screen wiring beyond passing the instance through.
+`BoardHistory` owns the board it journals (set via `reset(tiles)`, called on every load — and in
+`GenViewModel` also on `resizeNonogram`, since a resize rebuilds every `Tile` and would otherwise
+leave the journal pointing at orphaned objects), so `undo()`/`redo()` take no argument and
+`BottomToolBar` can drive either viewmodel's `history` directly — no per-screen wiring beyond
+passing the instance through.
 
 ## Line metrics
 

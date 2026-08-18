@@ -58,6 +58,7 @@ fun GenScreen(
                 isEditable = !genViewModel.isSaving,
                 drawMode = drawMode,
                 onTilesChanged = { genViewModel.updateNonogram() },
+                onEdits = genViewModel.history::record,
             )
         } else {
             // Keep the bottom app bar anchored while the board is empty.
@@ -69,6 +70,7 @@ fun GenScreen(
             onLockToggle = { isLocked = !isLocked },
             drawMode = drawMode,
             onDrawModeToggle = { drawMode = drawMode.next() },
+            history = genViewModel.history,
             showSave = true,
             saveEnabled = genViewModel.canSave,
             onSave = { genViewModel.onSave() },

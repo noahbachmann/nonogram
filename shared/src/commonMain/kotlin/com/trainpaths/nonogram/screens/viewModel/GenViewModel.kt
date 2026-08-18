@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.auth.AuthState
+import com.trainpaths.nonogram.classes.BoardHistory
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.Tile
@@ -74,6 +75,8 @@ class GenViewModel(
     var tiles by mutableStateOf<List<List<Tile>>>(emptyList())
         private set
 
+    val history = BoardHistory(onApply = { updateNonogram() })
+
     var nonogram by mutableStateOf(Nonogram(0, Difficulty.EASY, emptyList()))
         private set
 
@@ -134,6 +137,7 @@ class GenViewModel(
         width = w
         nonogram = Nonogram(0, Difficulty.EASY, emptyList(), name = name)
         tiles = List(h) { List(w) { Tile() } }
+        history.reset(tiles)
         updateNonogram()
         isDirty = false
     }
@@ -161,6 +165,7 @@ class GenViewModel(
         }
         height = h
         width = w
+        history.reset(tiles)
         updateNonogram()
     }
 
@@ -171,6 +176,7 @@ class GenViewModel(
         tiles = existing.solution.map { row ->
             row.map { cell -> Tile().apply { if (cell == 1) state = TileState.FILLED } }
         }
+        history.reset(tiles)
         isDirty = false
         validationState = ValidationState.UNCHECKED
         saveError = null
