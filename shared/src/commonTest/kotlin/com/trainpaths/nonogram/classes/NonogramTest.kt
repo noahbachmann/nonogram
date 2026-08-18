@@ -47,7 +47,7 @@ private val nonogramData = arrayOf(
             difficulty = Difficulty.EASY,
             solution = listOf(listOf(0, 0, 0)),
         ),
-        expectedRowClues = listOf(listOf(0)),
+        expectedRowClues = listOf(emptyList()),
     ),
     NonogramTestData(
         desc = "all-filled row",
@@ -83,7 +83,7 @@ private val nonogramData = arrayOf(
             difficulty = Difficulty.EASY,
             solution = listOf(listOf(0)),
         ),
-        expectedRowClues = listOf(listOf(0)),
+        expectedRowClues = listOf(emptyList()),
     ),
     NonogramTestData(
         desc = "filled run with surrounding empty cells",
@@ -105,7 +105,7 @@ private val nonogramData = arrayOf(
                 listOf(1, 1, 1),
             ),
         ),
-        expectedRowClues = listOf(listOf(1, 1), listOf(0), listOf(3)),
+        expectedRowClues = listOf(listOf(1, 1), emptyList(), listOf(3)),
     ),
     NonogramTestData(
         desc = "column runs",

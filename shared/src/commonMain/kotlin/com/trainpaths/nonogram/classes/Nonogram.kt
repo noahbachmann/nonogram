@@ -38,13 +38,11 @@ data class Nonogram(
     val rowClues: List<List<Int>> by lazy {
         solution.map { row -> computeLineClues(row) }
     }
-
     val colClues: List<List<Int>> by lazy {
         (0 until width).map { col ->
             computeLineClues((0 until height).map { row -> solution[row][col] })
         }
     }
-
     val isValid: Boolean by lazy {
         Solver(this).solveNonogram().map { row -> row.toList() } == solution
     }
@@ -63,7 +61,7 @@ private fun computeLineClues(line: List<Int>): List<Int> {
     if (run > 0) clues.add(run)
 
     if (clues.isEmpty())
-        return listOf()
+        return emptyList()
     return clues
 }
 
