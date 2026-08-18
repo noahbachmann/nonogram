@@ -25,6 +25,14 @@ class Solver(val ng: Nonogram) {
         // first time ROWS
         for (row in 0 until ng.height) {
             val clues: List<Int> = ng.rowClues[row]
+
+            if (clues.isEmpty()) {
+                for (col in 0 until ng.width) {
+                    drawCross(row, col)
+                }
+                continue
+            }
+
             val max = clues.sum() + clues.size - 1
             val emptyCells = ng.width - max
 
@@ -63,6 +71,14 @@ class Solver(val ng: Nonogram) {
         // first time COLS
         for (col in 0 until ng.width) {
             val clues: List<Int> = ng.colClues[col]
+
+            if (clues.isEmpty()) {
+                for (row in 0 until ng.height) {
+                    drawCross(row, col)
+                }
+                continue
+            }
+
             val max = clues.sum() + clues.size - 1
             val emptyCells = ng.height - max
 
