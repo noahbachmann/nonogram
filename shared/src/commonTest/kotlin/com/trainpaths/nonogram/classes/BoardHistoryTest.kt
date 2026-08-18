@@ -110,6 +110,32 @@ class BoardHistoryTest {
         assertEquals(TileState.NONE, firstBoard[0][0].state)
     }
 
+    @Test
+    fun onApplyFiresOnUndoAndRedo() {
+        val tiles = grid(1, 1)
+        var applyCount = 0
+        val history = BoardHistory(onApply = { applyCount++ }).apply { reset(tiles) }
+
+        history.record(listOf(TileEdit(0, 0, before = TileState.NONE, after = TileState.FILLED)))
+        assertEquals(0, applyCount)
+
+        history.undo()
+        assertEquals(1, applyCount)
+
+        history.redo()
+        assertEquals(2, applyCount)
+    }
+
+    @Test
+    fun onApplyDoesNotFireWhenStacksAreEmpty() {
+        var applyCount = 0
+        val history = BoardHistory(onApply = { applyCount++ }).apply { reset(grid(1, 1)) }
+
+        assertFalse(history.undo())
+        assertFalse(history.redo())
+        assertEquals(0, applyCount)
+    }
+
     private fun grid(rows: Int, cols: Int): List<List<Tile>> =
         List(rows) { List(cols) { Tile() } }
 }

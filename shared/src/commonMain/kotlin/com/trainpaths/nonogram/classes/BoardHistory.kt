@@ -13,8 +13,12 @@ data class TileEdit(val row: Int, val col: Int, val before: TileState, val after
  *
  * Writes states back into the caller's own [Tile] objects rather than replacing them, so [Board]'s
  * single-Canvas draw invalidation still applies (see `docs/board-rendering.md`).
+ *
+ * [onApply] runs after every successful [undo]/[redo], for callers that derive other state from the
+ * tiles (e.g. `GenViewModel` recomputing clues) and would otherwise miss edits made outside of
+ * [record].
  */
-class BoardHistory(private val maxSteps: Int = 10) {
+class BoardHistory(private val maxSteps: Int = 10, private val onApply: () -> Unit = {}) {
     private val undoStack = ArrayDeque<List<TileEdit>>()
     private val redoStack = ArrayDeque<List<TileEdit>>()
     private var tiles: List<List<Tile>> = emptyList()
@@ -47,6 +51,7 @@ class BoardHistory(private val maxSteps: Int = 10) {
         for ((row, col, before) in edits) tiles.getOrNull(row)?.getOrNull(col)?.state = before
         redoStack.addLast(edits)
         syncFlags()
+        onApply()
         return true
     }
 
@@ -56,6 +61,7 @@ class BoardHistory(private val maxSteps: Int = 10) {
         for ((row, col, _, after) in edits) tiles.getOrNull(row)?.getOrNull(col)?.state = after
         undoStack.addLast(edits)
         syncFlags()
+        onApply()
         return true
     }
 
