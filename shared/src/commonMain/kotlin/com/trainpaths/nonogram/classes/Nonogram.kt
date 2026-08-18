@@ -67,23 +67,23 @@ private fun computeLineClues(line: List<Int>): List<Int> {
 
 @Composable
 fun DrawNonogram(progress: List<List<Int>>) {
-    Canvas(Modifier.fillMaxSize()) {
-        val colWidth = this.size.width / progress.size
-        val colHeight = this.size.height / progress[0].size
-        var offsetWidth = 0f
-        var offsetHeight = 0f
+    val rows = progress.size
+    val cols = progress.firstOrNull()?.size ?: 0
+    if (rows == 0 || cols == 0) return
 
-        for (row in progress) {
-            for (tile in row) {
+    Canvas(Modifier.fillMaxSize()) {
+        val cell = minOf(size.width / cols, size.height / rows)
+        val originX = (size.width - cell * cols) / 2f
+        val originY = (size.height - cell * rows) / 2f
+
+        progress.forEachIndexed { rowIndex, row ->
+            row.forEachIndexed { colIndex, tile ->
                 drawRect(
                     color = if (tile == 0) Color.White else Color.Black,
-                    topLeft = Offset(offsetWidth, offsetHeight),
-                    size = Size(colWidth, colHeight),
+                    topLeft = Offset(originX + colIndex * cell, originY + rowIndex * cell),
+                    size = Size(cell, cell),
                 )
-                offsetWidth += colWidth
             }
-            offsetWidth = 0f
-            offsetHeight += colHeight
         }
     }
 }
