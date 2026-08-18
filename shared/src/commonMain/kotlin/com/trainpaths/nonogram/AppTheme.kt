@@ -12,7 +12,7 @@ private val Colors: ColorScheme = lightColorScheme(
     secondary = Color(0xFF0E2620),
     onSecondary = Color(0xFFE55D4C),
     tertiary = Color(0xFFFFD700),
-    outline = Color(0xFF9A9A9A),
+    outline = Color(0xFFF5F5F5),
     background = Color(0xFF153D36),
     onBackground = Color.White,
 )
