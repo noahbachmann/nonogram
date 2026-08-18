@@ -199,8 +199,6 @@ fun GenConfScreen(
                             "Sign in to make this nonogram public."
                         } else if (validationState == ValidationState.UNCHECKED) {
                             "Save the nonogram to check its validity."
-                        } else if (validationState == ValidationState.UNAVAILABLE) {
-                            "Validity must be available before making this nonogram public."
                         } else {
                             "Only valid nonograms can be made public."
                         },

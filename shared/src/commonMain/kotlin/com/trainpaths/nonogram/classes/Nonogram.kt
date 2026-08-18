@@ -63,7 +63,7 @@ private fun computeLineClues(line: List<Int>): List<Int> {
     if (run > 0) clues.add(run)
 
     if (clues.isEmpty())
-        return listOf(0)
+        return listOf()
     return clues
 }
 
