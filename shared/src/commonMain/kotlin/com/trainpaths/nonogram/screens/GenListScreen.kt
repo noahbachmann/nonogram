@@ -3,14 +3,11 @@ package com.trainpaths.nonogram.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -26,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.classes.NonogramCard
+import com.trainpaths.nonogram.classes.NonogramGrid
 import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
@@ -106,13 +105,7 @@ fun GenListScreen(
                 )
             }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            NonogramGrid {
                 items(genViewModel.myNonograms) { nonogram ->
                     NonogramCard(
                         nonogram = nonogram,
