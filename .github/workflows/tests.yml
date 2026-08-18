@@ -6,35 +6,53 @@ on:
   pull_request:
     branches: [ main, dev ]
 
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   unit-tests:
     runs-on: self-hosted
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: android
+            task: ':shared:testAndroidHostTest'
+          - name: js
+            task: ':shared:jsBrowserTest'
+          - name: wasmJs
+            task: ':shared:wasmJsBrowserTest'
     steps:
       - uses: actions/checkout@v7
+        with:
+          clean: false
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21 (Corretto)
         uses: actions/setup-java@v5
         with:
-          distribution: temurin
-          java-version: 17
+          distribution: corretto
+          java-version: 21
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-disabled: true
 
-      - name: Run unit tests (android host, js, wasmJs)
+      - name: Run unit tests (${{ matrix.name }})
         env:
           # so karma's ChromeHeadless launcher finds chromium
           CHROME_BIN: /usr/bin/chromium
-        run: ./gradlew :shared:testAndroidHostTest :shared:jsBrowserTest :shared:wasmJsBrowserTest --continue
+        run: ./gradlew ${{ matrix.task }} --profile
 
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: test-reports
+          name: test-reports-${{ matrix.name }}
           path: |
             shared/build/reports/tests/
             shared/build/test-results/
