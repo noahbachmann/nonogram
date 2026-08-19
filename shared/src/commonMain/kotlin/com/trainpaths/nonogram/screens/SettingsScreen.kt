@@ -53,7 +53,6 @@ fun SettingsScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            title = "Settings",
             titleIcon = settings,
             onBack = onBack,
             backArrow = true,
