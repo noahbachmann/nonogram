@@ -67,7 +67,11 @@ fun SettingsScreen(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Text(
                     "Theme",
                     style = MaterialTheme.typography.titleMedium,
