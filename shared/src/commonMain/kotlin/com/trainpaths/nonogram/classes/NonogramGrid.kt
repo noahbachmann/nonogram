@@ -88,13 +88,6 @@ fun NonogramCard(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        if (beatCount > 0) {
-                            Text(
-                                text = "beat: $beatCount",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.tertiary,
-                            )
-                        }
                     }
                     Box(
                         modifier = Modifier

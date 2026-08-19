@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.ColorTheme
+import com.trainpaths.nonogram.darken
 import com.trainpaths.nonogram.dialogs.SignOutConfirmDialog
 import com.trainpaths.nonogram.icons.settings
 import com.trainpaths.nonogram.navigation.TopAppBar
@@ -138,7 +139,7 @@ private fun ThemeSwatch(
             modifier = Modifier
                 .size(44.dp)
                 .clip(shape)
-                .background(theme.scheme.primary)
+                .background(theme.scheme.primary.darken(if (selected) 0.15f else 0f))
                 .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect)
                 .semantics { contentDescription = theme.label },
             contentAlignment = Alignment.Center,

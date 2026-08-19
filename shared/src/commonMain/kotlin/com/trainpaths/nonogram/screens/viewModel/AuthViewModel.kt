@@ -48,27 +48,14 @@ class AuthViewModel(
         }
     }
 
-    fun syncOnStart(onComplete: () -> Unit = {}) {
-        viewModelScope.launch(Dispatchers.Default) {
-            try {
-                if (authRepository.authState.value == AuthState.SIGNED_IN) {
-                    val userId = authRepository.currentUserId.value ?: return@launch
-                    val user = sdk.getUserById(userId) ?: return@launch
-                    val firebaseUid = user.firebaseUid ?: return@launch
-                    syncService.pullAndMergeAllProgress(firebaseUid, userId)
-                }
-            } finally {
-                withContext(Dispatchers.Main) { onComplete() }
-            }
-        }
-    }
-
-    fun syncNonograms(onComplete: () -> Unit = {}) {
+    fun syncAll(onComplete: () -> Unit = {}) {
         viewModelScope.launch(Dispatchers.Default) {
             try {
                 if (authRepository.authState.value != AuthState.SIGNED_IN) return@launch
                 val userId = authRepository.currentUserId.value ?: return@launch
                 val firebaseUid = sdk.getUserById(userId)?.firebaseUid ?: return@launch
+
+                syncService.pullAndMergeAllProgress(firebaseUid, userId)
                 syncPublicNonograms(firebaseUid, userId)
                 syncOwnedNonograms(firebaseUid, userId)
             } finally {

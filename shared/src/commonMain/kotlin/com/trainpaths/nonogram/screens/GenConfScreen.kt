@@ -1,14 +1,20 @@
 package com.trainpaths.nonogram.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.Button
@@ -18,6 +24,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchColors
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.auth.AuthState
@@ -54,19 +63,45 @@ fun GenConfScreen(
     val authState by genViewModel.authState.collectAsState()
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
-        focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-        unfocusedTextColor = MaterialTheme.colorScheme.onSecondary,
-        focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
-        unfocusedBorderColor = MaterialTheme.colorScheme.onSecondary,
-        focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-        unfocusedLabelColor = MaterialTheme.colorScheme.onSecondary,
+        focusedTextColor = MaterialTheme.colorScheme.onSecondary,
+        unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+
+        focusedBorderColor = MaterialTheme.colorScheme.onSecondary,
+        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+
+        focusedLabelColor = MaterialTheme.colorScheme.onSecondary,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+
         focusedPlaceholderColor = MaterialTheme.colorScheme.onSecondary,
-        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSecondary,
-        cursorColor = MaterialTheme.colorScheme.onPrimary,
+        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary,
+
+        cursorColor = MaterialTheme.colorScheme.onBackground,
         selectionColors = TextSelectionColors(
             handleColor = MaterialTheme.colorScheme.onBackground,
-            backgroundColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            backgroundColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
         )
+    )
+
+    val switchColors: SwitchColors = SwitchDefaults.colors(
+        checkedThumbColor = MaterialTheme.colorScheme.onSecondary,
+        uncheckedThumbColor = MaterialTheme.colorScheme.onSecondary,
+        disabledCheckedThumbColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.5f),
+        disabledUncheckedThumbColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.5f),
+
+        checkedTrackColor = MaterialTheme.colorScheme.onTertiary,
+        uncheckedTrackColor = MaterialTheme.colorScheme.tertiary,
+        disabledCheckedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0f),
+        disabledUncheckedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0f),
+
+        checkedBorderColor = MaterialTheme.colorScheme.onPrimary,
+        uncheckedBorderColor = MaterialTheme.colorScheme.onPrimary,
+        disabledCheckedBorderColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.6f),
+        disabledUncheckedBorderColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.6f),
+
+        checkedIconColor = MaterialTheme.colorScheme.primary,
+        uncheckedIconColor = MaterialTheme.colorScheme.primary,
+        disabledCheckedIconColor = MaterialTheme.colorScheme.primary,
+        disabledUncheckedIconColor = MaterialTheme.colorScheme.primary,
     )
 
     LaunchedEffect(
@@ -79,7 +114,10 @@ fun GenConfScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         TopAppBar(
             titleIcon = build,
             onBack = { if (!genViewModel.isSaving) onBack() },
@@ -88,9 +126,7 @@ fun GenConfScreen(
         )
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
+            modifier = Modifier.fillMaxHeight().width(260.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -103,34 +139,38 @@ fun GenConfScreen(
                         .take(MAX_NONOGRAM_NAME_LENGTH)
                 },
                 label = { Text("Name") },
-                placeholder = { Text("description...") },
+                placeholder = { Text("...") },
                 singleLine = true,
                 enabled = !genViewModel.isSaving,
                 colors = textFieldColors,
-                modifier = Modifier.width(200.dp),
             )
 
-            OutlinedTextField(
-                value = rows,
-                onValueChange = { rows = it.filter { c -> c.isDigit() } },
-                label = { Text("Rows") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                enabled = !genViewModel.isSaving,
-                colors = textFieldColors,
-                modifier = Modifier.width(200.dp).padding(top = 16.dp),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = rows,
+                    onValueChange = { rows = it.filter { c -> c.isDigit() } },
+                    label = { Text("Rows") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    enabled = !genViewModel.isSaving,
+                    colors = textFieldColors,
+                    modifier = Modifier.weight(1f),
+                )
 
-            OutlinedTextField(
-                value = cols,
-                onValueChange = { cols = it.filter { c -> c.isDigit() } },
-                label = { Text("Columns") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                enabled = !genViewModel.isSaving,
-                colors = textFieldColors,
-                modifier = Modifier.width(200.dp).padding(top = 16.dp),
-            )
+                OutlinedTextField(
+                    value = cols,
+                    onValueChange = { cols = it.filter { c -> c.isDigit() } },
+                    label = { Text("Columns") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    enabled = !genViewModel.isSaving,
+                    colors = textFieldColors,
+                    modifier = Modifier.weight(1f),
+                )
+            }
 
             if (editing) {
                 val validationState = genViewModel.validationState
@@ -144,6 +184,7 @@ fun GenConfScreen(
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 28.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
                         "Validity",
@@ -163,14 +204,19 @@ fun GenConfScreen(
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
                     } else {
-                        Text(
-                            when (validationState) {
-                                ValidationState.VALID -> "Valid"
-                                ValidationState.INVALID -> "Invalid"
-                                ValidationState.UNAVAILABLE -> "Unavailable"
-                                else -> "Not checked"
-                            },
-                            color = MaterialTheme.colorScheme.onPrimary,
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color =
+                                        if (validationState == ValidationState.VALID) MaterialTheme.colorScheme.onTertiary
+                                        else MaterialTheme.colorScheme.tertiaryFixed,
+                                    RoundedCornerShape(6.dp)
+                                ).size(30.dp)
+                                .border(
+                                    1.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    RoundedCornerShape(6.dp),
+                                ),
                         )
                     }
                 }
@@ -178,24 +224,19 @@ fun GenConfScreen(
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Column {
-                        Text(
-                            "Visibility",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        Text(
-                            if (isPublic) "Public" else "Private",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    }
+                    Text(
+                        "Publish",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                     Spacer(Modifier.weight(1f))
                     Switch(
                         checked = isPublic,
                         onCheckedChange = { isPublic = it },
                         enabled = !genViewModel.isSaving && (isPublic || canMakePublic),
+                        colors = switchColors
                     )
                 }
 
@@ -203,12 +244,10 @@ fun GenConfScreen(
                     Text(
                         text = if (authState != AuthState.SIGNED_IN) {
                             "Sign in to make this nonogram public."
-                        } else if (validationState == ValidationState.UNCHECKED) {
-                            "Save the nonogram to check its validity."
                         } else {
-                            "Only valid nonograms can be made public."
+                            "Only valid nonograms can be public."
                         },
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
@@ -216,7 +255,7 @@ fun GenConfScreen(
 
                 genViewModel.validationError?.let { error ->
                     Text(
-                        text = "Saving will continue privately: $error",
+                        text = error,
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,

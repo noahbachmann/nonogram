@@ -13,7 +13,6 @@ fun WinConfirmDialog(onConfirm: () -> Unit, onRestart: () -> Unit) {
     AlertDialog(
         onDismissRequest = onRestart,
         title = { Text("You solved it!") },
-        text = { Text("Difficulty: idk\nBest Time: 12:12") },
 
         confirmButton = {
             IconButton(onClick = onConfirm) {

@@ -20,15 +20,18 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
     var isLoading: Boolean by mutableStateOf(true)
         private set
 
+    var isRefreshing: Boolean by mutableStateOf(false)
+        private set
+
     private var progressMap: Map<Long, List<List<Int>>> by mutableStateOf(emptyMap())
     private var beatMap: Map<Long, Long> by mutableStateOf(emptyMap())
 
     init {
-        loadAll()
+        reload(true)
     }
 
-    fun loadAll() {
-        isLoading = true
+    fun reload(loadAll: Boolean = false) {
+        isLoading = loadAll
         viewModelScope.launch {
             nonograms = withContext(Dispatchers.Default) {
                 sdk.seedIfEmpty()
@@ -47,6 +50,7 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
                     .associate { it.nonogram.id to it.beat }
             }
             isLoading = false
+            isRefreshing = false
         }
     }
 
