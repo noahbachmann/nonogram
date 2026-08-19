@@ -11,6 +11,7 @@ import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.TopAppBar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
 import com.trainpaths.nonogram.classes.NonogramCard
 import com.trainpaths.nonogram.classes.NonogramGrid
@@ -18,7 +19,7 @@ import com.trainpaths.nonogram.classes.NonogramGrid
 @Composable
 fun MenuScreen(
     viewModel: MenuViewModel,
-    onNonogramClick: (Long) -> Unit,
+    onNonogramClick: (Nonogram) -> Unit,
     onGenClick: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -39,7 +40,7 @@ fun MenuScreen(
                         nonogram = nonogram,
                         progress = viewModel.getProgress(nonogram.id, nonogram.height, nonogram.width),
                         beatCount = viewModel.getBeatCount(nonogram.id),
-                        onClick = { onNonogramClick(nonogram.id) })
+                        onClick = { onNonogramClick(nonogram) })
                 }
             }
         }

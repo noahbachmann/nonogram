@@ -117,7 +117,14 @@ private fun AppContent(
                 }
                 MenuScreen(
                     viewModel = menuViewModel,
-                    onNonogramClick = { id -> navController.navigate(PlayDialogRoute(id)) },
+                    onNonogramClick = { ng ->
+                        navController.navigate(
+                            PlayDialogRoute(
+                                ng.id,
+                                ng.difficulty.toString()
+                            )
+                        )
+                    },
                     onGenClick = {
                         navController.navigate(GenListRoute)
                     },
@@ -185,6 +192,8 @@ private fun AppContent(
             dialog<PlayDialogRoute> { entry ->
                 val route: PlayDialogRoute = entry.toRoute()
                 PlayConfirmDialog(
+                    route.difficulty,
+                    menuViewModel.getBeatCount(route.nonogramId),
                     onConfirm = {
                         navController.navigate(GameRoute(route.nonogramId)) {
                             popUpTo(MenuRoute)

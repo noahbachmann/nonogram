@@ -24,7 +24,7 @@ object SettingsRoute
 data class GameRoute(val nonogramId: Long)
 
 @Serializable
-data class PlayDialogRoute(val nonogramId: Long)
+data class PlayDialogRoute(val nonogramId: Long, val difficulty: String)
 
 @Serializable
 object WinDialogRoute

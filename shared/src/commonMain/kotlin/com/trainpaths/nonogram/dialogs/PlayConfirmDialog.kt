@@ -4,15 +4,15 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import org.jetbrains.compose.resources.imageResource
+import com.trainpaths.nonogram.classes.Nonogram
 
 @Composable
-fun PlayConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+fun PlayConfirmDialog(difficulty: String, beatCount: Long, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Play?") },
-        text = { Text("Difficulty: idk\nBest Time: 12:12") },
-        
+        text = { Text("Difficulty: ${difficulty.lowercase()}\nBeaten: $beatCount x") },
+
         confirmButton = {
             TextButton(onClick = onConfirm) { Text("Yes") }
         },
