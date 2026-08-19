@@ -6,6 +6,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+private const val KEY_CURRENT_USER_ID = "current_user_id"
+private const val KEY_HAS_COMPLETED_ONBOARDING = "has_completed_onboarding"
+private const val KEY_PUBLIC_NONOGRAM_PREFIX = "public_nonogram_sync_timestamp_"
+private const val KEY_OWNED_NONOGRAM_PREFIX = "owned_nonogram_sync_timestamp_"
+
 enum class AuthState { INITIALIZING, GUEST, SIGNED_IN }
 
 class AuthRepository(private val sdk: AppSDK, private val settings: Settings) {
@@ -64,10 +69,10 @@ class AuthRepository(private val sdk: AppSDK, private val settings: Settings) {
         completeOnboarding()
     }
 
-    companion object {
-        private const val KEY_CURRENT_USER_ID = "current_user_id"
-        private const val KEY_HAS_COMPLETED_ONBOARDING = "has_completed_onboarding"
-        private const val KEY_PUBLIC_NONOGRAM_PREFIX = "public_nonogram_sync_timestamp_"
-        private const val KEY_OWNED_NONOGRAM_PREFIX = "owned_nonogram_sync_timestamp_"
+    suspend fun signOut() {
+        val guestId = sdk.addUser("Guest")
+        settings.putLong(KEY_CURRENT_USER_ID, guestId)
+        _currentUserId.value = guestId
+        _authState.value = AuthState.GUEST
     }
 }

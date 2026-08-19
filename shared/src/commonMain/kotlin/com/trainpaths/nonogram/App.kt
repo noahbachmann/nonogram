@@ -247,6 +247,12 @@ private fun AppContent(
                     themeViewModel = themeViewModel,
                     onBack = { navController.popBackStack() },
                     onSignIn = { navController.navigate(LoginRoute) },
+                    onSignOut = {
+                        authViewModel.signOut {
+                            menuViewModel.loadAll()
+                            genViewModel.loadMyNonograms()
+                        }
+                    },
                 )
             }
         }

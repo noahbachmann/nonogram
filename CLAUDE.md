@@ -69,7 +69,9 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   JDBC).
 - **`auth/AuthRepository`** — manages auth state (`GUEST` / `SIGNED_IN`), local user ID, and onboarding flag via
   `multiplatform-settings`. Links guest accounts to Firebase UIDs on sign-in. `initialize()`/`linkFirebaseUser()` are
-  suspend (call the suspend `AppSDK`).
+  suspend (call the suspend `AppSDK`). `signOut()` doesn't delete the signed-in user's local row — it creates a new
+  guest `User` and repoints `current_user_id` at it, so re-linking the same Firebase UID later restores the original
+  row (progress and authored puzzles intact). Onboarding flag and per-UID sync cursors are left untouched.
 - **`theme/ThemeRepository`** — holds the selected `ColorTheme`, persisted via `multiplatform-settings` (key
   `color_theme`, stores the enum name). Same shape as `AuthRepository`: reads synchronously in the constructor (no
   `initialize()` needed), exposes a `StateFlow`, writes through on `setTheme`. See **AppTheme** below.
@@ -213,6 +215,10 @@ defined.
   `dev.gitlive:firebase-firestore` (androidMain), web via hand-written Firebase JS SDK externals (webMain), both
   isolated behind `sync/SyncService`. The `nonograms` queries need security rules (read: public or own; write: own)
   and two composite indexes — `(status, updatedAt)`, `(authorUid, updatedAt)` — set up in the Firebase console.
+- `auth/PlatformAuth.kt` declares `expect suspend fun firebaseSignOut()`, ending the platform Firebase session —
+  `dev.gitlive.firebase.auth.auth.signOut()` on Android, `FirebaseWeb.signOut()` (a new `firebase/auth` `signOut`
+  external) on web. `AuthViewModel.signOut()` calls it before `AuthRepository.signOut()`, swallowing failures so local
+  sign-out still proceeds if the platform call errors.
 
 ## Current State
 

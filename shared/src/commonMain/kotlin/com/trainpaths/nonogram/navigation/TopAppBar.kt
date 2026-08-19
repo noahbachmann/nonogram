@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.trainpaths.nonogram.icons.arrowBack
@@ -29,6 +30,7 @@ enum class AppBarMode { PUZZLE, GENERATOR }
 @Composable
 fun TopAppBar(
     title: String = "",
+    titleIcon: ImageVector? = null,
     onBack: (() -> Unit)? = null,
     showSettings: Boolean = false,
     mode: AppBarMode? = null,
@@ -46,6 +48,12 @@ fun TopAppBar(
                         modifier = Modifier.size(32.dp),
                     )
                 }
+            } else if (titleIcon != null) {
+                Icon(
+                    imageVector = titleIcon,
+                    contentDescription = title.ifEmpty { null },
+                    modifier = Modifier.size(32.dp),
+                )
             } else if (title.isNotEmpty()) {
                 Text(title, style = MaterialTheme.typography.titleLarge)
             }

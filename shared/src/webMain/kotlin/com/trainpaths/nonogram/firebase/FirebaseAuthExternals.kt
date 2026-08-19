@@ -28,6 +28,8 @@ internal external fun getAuth(app: FirebaseApp): Auth
 
 internal external fun signInWithCredential(auth: Auth, credential: AuthCredential): Promise<UserCredential>
 
+internal external fun signOut(auth: Auth): Promise<JsAny?>
+
 // The Firebase JS class is only used for its statics, so an external object suffices.
 internal external object GoogleAuthProvider : JsAny {
     fun credential(idToken: String?, accessToken: String?): AuthCredential
