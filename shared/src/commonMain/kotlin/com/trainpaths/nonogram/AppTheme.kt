@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 
 private fun colorScheme(
     primary: Color,
@@ -88,6 +89,8 @@ enum class ColorTheme(val label: String, val scheme: ColorScheme) {
         fun fromKey(key: String?): ColorTheme = entries.firstOrNull { it.name == key } ?: DEFAULT
     }
 }
+
+fun Color.darken(fraction: Float): Color = lerp(this, Color.Black, fraction)
 
 @Composable
 fun AppTheme(

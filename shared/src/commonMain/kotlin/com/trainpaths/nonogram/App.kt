@@ -82,7 +82,7 @@ private fun AppContent(
     val startDestination = if (authViewModel.hasCompletedOnboarding) MenuRoute else LoginRoute
 
     LaunchedEffect(Unit) {
-        authViewModel.syncOnStart { menuViewModel.loadAll() }
+        authViewModel.syncAll { menuViewModel.reload() }
     }
 
     val navController = rememberNavController()
@@ -99,7 +99,8 @@ private fun AppContent(
                 LoginScreen(
                     authViewModel = authViewModel,
                     onLoginSuccess = {
-                        menuViewModel.loadAll()
+                        menuViewModel.reload(true)
+                        authViewModel.syncAll { menuViewModel.reload() }
                         navController.navigate(MenuRoute) {
                             popUpTo(LoginRoute) { inclusive = true }
                         }
@@ -113,10 +114,11 @@ private fun AppContent(
             }
             composable<MenuRoute> {
                 LaunchedEffect(Unit) {
-                    authViewModel.syncNonograms { menuViewModel.loadAll() }
+                    menuViewModel.reload()
                 }
                 MenuScreen(
                     viewModel = menuViewModel,
+                    onRefresh = { authViewModel.syncAll { menuViewModel.reload() } },
                     onNonogramClick = { ng ->
                         navController.navigate(
                             PlayDialogRoute(
@@ -258,7 +260,7 @@ private fun AppContent(
                     onSignIn = { navController.navigate(LoginRoute) },
                     onSignOut = {
                         authViewModel.signOut {
-                            menuViewModel.loadAll()
+                            menuViewModel.reload(true)
                             genViewModel.loadMyNonograms()
                         }
                     },
