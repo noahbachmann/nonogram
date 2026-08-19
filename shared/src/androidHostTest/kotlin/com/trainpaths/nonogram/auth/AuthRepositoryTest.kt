@@ -132,4 +132,48 @@ class AuthRepositoryTest {
         assertEquals(0L, authRepo.getLastPublicNonogramSyncTimestamp("other-user"))
         assertEquals(0L, authRepo.getLastOwnedNonogramSyncTimestamp("other-user"))
     }
+
+    @Test
+    fun signOut_switchesToFreshGuest() = runTest {
+        authRepo.initialize()
+        authRepo.linkFirebaseUser("firebase-abc", "Name")
+        val signedInId = authRepo.currentUserId.value!!
+
+        authRepo.signOut()
+
+        assertEquals(AuthState.GUEST, authRepo.authState.value)
+        val guestId = authRepo.currentUserId.value!!
+        assertTrue(guestId != signedInId)
+        assertEquals(guestId, settings.getLongOrNull("current_user_id"))
+        val originalUser = sdk.getUserByFirebaseUid("firebase-abc")
+        assertNotNull(originalUser)
+        assertEquals(signedInId, originalUser.id)
+    }
+
+    @Test
+    fun signOut_thenLinkAgain_restoresOriginalUser() = runTest {
+        authRepo.initialize()
+        authRepo.linkFirebaseUser("firebase-abc", "Name")
+        val signedInId = authRepo.currentUserId.value!!
+
+        authRepo.signOut()
+        authRepo.linkFirebaseUser("firebase-abc", "Name")
+
+        assertEquals(AuthState.SIGNED_IN, authRepo.authState.value)
+        assertEquals(signedInId, authRepo.currentUserId.value)
+    }
+
+    @Test
+    fun signOut_keepsOnboardingAndSyncCursors() = runTest {
+        authRepo.initialize()
+        authRepo.linkFirebaseUser("firebase-abc", "Name")
+        authRepo.setLastPublicNonogramSyncTimestamp("firebase-abc", 100)
+        authRepo.setLastOwnedNonogramSyncTimestamp("firebase-abc", 200)
+
+        authRepo.signOut()
+
+        assertTrue(authRepo.hasCompletedOnboarding)
+        assertEquals(100L, authRepo.getLastPublicNonogramSyncTimestamp("firebase-abc"))
+        assertEquals(200L, authRepo.getLastOwnedNonogramSyncTimestamp("firebase-abc"))
+    }
 }

@@ -21,6 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,6 +32,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.ColorTheme
+import com.trainpaths.nonogram.dialogs.SignOutConfirmDialog
+import com.trainpaths.nonogram.icons.settings
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.ThemeViewModel
@@ -40,33 +45,23 @@ fun SettingsScreen(
     themeViewModel: ThemeViewModel,
     onBack: () -> Unit,
     onSignIn: () -> Unit,
+    onSignOut: () -> Unit,
 ) {
     val authState by authViewModel.authState.collectAsState()
     val theme by themeViewModel.theme.collectAsState()
+    var showSignOutDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = "Settings",
+            titleIcon = settings,
             onBack = onBack,
+            backArrow = true,
         )
-
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(40.dp, Alignment.CenterVertically),
         ) {
-            if (authState == AuthState.GUEST) {
-                Button(
-                    onClick = onSignIn,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onPrimary,
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    ),
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                ) {
-                    Text("Sign In with Google")
-                }
-            }
-
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -87,7 +82,40 @@ fun SettingsScreen(
                     }
                 }
             }
+            if (authState == AuthState.GUEST) {
+                Button(
+                    onClick = onSignIn,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onPrimary,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                ) {
+                    Text("Sign In with Google")
+                }
+            } else if (authState == AuthState.SIGNED_IN) {
+                Button(
+                    onClick = { showSignOutDialog = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onPrimary,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                ) {
+                    Text("Log Out")
+                }
+            }
         }
+    }
+
+    if (showSignOutDialog) {
+        SignOutConfirmDialog(
+            onConfirm = {
+                showSignOutDialog = false
+                onSignOut()
+            },
+            onCancel = { showSignOutDialog = false },
+        )
     }
 }
 

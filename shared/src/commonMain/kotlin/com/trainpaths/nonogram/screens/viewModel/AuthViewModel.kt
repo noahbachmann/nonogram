@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.auth.AuthState
+import com.trainpaths.nonogram.auth.firebaseSignOut
 import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -124,5 +125,19 @@ class AuthViewModel(
 
     fun completeOnboarding() {
         authRepository.completeOnboarding()
+    }
+
+    fun signOut(onComplete: () -> Unit = {}) {
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                runCatching { firebaseSignOut() }
+                    .onFailure { println("SignOut: firebase sign-out failed: ${it.message}") }
+                authRepository.signOut()
+                _signInComplete.value = false
+                _generatorSyncState.value = GeneratorSyncState.IDLE
+            } finally {
+                withContext(Dispatchers.Main) { onComplete() }
+            }
+        }
     }
 }

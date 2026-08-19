@@ -47,6 +47,11 @@ object FirebaseWeb {
         return WebFirebaseUser(user.uid, user.displayName)
     }
 
+    suspend fun signOut() {
+        val currentAuth = auth ?: return
+        signOut(currentAuth).await<JsAny?>()
+    }
+
     /** Waits for the indexedDB session restore; null when signed out. */
     suspend fun awaitSignedInUid(): String? {
         val auth = auth ?: return null
