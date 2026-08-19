@@ -162,7 +162,7 @@ adapt via `NonogramDb.Schema.synchronous()`; the web worker driver uses the asyn
 ### AppTheme
 
 Defined in `AppTheme.kt`. `ColorTheme` is an enum of up to 5 Material 3 `lightColorScheme`s, built by the private
-`appColorScheme(...)` factory. `AppColorTheme.DEFAULT = FOREST` reproduces the original single hardcoded scheme. Current
+`colorScheme(...)` factory. `ColorTheme.DEFAULT = FOREST` reproduces the original single hardcoded scheme. Current
 entries: `FOREST`, `MIDNIGHT`, `PLUM` (dark), `PAPER`, `FROST` (light).
 
 Per-theme roles (vary):
@@ -181,10 +181,18 @@ Frozen roles (identical across every theme — difficulty semantics, always draw
 - `tertiaryFixed` `#CE0C0C` red — HARD difficulty
 
 `surface` and `error` are never overridden (M3 light defaults) — don't put per-theme content on `surface`, use
-`outline` instead. `AppTheme(theme: AppColorTheme, content: ...)` requires the theme explicitly (no default), so every
+`outline` instead. `AppTheme(theme: ColorTheme, content: ...)` requires the theme explicitly (no default), so every
 call site must supply one. The active theme lives in `theme/ThemeRepository`/`ThemeViewModel` and is threaded as a
-required `App(..., themeViewModel)` param; the two platform entry points (`MainActivity.kt`, `webApp/main.kt`) also
-resolve it via `koinViewModel` *before* the `AuthState.INITIALIZING` gate so the loading screen is themed too.
+required `App(..., themeViewModel)` param.
+
+`App()` itself owns the single `AppTheme` call site and the auth-init gate: it reads `themeViewModel.theme` and
+`authViewModel.authState`, wraps everything in `AppTheme(theme)`, and renders `LoadingScreen()` while
+`authState == INITIALIZING` instead of the real content (`AppContent`, a private composable with the NavHost). The
+two platform entry points (`MainActivity.kt`, `webApp/main.kt`) therefore just call `App(...)` unconditionally — no
+`if`/`else`, no `AppTheme` call of their own. `menuViewModelFactory`/`genViewModelFactory` are passed as
+`@Composable () -> VM` (matching the existing `gameViewModelFactory` idiom), **not** resolved instances — this is
+deliberate, not simplifiable: it keeps `MenuViewModel`/`GenViewModel` construction inside the non-`INITIALIZING`
+branch, since `MenuViewModel.init { loadAll() }` needs `AuthRepository.currentUserId` to already be set.
 
 Use `MaterialTheme.colorScheme.*`, never hardcode hex — outside `AppTheme.kt` itself, where each theme's palette is
 defined.
