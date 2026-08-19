@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 enum class Difficulty { EASY, MEDIUM, HARD, HARDCORE }
 
 const val MAX_NONOGRAM_NAME_LENGTH = 30
-const val UNNAMED_NONOGRAM_TITLE = "no description"
+const val UNNAMED_NONOGRAM_TITLE = "???"
 
 fun normalizeNonogramName(value: String): String? =
     value
