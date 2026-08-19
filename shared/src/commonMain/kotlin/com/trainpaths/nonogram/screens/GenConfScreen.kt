@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -52,6 +53,22 @@ fun GenConfScreen(
     }
     val authState by genViewModel.authState.collectAsState()
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSecondary,
+        focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+        unfocusedBorderColor = MaterialTheme.colorScheme.onSecondary,
+        focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSecondary,
+        focusedPlaceholderColor = MaterialTheme.colorScheme.onSecondary,
+        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSecondary,
+        cursorColor = MaterialTheme.colorScheme.onPrimary,
+        selectionColors = TextSelectionColors(
+            handleColor = Color.White,
+            backgroundColor = Color.White.copy(alpha = 0.5f),
+        )
+    )
+
     LaunchedEffect(
         genViewModel.isSaving,
         genViewModel.validationState,
@@ -76,18 +93,6 @@ fun GenConfScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            val textFieldColors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSecondary,
-                focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.onSecondary,
-                focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSecondary,
-                focusedPlaceholderColor = MaterialTheme.colorScheme.onSecondary,
-                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSecondary,
-                cursorColor = MaterialTheme.colorScheme.onPrimary,
-            )
-
             OutlinedTextField(
                 value = name,
                 onValueChange = {
