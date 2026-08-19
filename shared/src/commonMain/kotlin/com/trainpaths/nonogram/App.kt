@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.dialogs.PlayConfirmDialog
 import com.trainpaths.nonogram.dialogs.WinConfirmDialog
 import com.trainpaths.nonogram.navigation.GameRoute
@@ -32,6 +33,7 @@ import com.trainpaths.nonogram.navigation.WinDialogRoute
 import com.trainpaths.nonogram.screens.GameScreen
 import com.trainpaths.nonogram.screens.GenConfScreen
 import com.trainpaths.nonogram.screens.GenScreen
+import com.trainpaths.nonogram.screens.LoadingScreen
 import com.trainpaths.nonogram.screens.LoginScreen
 import com.trainpaths.nonogram.screens.MenuScreen
 import com.trainpaths.nonogram.screens.GenListScreen
@@ -45,6 +47,32 @@ import com.trainpaths.nonogram.screens.viewModel.ThemeViewModel
 
 @Composable
 fun App(
+    menuViewModelFactory: @Composable () -> MenuViewModel,
+    authViewModel: AuthViewModel,
+    genViewModelFactory: @Composable () -> GenViewModel,
+    themeViewModel: ThemeViewModel,
+    gameViewModelFactory: @Composable (Long) -> GameViewModel,
+) {
+    val theme by themeViewModel.theme.collectAsState()
+    val authState by authViewModel.authState.collectAsState()
+
+    AppTheme(theme = theme) {
+        if (authState == AuthState.INITIALIZING) {
+            LoadingScreen()
+        } else {
+            AppContent(
+                menuViewModel = menuViewModelFactory(),
+                authViewModel = authViewModel,
+                genViewModel = genViewModelFactory(),
+                themeViewModel = themeViewModel,
+                gameViewModelFactory = gameViewModelFactory,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppContent(
     menuViewModel: MenuViewModel,
     authViewModel: AuthViewModel,
     genViewModel: GenViewModel,
@@ -52,177 +80,174 @@ fun App(
     gameViewModelFactory: @Composable (Long) -> GameViewModel,
 ) {
     val startDestination = if (authViewModel.hasCompletedOnboarding) MenuRoute else LoginRoute
-    val theme by themeViewModel.theme.collectAsState()
 
     LaunchedEffect(Unit) {
         authViewModel.syncOnStart { menuViewModel.loadAll() }
     }
 
-    AppTheme(theme = theme) {
-        val navController = rememberNavController()
-        var onResetBoard by remember { mutableStateOf<(() -> Unit)?>(null) }
-        CompositionLocalProvider(LocalNavController provides navController) {
-            NavHost(
-                navController = navController,
-                startDestination = startDestination,
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.primary)
-                    .fillMaxSize(),
-            ) {
-                composable<LoginRoute> {
-                    LoginScreen(
-                        authViewModel = authViewModel,
-                        onLoginSuccess = {
-                            menuViewModel.loadAll()
-                            navController.navigate(MenuRoute) {
-                                popUpTo(LoginRoute) { inclusive = true }
-                            }
-                        },
-                        onContinueAsGuest = {
-                            navController.navigate(MenuRoute) {
-                                popUpTo(LoginRoute) { inclusive = true }
-                            }
-                        },
-                    )
-                }
-                composable<MenuRoute> {
-                    LaunchedEffect(Unit) {
-                        authViewModel.syncNonograms { menuViewModel.loadAll() }
-                    }
-                    MenuScreen(
-                        viewModel = menuViewModel,
-                        onNonogramClick = { id -> navController.navigate(PlayDialogRoute(id)) },
-                        onGenClick = {
-                            navController.navigate(GenListRoute)
-                        },
-                    )
-                }
-                composable<GenListRoute> {
-                    val generatorSyncState by authViewModel.generatorNonogramSyncState.collectAsState()
-                    LaunchedEffect(generatorSyncState) {
-                        if (generatorSyncState != GeneratorSyncState.SYNCING) {
-                            genViewModel.loadMyNonograms()
+    val navController = rememberNavController()
+    var onResetBoard by remember { mutableStateOf<(() -> Unit)?>(null) }
+    CompositionLocalProvider(LocalNavController provides navController) {
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.primary)
+                .fillMaxSize(),
+        ) {
+            composable<LoginRoute> {
+                LoginScreen(
+                    authViewModel = authViewModel,
+                    onLoginSuccess = {
+                        menuViewModel.loadAll()
+                        navController.navigate(MenuRoute) {
+                            popUpTo(LoginRoute) { inclusive = true }
                         }
+                    },
+                    onContinueAsGuest = {
+                        navController.navigate(MenuRoute) {
+                            popUpTo(LoginRoute) { inclusive = true }
+                        }
+                    },
+                )
+            }
+            composable<MenuRoute> {
+                LaunchedEffect(Unit) {
+                    authViewModel.syncNonograms { menuViewModel.loadAll() }
+                }
+                MenuScreen(
+                    viewModel = menuViewModel,
+                    onNonogramClick = { id -> navController.navigate(PlayDialogRoute(id)) },
+                    onGenClick = {
+                        navController.navigate(GenListRoute)
+                    },
+                )
+            }
+            composable<GenListRoute> {
+                val generatorSyncState by authViewModel.generatorNonogramSyncState.collectAsState()
+                LaunchedEffect(generatorSyncState) {
+                    if (generatorSyncState != GeneratorSyncState.SYNCING) {
+                        genViewModel.loadMyNonograms()
                     }
-                    GenListScreen(
-                        genViewModel = genViewModel,
-                        generatorSyncState = generatorSyncState,
-                        onRetrySync = {
-                            authViewModel.retryOwnNonograms()
-                        },
-                        onSwap = {
-                            navController.navigate(MenuRoute) {
-                                popUpTo(MenuRoute) { inclusive = true }
-                            }
-                        },
-                        onNewClick = {
-                            genViewModel.startNew()
-                            navController.navigate(GenConfRoute(editing = false))
-                        },
-                        onEditClick = { nonogram ->
-                            genViewModel.loadForEdit(nonogram)
-                            navController.navigate(GeneratorRoute)
-                        },
-                    )
                 }
-                composable<GenConfRoute> { entry ->
-                    val route: GenConfRoute = entry.toRoute()
-                    GenConfScreen(
-                        genViewModel = genViewModel,
-                        editing = route.editing,
-                        onBack = { navController.popBackStack() },
-                        onDone = {
-                            if (route.editing) {
-                                navController.popBackStack()
-                            } else {
-                                navController.navigate(GeneratorRoute) {
-                                    popUpTo(GenListRoute) { inclusive = false }
-                                }
-                            }
-                        },
-                    )
-                }
-                composable<GeneratorRoute> {
-                    GenScreen(
-                        genViewModel = genViewModel,
-                        onConfig = {
-                            genViewModel.onSave()
-                            navController.navigate(GenConfRoute(editing = true))
-                        },
-                        onExitToList = {
-                            navController.navigate(GenListRoute) {
-                                popUpTo(GenListRoute) { inclusive = true }
-                            }
-                        },
-                    )
-                }
-                dialog<PlayDialogRoute> { entry ->
-                    val route: PlayDialogRoute = entry.toRoute()
-                    PlayConfirmDialog(
-                        onConfirm = {
-                            navController.navigate(GameRoute(route.nonogramId)) {
-                                popUpTo(MenuRoute)
-                            }
-                        },
-                        onDismiss = { navController.popBackStack() },
-                    )
-                }
-                composable<GameRoute> { entry ->
-                    val route: GameRoute = entry.toRoute()
-                    val viewModel = gameViewModelFactory(route.nonogramId)
-                    onResetBoard = { viewModel.resetBoard() }
-                    LaunchedEffect(route.nonogramId) {
-                        viewModel.loadNonogram(route.nonogramId)
-                    }
-                    GameScreen(
-                        viewModel = viewModel,
-                        onBack = {
-                            viewModel.saveCurrentProgress()
-                            viewModel.currentNonogramId?.let { id ->
-                                menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
-                            }
-                            navController.popBackStack(MenuRoute, inclusive = false)
-                        },
-                        onWin = {
-                            viewModel.saveCurrentProgress(true)
-                            viewModel.currentNonogramId?.let { id ->
-                                menuViewModel.clearProgress(id)
-                                menuViewModel.incrementBeatCount(id)
-                            }
-                            navController.navigate(WinDialogRoute)
-                        },
-                        onSwapMode = {
-                            viewModel.saveCurrentProgress()
-                            viewModel.currentNonogramId?.let { id ->
-                                menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
-                            }
-                            navController.navigate(GenListRoute) {
-                                popUpTo(MenuRoute) { inclusive = true }
-                            }
-                        },
-                    )
-                }
-                dialog<WinDialogRoute> {
-                    WinConfirmDialog(
-                        onConfirm = {
-                            navController.navigate(MenuRoute) {
-                                popUpTo(MenuRoute) { inclusive = true }
-                            }
-                        },
-                        onRestart = {
-                            onResetBoard?.invoke()
+                GenListScreen(
+                    genViewModel = genViewModel,
+                    generatorSyncState = generatorSyncState,
+                    onRetrySync = {
+                        authViewModel.retryOwnNonograms()
+                    },
+                    onSwap = {
+                        navController.navigate(MenuRoute) {
+                            popUpTo(MenuRoute) { inclusive = true }
+                        }
+                    },
+                    onNewClick = {
+                        genViewModel.startNew()
+                        navController.navigate(GenConfRoute(editing = false))
+                    },
+                    onEditClick = { nonogram ->
+                        genViewModel.loadForEdit(nonogram)
+                        navController.navigate(GeneratorRoute)
+                    },
+                )
+            }
+            composable<GenConfRoute> { entry ->
+                val route: GenConfRoute = entry.toRoute()
+                GenConfScreen(
+                    genViewModel = genViewModel,
+                    editing = route.editing,
+                    onBack = { navController.popBackStack() },
+                    onDone = {
+                        if (route.editing) {
                             navController.popBackStack()
-                        },
-                    )
+                        } else {
+                            navController.navigate(GeneratorRoute) {
+                                popUpTo(GenListRoute) { inclusive = false }
+                            }
+                        }
+                    },
+                )
+            }
+            composable<GeneratorRoute> {
+                GenScreen(
+                    genViewModel = genViewModel,
+                    onConfig = {
+                        genViewModel.onSave()
+                        navController.navigate(GenConfRoute(editing = true))
+                    },
+                    onExitToList = {
+                        navController.navigate(GenListRoute) {
+                            popUpTo(GenListRoute) { inclusive = true }
+                        }
+                    },
+                )
+            }
+            dialog<PlayDialogRoute> { entry ->
+                val route: PlayDialogRoute = entry.toRoute()
+                PlayConfirmDialog(
+                    onConfirm = {
+                        navController.navigate(GameRoute(route.nonogramId)) {
+                            popUpTo(MenuRoute)
+                        }
+                    },
+                    onDismiss = { navController.popBackStack() },
+                )
+            }
+            composable<GameRoute> { entry ->
+                val route: GameRoute = entry.toRoute()
+                val viewModel = gameViewModelFactory(route.nonogramId)
+                onResetBoard = { viewModel.resetBoard() }
+                LaunchedEffect(route.nonogramId) {
+                    viewModel.loadNonogram(route.nonogramId)
                 }
-                composable<SettingsRoute> {
-                    SettingsScreen(
-                        authViewModel = authViewModel,
-                        themeViewModel = themeViewModel,
-                        onBack = { navController.popBackStack() },
-                        onSignIn = { navController.navigate(LoginRoute) },
-                    )
-                }
+                GameScreen(
+                    viewModel = viewModel,
+                    onBack = {
+                        viewModel.saveCurrentProgress()
+                        viewModel.currentNonogramId?.let { id ->
+                            menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
+                        }
+                        navController.popBackStack(MenuRoute, inclusive = false)
+                    },
+                    onWin = {
+                        viewModel.saveCurrentProgress(true)
+                        viewModel.currentNonogramId?.let { id ->
+                            menuViewModel.clearProgress(id)
+                            menuViewModel.incrementBeatCount(id)
+                        }
+                        navController.navigate(WinDialogRoute)
+                    },
+                    onSwapMode = {
+                        viewModel.saveCurrentProgress()
+                        viewModel.currentNonogramId?.let { id ->
+                            menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
+                        }
+                        navController.navigate(GenListRoute) {
+                            popUpTo(MenuRoute) { inclusive = true }
+                        }
+                    },
+                )
+            }
+            dialog<WinDialogRoute> {
+                WinConfirmDialog(
+                    onConfirm = {
+                        navController.navigate(MenuRoute) {
+                            popUpTo(MenuRoute) { inclusive = true }
+                        }
+                    },
+                    onRestart = {
+                        onResetBoard?.invoke()
+                        navController.popBackStack()
+                    },
+                )
+            }
+            composable<SettingsRoute> {
+                SettingsScreen(
+                    authViewModel = authViewModel,
+                    themeViewModel = themeViewModel,
+                    onBack = { navController.popBackStack() },
+                    onSignIn = { navController.navigate(LoginRoute) },
+                )
             }
         }
     }
