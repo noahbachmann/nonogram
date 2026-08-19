@@ -65,12 +65,16 @@ fun GenConfScreen(
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = MaterialTheme.colorScheme.onSecondary,
         unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+
         focusedBorderColor = MaterialTheme.colorScheme.onSecondary,
         unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+
         focusedLabelColor = MaterialTheme.colorScheme.onSecondary,
         unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+
         focusedPlaceholderColor = MaterialTheme.colorScheme.onSecondary,
         unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary,
+
         cursorColor = MaterialTheme.colorScheme.onBackground,
         selectionColors = TextSelectionColors(
             handleColor = MaterialTheme.colorScheme.onBackground,
@@ -79,7 +83,25 @@ fun GenConfScreen(
     )
 
     val switchColors: SwitchColors = SwitchDefaults.colors(
+        checkedThumbColor = MaterialTheme.colorScheme.onSecondary,
+        uncheckedThumbColor = MaterialTheme.colorScheme.onSecondary,
+        disabledCheckedThumbColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.5f),
+        disabledUncheckedThumbColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.5f),
 
+        checkedTrackColor = MaterialTheme.colorScheme.onTertiary,
+        uncheckedTrackColor = MaterialTheme.colorScheme.tertiary,
+        disabledCheckedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0f),
+        disabledUncheckedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0f),
+
+        checkedBorderColor = MaterialTheme.colorScheme.onPrimary,
+        uncheckedBorderColor = MaterialTheme.colorScheme.onPrimary,
+        disabledCheckedBorderColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.6f),
+        disabledUncheckedBorderColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.6f),
+
+        checkedIconColor = MaterialTheme.colorScheme.primary,
+        uncheckedIconColor = MaterialTheme.colorScheme.primary,
+        disabledCheckedIconColor = MaterialTheme.colorScheme.primary,
+        disabledUncheckedIconColor = MaterialTheme.colorScheme.primary,
     )
 
     LaunchedEffect(
@@ -222,12 +244,10 @@ fun GenConfScreen(
                     Text(
                         text = if (authState != AuthState.SIGNED_IN) {
                             "Sign in to make this nonogram public."
-                        } else if (validationState == ValidationState.UNCHECKED) {
-                            "Save the nonogram to check its validity."
                         } else {
-                            "Only valid nonograms can be made public."
+                            "Only valid nonograms can be public."
                         },
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
@@ -235,7 +255,7 @@ fun GenConfScreen(
 
                 genViewModel.validationError?.let { error ->
                     Text(
-                        text = "Saving will continue privately: $error",
+                        text = error,
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
