@@ -72,7 +72,7 @@ fun GenListScreen(
             GeneratorSyncState.ERROR -> {
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.outline),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
