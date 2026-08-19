@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.auth.AuthState
@@ -64,8 +63,8 @@ fun GenConfScreen(
         unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSecondary,
         cursorColor = MaterialTheme.colorScheme.onPrimary,
         selectionColors = TextSelectionColors(
-            handleColor = Color.White,
-            backgroundColor = Color.White.copy(alpha = 0.5f),
+            handleColor = MaterialTheme.colorScheme.onBackground,
+            backgroundColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
         )
     )
 

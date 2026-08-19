@@ -70,13 +70,16 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
 - **`auth/AuthRepository`** — manages auth state (`GUEST` / `SIGNED_IN`), local user ID, and onboarding flag via
   `multiplatform-settings`. Links guest accounts to Firebase UIDs on sign-in. `initialize()`/`linkFirebaseUser()` are
   suspend (call the suspend `AppSDK`).
-- **`sync/SyncService`** — interface for syncing *both* progress and the shared `nonograms` collection
-  (push/pull/merge; `mergeRemoteNonograms` is the shared merge policy). `sync/FirebaseAndroidSyncService` (androidMain)
+- **`theme/ThemeRepository`** — holds the selected `ColorTheme`, persisted via `multiplatform-settings` (key
+  `color_theme`, stores the enum name). Same shape as `AuthRepository`: reads synchronously in the constructor (no
+  `initialize()` needed), exposes a `StateFlow`, writes through on `setTheme`. See **AppTheme** below.
+- **`sync/SyncService`** — interface for syncing *both* progress and the shared `nonograms` collection (push/pull/merge;
+  `mergeRemoteNonograms` is the shared merge policy). `sync/FirebaseAndroidSyncService` (androidMain)
   implements it with `dev.gitlive:firebase-firestore`; web binds `sync/FirebaseWebSyncService` (webMain), built on
   hand-written Kotlin externals to the Firebase JS SDK in `firebase/` (see `docs/web-architecture.md` for the externals
   pattern and the auth-session gate). Same Firestore shape on both platforms, so data interoperates.
-- **`classes/` board + game** — the interactive grid (clues, tiles, pan/zoom, drag-to-draw) is a self-contained
-  Compose engine: `Board`/`BoardTransform` (one Canvas for all tiles + a layer-transform pan/zoom model),
+- **`classes/` board + game** — the interactive grid (clues, tiles, pan/zoom, drag-to-draw) is a self-contained Compose
+  engine: `Board`/`BoardTransform` (one Canvas for all tiles + a layer-transform pan/zoom model),
   `Game` (win check), `Tile`/`TileState`. Performance-critical and gesture-heavy — see `docs/board-rendering.md`.
 - **`classes/Solver`** — line-logic solver; run via `Nonogram.isValid` to check a puzzle is uniquely solvable (gates
   publishing). **User-owned and actively changing — do not document its internals or modify it.**
@@ -121,15 +124,14 @@ pass `backArrow = true` to force a plain back arrow (used in `GenConf`).
 
 `navigation/BottomToolBar.kt` is the board's bottom bar (GameScreen + GenScreen): a **lock/unlock** toggle (locked =
 one-finger drag draws, unlocked = drag pans — see `docs/board-rendering.md`), a **draw-mode** button cycling
-`DrawMode` (Toggle → Fill → Cross → Erase; Toggle keeps the classic `TileState.next()` cycle, the other three
-write that state idempotently), an optional
-**reset-zoom** button, and (GenScreen) the **Save** icon (enabled only for a new or dirty puzzle). Icons come from the
-hand-built `icons/` package of `ImageVector`s.
+`DrawMode` (Toggle → Fill → Cross → Erase; Toggle keeps the classic `TileState.next()` cycle, the other three write that
+state idempotently), an optional **reset-zoom** button, and (GenScreen) the **Save** icon (enabled only for a new or
+dirty puzzle). Icons come from the hand-built `icons/` package of `ImageVector`s.
 
 ### DI (Koin)
 
-- `di/AppModule.kt` — common singletons: `AppSDK`, `Settings`, `AuthRepository`, plus all ViewModel registrations via
-  `viewModelOf` (koin-core-viewmodel, shared across platforms).
+- `di/AppModule.kt` — common singletons: `AppSDK`, `Settings`, `AuthRepository`, `ThemeRepository`, plus all ViewModel
+  registrations via `viewModelOf` (koin-core-viewmodel, shared across platforms).
 - `di/AndroidModule.kt` — platform bindings: `DatabaseFactory` → `AndroidDatabaseFactory`, `SyncService` →
   `FirebaseAndroidSyncService`.
 - `di/WebModule.kt` (webMain) — platform bindings: `DatabaseFactory` → `WebDatabaseFactory`, `SyncService` →
@@ -139,8 +141,8 @@ hand-built `icons/` package of `ImageVector`s.
 
 - **`Nonogram`** — `id`, `difficulty` (enum: EASY/MEDIUM/HARD/HARDCORE), `solution` (List<List<Int>> stored as JSON),
   `name: String?`, `authorId`, `isPublic: Boolean`, `updatedAt`. Computes `rowClues`/`colClues` on the fly, and
-  `isValid` lazily via the `Solver`. Note: `isPublic` is backed by the DB column named `status` (0/1). Name helpers
-  live alongside: `MAX_NONOGRAM_NAME_LENGTH` (30), `normalizeNonogramName()`, `UNNAMED_NONOGRAM_TITLE`.
+  `isValid` lazily via the `Solver`. Note: `isPublic` is backed by the DB column named `status` (0/1). Name helpers live
+  alongside: `MAX_NONOGRAM_NAME_LENGTH` (30), `normalizeNonogramName()`, `UNNAMED_NONOGRAM_TITLE`.
 - **`Tile`** — mutable Compose state. Cycles: NONE → FILLED → CROSSED → NONE.
 - Board state is serialized as `List<List<Int>>` (0/1) for persistence and sync.
 
@@ -148,8 +150,8 @@ hand-built `icons/` package of `ImageVector`s.
 
 Schema: `shared/src/commonMain/sqldelight/com/trainpaths/nonogram/cache/database.sq`
 Migrations: numbered `.sqm` files in the same dir — currently `1.sqm`–`4.sqm` (UserProgress.beat;
-NonogramData.authorId + status; NonogramData.updatedAt; NonogramData.name).
-Database name: `NonogramDb`, package: `com.trainpaths.nonogram.cache`
+NonogramData.authorId + status; NonogramData.updatedAt; NonogramData.name). Database name: `NonogramDb`, package:
+`com.trainpaths.nonogram.cache`
 
 Tables: `NonogramData`, `User`, `UserProgress` (composite PK: userId + nonogramId).
 
@@ -159,18 +161,33 @@ adapt via `NonogramDb.Schema.synchronous()`; the web worker driver uses the asyn
 
 ### AppTheme
 
-Defined in `AppTheme.kt`. Material 3 `lightColorScheme`, dark-teal palette with a warm orange accent.
-(The exact hexes are being iterated on — re-check the file before relying on a specific value.)
+Defined in `AppTheme.kt`. `ColorTheme` is an enum of up to 5 Material 3 `lightColorScheme`s, built by the private
+`appColorScheme(...)` factory. `AppColorTheme.DEFAULT = FOREST` reproduces the original single hardcoded scheme. Current
+entries: `FOREST`, `MIDNIGHT`, `PLUM` (dark), `PAPER`, `FROST` (light).
 
-- `primary` `#153D36` dark teal — background, TopAppBar, main surface
-- `onPrimary` `#EF7F71` orange — the accent; content on primary (e.g. app-bar icons/text)
-- `secondary` `#08211C` deep teal — accents, focused borders, button/toolbar fills
-- `tertiary` `#FFD700` gold — highlights (beat badges, win borders)
-- `outline` `#9A9A9A` gray — separators/dividers
-- `background` `#153D36` — same as primary, full-screen bg
-- `onBackground` white — text on background
+Per-theme roles (vary):
 
-Use `MaterialTheme.colorScheme.*`, never hardcode hex.
+- `primary` — background, TopAppBar, main surface
+- `onPrimary` — the accent; content on primary (e.g. app-bar icons/text, card accent blocks)
+- `secondary` / `onSecondary` — BottomToolBar container/content, unfocused text-field state
+- `outline` — the near-white/white card panel color (`NonogramGrid`/`GenListScreen` cards)
+- `onBackground` — text drawn directly on `background` (white on dark themes, near-black on light)
+- `background` — always set equal to `primary`, never passed independently
+
+Frozen roles (identical across every theme — difficulty semantics, always drawn on white cards):
+
+- `tertiary` `#D7B400` gold — MEDIUM difficulty, beat badges
+- `onTertiary` `#6DB85C` green — EASY difficulty
+- `tertiaryFixed` `#CE0C0C` red — HARD difficulty
+
+`surface` and `error` are never overridden (M3 light defaults) — don't put per-theme content on `surface`, use
+`outline` instead. `AppTheme(theme: AppColorTheme, content: ...)` requires the theme explicitly (no default), so every
+call site must supply one. The active theme lives in `theme/ThemeRepository`/`ThemeViewModel` and is threaded as a
+required `App(..., themeViewModel)` param; the two platform entry points (`MainActivity.kt`, `webApp/main.kt`) also
+resolve it via `koinViewModel` *before* the `AuthState.INITIALIZING` gate so the loading screen is themed too.
+
+Use `MaterialTheme.colorScheme.*`, never hardcode hex — outside `AppTheme.kt` itself, where each theme's palette is
+defined.
 
 ### Firebase / Auth
 

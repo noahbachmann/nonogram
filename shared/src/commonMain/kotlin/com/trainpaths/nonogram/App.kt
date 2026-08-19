@@ -41,21 +41,24 @@ import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.GeneratorSyncState
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
+import com.trainpaths.nonogram.screens.viewModel.ThemeViewModel
 
 @Composable
 fun App(
     menuViewModel: MenuViewModel,
     authViewModel: AuthViewModel,
     genViewModel: GenViewModel,
+    themeViewModel: ThemeViewModel,
     gameViewModelFactory: @Composable (Long) -> GameViewModel,
 ) {
     val startDestination = if (authViewModel.hasCompletedOnboarding) MenuRoute else LoginRoute
+    val theme by themeViewModel.theme.collectAsState()
 
     LaunchedEffect(Unit) {
         authViewModel.syncOnStart { menuViewModel.loadAll() }
     }
 
-    AppTheme {
+    AppTheme(theme = theme) {
         val navController = rememberNavController()
         var onResetBoard by remember { mutableStateOf<(() -> Unit)?>(null) }
         CompositionLocalProvider(LocalNavController provides navController) {
@@ -215,6 +218,7 @@ fun App(
                 composable<SettingsRoute> {
                     SettingsScreen(
                         authViewModel = authViewModel,
+                        themeViewModel = themeViewModel,
                         onBack = { navController.popBackStack() },
                         onSignIn = { navController.navigate(LoginRoute) },
                     )

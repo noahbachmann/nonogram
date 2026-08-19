@@ -14,6 +14,7 @@ import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
+import com.trainpaths.nonogram.screens.viewModel.ThemeViewModel
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
@@ -38,13 +39,16 @@ fun main() {
     ComposeViewport {
         val authViewModel = koinViewModel<AuthViewModel>()
         val authState by authViewModel.authState.collectAsState()
+        val themeViewModel = koinViewModel<ThemeViewModel>()
+        val theme by themeViewModel.theme.collectAsState()
         if (authState == AuthState.INITIALIZING) {
-            AppTheme { LoadingScreen() }
+            AppTheme(theme) { LoadingScreen() }
         } else {
             App(
                 menuViewModel = koinViewModel<MenuViewModel>(),
                 authViewModel = authViewModel,
                 genViewModel = koinViewModel<GenViewModel>(),
+                themeViewModel = themeViewModel,
                 gameViewModelFactory = { _ -> koinViewModel<GameViewModel>() },
             )
         }
