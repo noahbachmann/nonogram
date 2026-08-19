@@ -5,7 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.TopAppBar
@@ -18,6 +22,7 @@ import com.trainpaths.nonogram.classes.NonogramGrid
 @Composable
 fun MenuScreen(
     viewModel: MenuViewModel,
+    onRefresh: () -> Unit,
     onNonogramClick: (Long) -> Unit,
     onGenClick: () -> Unit,
 ) {
@@ -33,13 +38,30 @@ fun MenuScreen(
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
             }
         } else {
-            NonogramGrid {
-                items(viewModel.nonograms) { nonogram ->
-                    NonogramCard(
-                        nonogram = nonogram,
-                        progress = viewModel.getProgress(nonogram.id, nonogram.height, nonogram.width),
-                        beatCount = viewModel.getBeatCount(nonogram.id),
-                        onClick = { onNonogramClick(nonogram.id) })
+            val pullState = rememberPullToRefreshState()
+            PullToRefreshBox(
+                isRefreshing = viewModel.isRefreshing,
+                onRefresh = if (viewModel.isRefreshing) return else onRefresh,
+                state = pullState,
+                modifier = Modifier.fillMaxSize(),
+                indicator = {
+                    PullToRefreshDefaults.Indicator(
+                        state = pullState,
+                        isRefreshing = viewModel.isRefreshing,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                },
+            ) {
+                NonogramGrid {
+                    items(viewModel.nonograms) { nonogram ->
+                        NonogramCard(
+                            nonogram = nonogram,
+                            progress = viewModel.getProgress(nonogram.id, nonogram.height, nonogram.width),
+                            beatCount = viewModel.getBeatCount(nonogram.id),
+                            onClick = { onNonogramClick(nonogram.id) })
+                    }
                 }
             }
         }

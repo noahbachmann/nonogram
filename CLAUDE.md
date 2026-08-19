@@ -91,9 +91,17 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   yields an access token, not an ID token — see `docs/web-architecture.md`).
 - **ViewModels** (`screens/viewModel/`) — Compose state holders using `mutableStateOf`. `GameViewModel` manages the tile
   board and save/sync. `GenViewModel` drives the generator (draw/resize/save + validation). `MenuViewModel` holds the
-  nonogram list and progress preview map. `AuthViewModel` orchestrates login flow, progress sync-on-start, **and
-  nonogram sync** (`syncNonograms`/`retryOwnNonograms`) with separate public/owned cursors read via `AuthRepository`.
+  nonogram list and progress preview map. `AuthViewModel` orchestrates login flow and **all remote sync** —
+  `syncAll` pulls progress + public + owned nonograms in one pass (separate public/owned cursors read via
+  `AuthRepository`), `retryOwnNonograms` re-runs just the owned stream for the generator's retry button.
   All depend on the suspend `AppSDK`/`SyncService` from inside `viewModelScope.launch`.
+
+  **When sync runs.** `syncAll` fires once from `AppContent`'s app-start `LaunchedEffect`, and after that
+  only when the user pull-to-refreshes the menu (`MenuScreen`'s
+  `PullToRefreshBox` → `MenuViewModel.refresh`). Entering `MenuRoute` does **not** sync — it calls
+  `MenuViewModel.reload()`, a silent local-DB re-read with no spinner, so puzzles just authored in the
+  generator still appear. `MenuViewModel` therefore has two flags: `isLoading` (full-screen spinner, cold
+  start and sign-in/sign-out only, via `loadAll()`) and `isRefreshing` (the pull-to-refresh indicator).
 
 ### Navigation
 
@@ -208,7 +216,7 @@ defined.
   `R.string.default_web_client_id` (generated from `androidApp/google-services.json`); web passes
   `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID` (committed constants in `webApp` — Firebase web config is public-by-design).
 - Firestore paths: `users/{firebaseUid}/progress/{nonogramId}` (progress) and `nonograms/{id}` (puzzles — own + public
-  per the `status` column). Puzzles are pulled incrementally by `AuthViewModel.syncNonograms` in **two independent
+  per the `status` column). Puzzles are pulled incrementally by `AuthViewModel.syncAll` in **two independent
   streams** — public and owned — each with its own `updatedAt` cursor persisted via `AuthRepository`
   (`getLast{Public,Owned}NonogramSyncTimestamp`); merge policy is `sync/SyncService.kt` `mergeRemoteNonograms` (remote
   newer → upsert; local newer & locally authored → push back). On both platforms — Android via
