@@ -13,6 +13,9 @@ private fun colorScheme(
     onSecondary: Color,
     outline: Color,
     onBackground: Color,
+    warning: Color = Color(0xFFD7B400),
+    success: Color = Color(0xFF6DB85C),
+    error: Color = Color(0xFFCE0C0C),
 ): ColorScheme = lightColorScheme(
     primary = primary,
     onPrimary = onPrimary,
@@ -21,9 +24,9 @@ private fun colorScheme(
     outline = outline,
     onBackground = onBackground,
     background = primary,
-    tertiary = Color(0xFFD7B400),
-    onTertiary = Color(0xFF6DB85C),
-    tertiaryFixed = Color(0xFFCE0C0C),
+    tertiary = warning,
+    onTertiary = success,
+    tertiaryFixed = error,
 )
 
 enum class ColorTheme(val label: String, val scheme: ColorScheme) {
@@ -39,32 +42,24 @@ enum class ColorTheme(val label: String, val scheme: ColorScheme) {
     ),
     MIDNIGHT(
         "Midnight", colorScheme(
-            primary = Color(0xFF10203A),
-            onPrimary = Color(0xFF7FB2F0),
-            secondary = Color(0xFF0A1526),
-            onSecondary = Color(0xFF5C93D6),
-            outline = Color(0xFFF5F5F5),
-            onBackground = Color.White,
-        )
-    ),
-    PLUM(
-        "Plum", colorScheme(
-            primary = Color(0xFF2B1B33),
-            onPrimary = Color(0xFFE9A6C9),
-            secondary = Color(0xFF1C1123),
-            onSecondary = Color(0xFFC87FA8),
+            primary = Color(0xFF510363),
+            onPrimary = Color(0xFF01A79C),
+            secondary = Color(0xFF210128),
+            onSecondary = Color(0xFF018E85),
             outline = Color(0xFFF5F5F5),
             onBackground = Color.White,
         )
     ),
     PAPER(
         "Paper", colorScheme(
-            primary = Color(0xFFF2EDE3),
-            onPrimary = Color(0xFF2F4F45),
-            secondary = Color(0xFFE2D9C8),
-            onSecondary = Color(0xFF33302A),
-            outline = Color(0xFFFFFFFF),
-            onBackground = Color(0xFF1F2421),
+            primary = Color(0xFFC0BC72),
+            onPrimary = Color(0xFF02312C),
+            secondary = Color(0xFF8D893F),
+            onSecondary = Color(0xFF021D1A),
+            outline = Color(0xFFD5D5D5),
+            onBackground = Color(0xFF021D1A),
+            warning = Color(0xFFFFDC42),
+            success = Color(0xFF5CFF6F),
         )
     ),
     FROST(
@@ -75,6 +70,16 @@ enum class ColorTheme(val label: String, val scheme: ColorScheme) {
             onSecondary = Color(0xFF14293D),
             outline = Color(0xFFFFFFFF),
             onBackground = Color(0xFF12212E),
+        )
+    ),
+    PLUM(
+        "Plum", colorScheme(
+            primary = Color(0xFF2B1B33),
+            onPrimary = Color(0xFFE9A6C9),
+            secondary = Color(0xFF1C1123),
+            onSecondary = Color(0xFFC87FA8),
+            outline = Color(0xFFF5F5F5),
+            onBackground = Color.White,
         )
     );
 
