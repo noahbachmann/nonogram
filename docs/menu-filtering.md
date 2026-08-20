@@ -59,10 +59,12 @@ puzzles pulled from another author both carry 0 (see `sync/SyncService.kt` and i
 implementations). Guests count: a guest has a local user id and can author puzzles, so the Personal
 row is meaningful before sign-in and is always shown.
 
-Your puzzles are pinned to the top of the grid **unconditionally**, whatever the active sort. That
-is `MenuViewModel`'s private `ownFirst()`, applied *after* `applyTo` rather than inside it:
-`sortedByDescending` is stable, so it layers own-first over whatever order the difficulty sort
-produced, and no extra knob is needed on `FilterToggle`.
+Your puzzles are pinned to the top of the grid **only while nothing is sorted**. That is
+`MenuViewModel`'s private `ownFirst()`, applied *after* `applyTo` rather than inside it, and skipped
+when `FilterSortState.sortsBy(entries)` reports an active sort — sorting by difficulty is meant to
+order own and other puzzles together, so own-first would fight it. `sortsBy` resolves the label the
+same way `applyTo` does, so a stale label pointing at a toggle counts as no sort and own-first still
+applies. No extra knob is needed on `FilterToggle`.
 
 `NonogramCard` also tints the offset box behind the card by ownership — `beaten → tertiary`, else
 `own → onSecondary`, else `onPrimary`. `isOwn` defaults to `false`, so `GenListScreen` (where every

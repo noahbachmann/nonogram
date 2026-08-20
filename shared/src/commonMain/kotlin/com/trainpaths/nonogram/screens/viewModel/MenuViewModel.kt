@@ -30,7 +30,8 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
         private set
     val filterEntries: List<FilterEntry> by derivedStateOf { NonogramFilters.forUser(userId) }
     val visibleNonograms: List<Nonogram> by derivedStateOf {
-        filterSort.applyTo(nonograms, filterEntries).ownFirst()
+        val filtered = filterSort.applyTo(nonograms, filterEntries)
+        if (filterSort.sortsBy(filterEntries)) filtered else filtered.ownFirst()
     }
     private var progressMap: Map<Long, List<List<Int>>> by mutableStateOf(emptyMap())
     private var beatMap: Map<Long, Long> by mutableStateOf(emptyMap())
@@ -67,7 +68,7 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
         filterSort = state
     }
 
-    /** Your puzzles first; everything else keeps the order the filter left it in. */
+    /** Your puzzles first, but only unsorted: an explicit sort orders own and other puzzles together. */
     private fun List<Nonogram>.ownFirst(): List<Nonogram> = sortedByDescending { it.isOwned(userId) }
 
     fun updateSingleProgress(nonogramId: Long, board: List<List<Int>>) {

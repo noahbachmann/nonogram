@@ -135,6 +135,17 @@ class FilterSortStateTest {
     }
 
     @Test
+    fun sortsBy_isTrueOnlyForAnAttributeInTheEntries() {
+        assertEquals(false, FilterSortState().sortsBy(entries))
+        assertEquals(false, FilterSortState(personal, SortDirection.ASC).sortsBy(entries))
+        assertEquals(false, FilterSortState("nope", SortDirection.ASC).sortsBy(entries))
+        assertEquals(
+            true,
+            FilterSortState(NonogramFilters.DIFFICULTY.label, SortDirection.ASC).sortsBy(entries),
+        )
+    }
+
+    @Test
     fun sortingByPersonal_isANoOp_becauseItIsNotAnAttribute() {
         val state = FilterSortState(personal, SortDirection.ASC)
 
