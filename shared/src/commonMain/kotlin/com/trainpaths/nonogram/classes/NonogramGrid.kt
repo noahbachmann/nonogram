@@ -77,7 +77,7 @@ fun NonogramCard(
         ) {
             Column(modifier = Modifier.fillMaxHeight().padding(8.dp)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -104,6 +104,12 @@ fun NonogramCard(
                             )
                     )
                 }
+                Text(
+                    text = "${nonogram.width}x${nonogram.height}",
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
                 Row(Modifier.fillMaxSize()) {
                     DrawNonogram(if (beatCount != 0L && progress.all { row -> row.all { it == 0 } }) nonogram.solution else progress)
                 }
