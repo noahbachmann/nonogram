@@ -20,20 +20,15 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
 
     var nonograms: List<Nonogram> by mutableStateOf(emptyList())
         private set
-
     var isLoading: Boolean by mutableStateOf(true)
         private set
-
     var isRefreshing: Boolean by mutableStateOf(false)
         private set
-
     var filterSort: FilterSortState by mutableStateOf(FilterSortState())
         private set
-
     val visibleNonograms: List<Nonogram> by derivedStateOf {
         filterSort.applyTo(nonograms, NonogramFilters.ALL)
     }
-
     private var progressMap: Map<Long, List<List<Int>>> by mutableStateOf(emptyMap())
     private var beatMap: Map<Long, Long> by mutableStateOf(emptyMap())
 
@@ -85,6 +80,10 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
 
     fun incrementBeatCount(nonogramId: Long) {
         beatMap = beatMap + (nonogramId to (beatMap[nonogramId] ?: 0) + 1)
+    }
+
+    fun startRefresh() {
+        isRefreshing = true
     }
 }
 
