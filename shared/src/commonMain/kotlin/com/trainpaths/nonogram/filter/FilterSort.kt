@@ -61,6 +61,9 @@ data class FilterSortState(
         },
     )
 
+    /** True when [sortAttribute] names an attribute [entries] actually sorts by. */
+    fun sortsBy(entries: List<FilterEntry>): Boolean = sortAttributeIn(entries) != null
+
     fun applyTo(nonograms: List<Nonogram>, entries: List<FilterEntry>): List<Nonogram> {
         val filtered = nonograms.filter { nonogram ->
             entries.all { entry ->
@@ -72,10 +75,12 @@ data class FilterSortState(
                 }
             }
         }
-        val attribute = entries.filterIsInstance<FilterAttribute>()
-            .firstOrNull { it.label == sortAttribute } ?: return filtered
+        val attribute = sortAttributeIn(entries) ?: return filtered
         return filtered.sortedWith(
             if (sortDirection == SortDirection.ASC) attribute.ascending else attribute.ascending.reversed()
         )
     }
+
+    private fun sortAttributeIn(entries: List<FilterEntry>): FilterAttribute? =
+        entries.filterIsInstance<FilterAttribute>().firstOrNull { it.label == sortAttribute }
 }
