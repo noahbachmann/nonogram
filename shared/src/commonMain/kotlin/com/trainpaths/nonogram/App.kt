@@ -118,7 +118,10 @@ private fun AppContent(
                 }
                 MenuScreen(
                     viewModel = menuViewModel,
-                    onRefresh = { authViewModel.syncAll { menuViewModel.reload() } },
+                    onRefresh = {
+                        menuViewModel.startRefresh()
+                        authViewModel.syncAll { menuViewModel.reload() }
+                    },
                     onNonogramClick = { ng ->
                         navController.navigate(
                             PlayDialogRoute(

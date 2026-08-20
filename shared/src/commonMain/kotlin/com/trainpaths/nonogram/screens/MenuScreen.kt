@@ -51,7 +51,7 @@ fun MenuScreen(
             val pullState = rememberPullToRefreshState()
             PullToRefreshBox(
                 isRefreshing = viewModel.isRefreshing,
-                onRefresh = if (viewModel.isRefreshing) return else onRefresh,
+                onRefresh = onRefresh,
                 state = pullState,
                 modifier = Modifier.fillMaxSize(),
                 indicator = {
