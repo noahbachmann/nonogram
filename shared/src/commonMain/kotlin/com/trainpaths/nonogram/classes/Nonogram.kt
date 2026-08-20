@@ -44,6 +44,9 @@ data class Nonogram(
     val isValid: Boolean by lazy {
         Solver(this).solveNonogram().map { row -> row.toList() } == solution
     }
+
+    /** Seeded puzzles and puzzles authored elsewhere both carry `authorId = 0`, so 0 owns nothing. */
+    fun isOwned(userId: Long?): Boolean = userId != null && authorId != 0L && authorId == userId
 }
 
 private fun computeLineClues(line: List<Int>): List<Int> {

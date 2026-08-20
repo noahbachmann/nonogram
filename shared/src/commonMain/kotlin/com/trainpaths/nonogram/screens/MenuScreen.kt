@@ -20,7 +20,6 @@ import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
 import com.trainpaths.nonogram.classes.NonogramCard
 import com.trainpaths.nonogram.classes.NonogramGrid
 import com.trainpaths.nonogram.filter.FilterMenuButton
-import com.trainpaths.nonogram.filter.NonogramFilters
 
 @Composable
 fun MenuScreen(
@@ -36,7 +35,7 @@ fun MenuScreen(
             onSwapMode = { onGenClick() },
             navigationContent = {
                 FilterMenuButton(
-                    attributes = NonogramFilters.ALL,
+                    entries = viewModel.filterEntries,
                     state = viewModel.filterSort,
                     onApply = viewModel::applyFilterSort,
                 )
@@ -71,6 +70,7 @@ fun MenuScreen(
                             nonogram = nonogram,
                             progress = viewModel.getProgress(nonogram.id, nonogram.height, nonogram.width),
                             beatCount = viewModel.getBeatCount(nonogram.id),
+                            isOwn = nonogram.isOwned(viewModel.userId),
                             onClick = { onNonogramClick(nonogram) })
                     }
                 }

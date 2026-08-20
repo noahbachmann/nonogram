@@ -84,8 +84,11 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   engine: `Board`/`BoardTransform` (one Canvas for all tiles + a layer-transform pan/zoom model),
   `Game` (win check), `Tile`/`TileState`. Performance-critical and gesture-heavy — see `docs/board-rendering.md`.
 - **`filter/`** — the menu's combined filter/sorter: a pure `FilterSortState` model plus the
-  `FilterMenuButton` dropdown hosted in the `TopAppBar`'s `navigationContent` slot. Attributes are
-  data (`NonogramFilters.ALL`), so adding one is a list entry. See `docs/menu-filtering.md`.
+  `FilterMenuButton` dropdown hosted in the `TopAppBar`'s `navigationContent` slot. Rows are data —
+  a sortable `FilterAttribute` with checkable values, or a standalone `FilterToggle` (the "Personal"
+  own-puzzles switch) — so adding one is a list entry in `NonogramFilters.forUser(userId)`, a
+  function rather than a constant because ownership is user-scoped. A row's `label` is also its id.
+  See `docs/menu-filtering.md`.
 - **`classes/Solver`** — line-logic solver; run via `Nonogram.isValid` to check a puzzle is uniquely solvable (gates
   publishing). **User-owned and actively changing — do not document its internals or modify it.**
 - **`network/NonogramApi`** — an unused stub (bare Ktor `HttpClient`, no callers). Not a live data path.
