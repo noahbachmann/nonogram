@@ -8,6 +8,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +26,9 @@ import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.icons.arrow_drop_down
 import com.trainpaths.nonogram.icons.filter
 
-private val ROW_ICON_SIZE = 24.dp
+private val ICON_SIZE = 24.dp
+private val DIVIDER_THIN = 1.dp
+private val DIVIDER_THICK = 2.dp
 
 @Composable
 private fun menuItemColors() = MenuDefaults.itemColors(
@@ -68,11 +71,21 @@ fun FilterMenuButton(
             },
             containerColor = MaterialTheme.colorScheme.outline,
         ) {
-            attributes.forEach { attribute ->
+            attributes.forEachIndexed { index, attribute ->
+                if (index > 0) {
+                    HorizontalDivider(
+                        thickness = DIVIDER_THICK,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
                 SortItem(
                     attribute = attribute,
                     state = draft,
                     onClick = { draft = draft.cycleSort(attribute.id) },
+                )
+                HorizontalDivider(
+                    thickness = DIVIDER_THIN,
+                    color = MaterialTheme.colorScheme.primary,
                 )
                 attribute.options.forEach { option ->
                     FilterItem(
@@ -111,7 +124,7 @@ private fun SortItem(
                 imageVector = arrow_drop_down,
                 contentDescription = sortDescription(attribute.label, selected, state.sortDirection),
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(ICON_SIZE)
                     .alpha(if (selected) 1f else 0.4f)
                     .rotate(rotation),
             )
@@ -133,7 +146,7 @@ private fun FilterItem(
             Checkbox(
                 checked = checked,
                 onCheckedChange = null,
-                modifier = Modifier.size(ROW_ICON_SIZE),
+                modifier = Modifier.size(ICON_SIZE),
                 colors = CheckboxDefaults.colors(
                     checkedColor = MaterialTheme.colorScheme.primary,
                     checkmarkColor = MaterialTheme.colorScheme.onPrimary,
@@ -141,7 +154,7 @@ private fun FilterItem(
                 ),
             )
         },
-        trailingIcon = { Spacer(Modifier.size(ROW_ICON_SIZE)) },
+        trailingIcon = { Spacer(Modifier.size(ICON_SIZE)) },
         colors = menuItemColors(),
     )
 }
