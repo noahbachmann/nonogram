@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -18,6 +19,8 @@ import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
 import com.trainpaths.nonogram.classes.NonogramCard
 import com.trainpaths.nonogram.classes.NonogramGrid
+import com.trainpaths.nonogram.filter.FilterMenuButton
+import com.trainpaths.nonogram.filter.NonogramFilters
 
 @Composable
 fun MenuScreen(
@@ -31,6 +34,13 @@ fun MenuScreen(
             showSettings = true,
             mode = AppBarMode.PUZZLE,
             onSwapMode = { onGenClick() },
+            navigationContent = {
+                FilterMenuButton(
+                    attributes = NonogramFilters.ALL,
+                    state = viewModel.filterSort,
+                    onApply = viewModel::applyFilterSort,
+                )
+            },
         )
 
         if (viewModel.isLoading) {
@@ -54,13 +64,23 @@ fun MenuScreen(
                     )
                 },
             ) {
+                val visible = viewModel.visibleNonograms
                 NonogramGrid {
-                    items(viewModel.nonograms) { nonogram ->
+                    items(visible) { nonogram ->
                         NonogramCard(
                             nonogram = nonogram,
                             progress = viewModel.getProgress(nonogram.id, nonogram.height, nonogram.width),
                             beatCount = viewModel.getBeatCount(nonogram.id),
                             onClick = { onNonogramClick(nonogram) })
+                    }
+                }
+                if (visible.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "No puzzles match",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
                     }
                 }
             }

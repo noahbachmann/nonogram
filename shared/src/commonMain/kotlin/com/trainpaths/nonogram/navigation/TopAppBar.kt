@@ -36,6 +36,7 @@ fun TopAppBar(
     mode: AppBarMode? = null,
     onSwapMode: (() -> Unit)? = null,
     backArrow: Boolean = false,
+    navigationContent: (@Composable () -> Unit)? = null,
 ) {
     val navController = if (showSettings) LocalNavController.current else null
     CenterAlignedTopAppBar(
@@ -59,7 +60,9 @@ fun TopAppBar(
             }
         },
         navigationIcon = {
-            if (onBack != null) {
+            if (navigationContent != null) {
+                navigationContent()
+            } else if (onBack != null) {
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = if (backArrow || mode == AppBarMode.PUZZLE) arrowBack else build,

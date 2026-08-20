@@ -2,7 +2,12 @@ package com.trainpaths.nonogram.classes
 
 import kotlinx.serialization.Serializable
 
-enum class Difficulty { EASY, MEDIUM, HARD, HARDCORE }
+enum class Difficulty(val label: String) {
+    EASY("Easy"),
+    MEDIUM("Medium"),
+    HARD("Hard"),
+    HARDCORE("Hardcore"),
+}
 
 const val MAX_NONOGRAM_NAME_LENGTH = 30
 const val UNNAMED_NONOGRAM_TITLE = "???"
