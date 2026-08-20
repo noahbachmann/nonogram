@@ -1,5 +1,6 @@
 package com.trainpaths.nonogram.screens.viewModel
 
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -8,6 +9,9 @@ import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.filter.FilterSortState
+import com.trainpaths.nonogram.filter.NonogramFilters
+import com.trainpaths.nonogram.filter.applyTo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -22,6 +26,13 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
 
     var isRefreshing: Boolean by mutableStateOf(false)
         private set
+
+    var filterSort: FilterSortState by mutableStateOf(FilterSortState())
+        private set
+
+    val visibleNonograms: List<Nonogram> by derivedStateOf {
+        filterSort.applyTo(nonograms, NonogramFilters.ALL)
+    }
 
     private var progressMap: Map<Long, List<List<Int>>> by mutableStateOf(emptyMap())
     private var beatMap: Map<Long, Long> by mutableStateOf(emptyMap())
@@ -52,6 +63,10 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
             isLoading = false
             isRefreshing = false
         }
+    }
+
+    fun applyFilterSort(state: FilterSortState) {
+        filterSort = state
     }
 
     fun updateSingleProgress(nonogramId: Long, board: List<List<Int>>) {
