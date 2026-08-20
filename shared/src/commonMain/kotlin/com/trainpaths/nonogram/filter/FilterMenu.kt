@@ -3,6 +3,8 @@ package com.trainpaths.nonogram.filter
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
@@ -11,6 +13,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
@@ -27,8 +30,8 @@ import com.trainpaths.nonogram.icons.arrow_drop_down
 import com.trainpaths.nonogram.icons.filter
 
 private val ICON_SIZE = 24.dp
-private val DIVIDER_THIN = 1.dp
-private val DIVIDER_THICK = 2.dp
+private val ENTRY_HEIGHT = 40.dp
+private val ITEM_HEIGHT = 32.dp
 
 @Composable
 private fun menuItemColors() = MenuDefaults.itemColors(
@@ -43,7 +46,7 @@ private fun menuItemColors() = MenuDefaults.itemColors(
  */
 @Composable
 fun FilterMenuButton(
-    attributes: List<FilterAttribute>,
+    entries: List<FilterEntry>,
     state: FilterSortState,
     onApply: (FilterSortState) -> Unit,
 ) {
@@ -71,27 +74,38 @@ fun FilterMenuButton(
             },
             containerColor = MaterialTheme.colorScheme.outline,
         ) {
-            attributes.forEachIndexed { index, attribute ->
+            entries.forEachIndexed { index, entry ->
                 if (index > 0) {
                     HorizontalDivider(
-                        thickness = DIVIDER_THICK,
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        thickness = 2.dp,
                         color = MaterialTheme.colorScheme.secondary,
                     )
                 }
-                SortItem(
-                    attribute = attribute,
-                    state = draft,
-                    onClick = { draft = draft.cycleSort(attribute.id) },
-                )
-                HorizontalDivider(
-                    thickness = DIVIDER_THIN,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                attribute.options.forEach { option ->
-                    FilterItem(
-                        option = option,
-                        checked = draft.isChecked(option.id),
-                        onClick = { draft = draft.toggle(option.id) },
+                if (entry is FilterAttribute) {
+                    SortItem(
+                        attribute = entry,
+                        state = draft,
+                        onClick = { draft = draft.cycleSort(entry.label) },
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                    )
+                    entry.options.forEach { option ->
+                        CheckItem(
+                            label = option.label,
+                            checked = draft.isChecked(option.label),
+                            onClick = { draft = draft.toggle(option.label) },
+                        )
+                    }
+                } else {
+                    CheckItem(
+                        label = entry.label,
+                        checked = draft.isChecked(entry.label),
+                        onClick = { draft = draft.toggle(entry.label) },
+                        isEntry = true,
                     )
                 }
             }
@@ -105,12 +119,13 @@ private fun SortItem(
     state: FilterSortState,
     onClick: () -> Unit,
 ) {
-    val selected = state.sortAttributeId == attribute.id
+    val selected = state.sortAttribute == attribute.label
     val rotation by animateFloatAsState(
         targetValue = if (selected && state.sortDirection == SortDirection.ASC) 180f else 0f,
         label = "chevron",
     )
     DropdownMenuItem(
+        modifier = Modifier.height(ENTRY_HEIGHT),
         text = {
             Text(
                 attribute.label,
@@ -133,14 +148,25 @@ private fun SortItem(
     )
 }
 
+/**
+ * A checkbox row — used both for an attribute's values and, with [isEntry], for a standalone
+ * [FilterToggle], which sits at attribute level and so is styled like one.
+ */
 @Composable
-private fun FilterItem(
-    option: FilterOption,
+private fun CheckItem(
+    label: String,
     checked: Boolean,
     onClick: () -> Unit,
+    isEntry: Boolean = false,
 ) {
     DropdownMenuItem(
-        text = { Text(option.label) },
+        modifier = Modifier.height(if (isEntry) ENTRY_HEIGHT else ITEM_HEIGHT),
+        text = {
+            Text(
+                label,
+                style = if (isEntry) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodySmall,
+            )
+        },
         onClick = onClick,
         leadingIcon = {
             Checkbox(

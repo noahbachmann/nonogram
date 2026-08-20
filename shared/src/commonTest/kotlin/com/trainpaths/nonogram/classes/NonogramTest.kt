@@ -251,4 +251,16 @@ class NonogramTest {
     fun nameIsLimitedToThirtyCharacters() {
         assertEquals("x".repeat(MAX_NONOGRAM_NAME_LENGTH), normalizeNonogramName("x".repeat(31)))
     }
+
+    @Test
+    fun isOwnedMatchesTheAuthor_butNeverTheUnauthoredZero() {
+        val mine = Nonogram(id = 1, difficulty = Difficulty.EASY, solution = listOf(listOf(1)), authorId = 7)
+        val seeded = Nonogram(id = 2, difficulty = Difficulty.EASY, solution = listOf(listOf(1)))
+
+        assertTrue(mine.isOwned(7))
+        assertFalse(mine.isOwned(8))
+        assertFalse(mine.isOwned(null))
+        assertFalse(seeded.isOwned(0))
+        assertFalse(seeded.isOwned(7))
+    }
 }

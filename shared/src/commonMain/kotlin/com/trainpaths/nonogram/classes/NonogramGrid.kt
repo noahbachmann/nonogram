@@ -53,9 +53,14 @@ fun NonogramCard(
     nonogram: Nonogram,
     progress: List<List<Int>> = emptyList(),
     beatCount: Long = -1,
+    isOwn: Boolean = false,
     onClick: () -> Unit
 ) {
-    val accent = if (beatCount > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onPrimary
+    val accent = when {
+        beatCount > 0 -> MaterialTheme.colorScheme.tertiary
+        isOwn -> MaterialTheme.colorScheme.onSecondary
+        else -> MaterialTheme.colorScheme.onPrimary
+    }
     val shape = RoundedCornerShape(6.dp)
 
     Box(modifier = Modifier.fillMaxWidth().height(220.dp)) {

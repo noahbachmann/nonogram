@@ -9,9 +9,9 @@ import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.filter.FilterEntry
 import com.trainpaths.nonogram.filter.FilterSortState
 import com.trainpaths.nonogram.filter.NonogramFilters
-import com.trainpaths.nonogram.filter.applyTo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,8 +26,11 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
         private set
     var filterSort: FilterSortState by mutableStateOf(FilterSortState())
         private set
+    var userId: Long? by mutableStateOf(null)
+        private set
+    val filterEntries: List<FilterEntry> by derivedStateOf { NonogramFilters.forUser(userId) }
     val visibleNonograms: List<Nonogram> by derivedStateOf {
-        filterSort.applyTo(nonograms, NonogramFilters.ALL)
+        filterSort.applyTo(nonograms, filterEntries).ownFirst()
     }
     private var progressMap: Map<Long, List<List<Int>>> by mutableStateOf(emptyMap())
     private var beatMap: Map<Long, Long> by mutableStateOf(emptyMap())
@@ -43,10 +46,10 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
                 sdk.seedIfEmpty()
                 sdk.getAllNonograms()
             }
-            val userId = authRepository.currentUserId.value
+            userId = authRepository.currentUserId.value
             if (userId != null) {
                 val allProgress = withContext(Dispatchers.Default) {
-                    sdk.getProgressForUser(userId)
+                    sdk.getProgressForUser(userId!!)
                 }
                 progressMap = allProgress
                     .filter { it.board != null }
@@ -63,6 +66,9 @@ class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRep
     fun applyFilterSort(state: FilterSortState) {
         filterSort = state
     }
+
+    /** Your puzzles first; everything else keeps the order the filter left it in. */
+    private fun List<Nonogram>.ownFirst(): List<Nonogram> = sortedByDescending { it.isOwned(userId) }
 
     fun updateSingleProgress(nonogramId: Long, board: List<List<Int>>) {
         progressMap = progressMap + (nonogramId to board)
