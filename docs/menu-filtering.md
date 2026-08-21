@@ -43,11 +43,14 @@ everything, exactly as it does for difficulty.
 **Edits are drafted, then applied on dismiss.** `FilterMenuButton` keeps a local `draft` copy seeded
 from the applied state when the menu opens; `onDismissRequest` is what calls `onApply`. That is the
 "re-filter when the dropdown is exited" behaviour — the grid never churns while the menu is open.
-The panel is a bare `Popup` (`focusable = true` supplies outside-tap and back dismissal) with a
-`BelowAnchorStart` position provider, **not** Material's `DropdownMenu`: that composable hardcodes
-its enter transition internally, so the menu always faded in a beat after the button highlighted.
-Opening is instant, and the button's `outline` highlight — square-bottomed, rounded on top to meet
-the panel's squared top-left corner — lands on the same frame as the panel.
+Material 3's `DropdownMenu` supplies the outside-tap and back dismissal.
+
+**The button's highlight is animated to catch up with the menu.** While open the button wears the
+menu's own `outline` colour, rounded on top and square along the bottom to meet the menu's squared
+top-left corner. `DropdownMenu` hardcodes its enter/exit transition internally and exposes no way to
+change it, so the highlight would otherwise appear a beat before the menu did; instead it fades on
+the same timings (`MENU_ENTER_MS`/`MENU_ENTER_DELAY_MS`/`MENU_EXIT_MS`, copied from Material's
+constants). Adjust those if the highlight ever leads or lags the menu.
 
 Sorting is a single nullable `sortAttribute`, so "only one chevron active at a time" is structural
 rather than enforced. The chevron cycles none → `DESC` → `ASC` → none, drawn from the one
