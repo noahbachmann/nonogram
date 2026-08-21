@@ -12,14 +12,6 @@ enum class Difficulty(val label: String) {
 const val MAX_NONOGRAM_NAME_LENGTH = 30
 const val UNNAMED_NONOGRAM_TITLE = "???"
 
-fun normalizeNonogramName(value: String): String? =
-    value
-        .replace('\n', ' ')
-        .replace('\r', ' ')
-        .trim()
-        .take(MAX_NONOGRAM_NAME_LENGTH)
-        .takeIf { it.isNotEmpty() }
-
 @Serializable
 data class Nonogram(
     val id: Long,
@@ -65,3 +57,11 @@ private fun computeLineClues(line: List<Int>): List<Int> {
         return emptyList()
     return clues
 }
+
+fun normalizeNonogramName(value: String): String? =
+    value
+        .replace('\n', ' ')
+        .replace('\r', ' ')
+        .trim()
+        .take(MAX_NONOGRAM_NAME_LENGTH)
+        .takeIf { it.isNotEmpty() }
