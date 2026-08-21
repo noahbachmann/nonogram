@@ -21,7 +21,7 @@ Everything lives in `shared/src/commonMain/kotlin/com/trainpaths/nonogram/filter
 - **`NonogramFilters.kt`** — the registry. `NonogramFilters.forUser(userId)` is the list the UI
   renders; it is a function rather than a constant because the "Personal" toggle needs to know who
   you are.
-- **`FilterMenu.kt`** — `FilterMenuButton`, the app-bar button plus its `DropdownMenu`.
+- **`FilterMenu.kt`** — `FilterMenuButton`, the app-bar button plus its dropdown panel.
 
 **The label is the id.** There is no separate identifier: `FilterSortState` stores labels, so a
 label has to be unique across every option and toggle. State is in-memory only, so renaming one
@@ -43,7 +43,11 @@ everything, exactly as it does for difficulty.
 **Edits are drafted, then applied on dismiss.** `FilterMenuButton` keeps a local `draft` copy seeded
 from the applied state when the menu opens; `onDismissRequest` is what calls `onApply`. That is the
 "re-filter when the dropdown is exited" behaviour — the grid never churns while the menu is open.
-Material 3's `DropdownMenu` supplies the outside-tap and back dismissal.
+The panel is a bare `Popup` (`focusable = true` supplies outside-tap and back dismissal) with a
+`BelowAnchorStart` position provider, **not** Material's `DropdownMenu`: that composable hardcodes
+its enter transition internally, so the menu always faded in a beat after the button highlighted.
+Opening is instant, and the button's `outline` highlight — square-bottomed, rounded on top to meet
+the panel's squared top-left corner — lands on the same frame as the panel.
 
 Sorting is a single nullable `sortAttribute`, so "only one chevron active at a time" is structural
 rather than enforced. The chevron cycles none → `DESC` → `ASC` → none, drawn from the one
