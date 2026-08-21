@@ -104,7 +104,6 @@ fun FilterMenuButton(
             },
             shape = MENU_SHAPE,
             containerColor = MaterialTheme.colorScheme.outline,
-            shadowElevation = 0.dp,
         ) {
             entries.forEachIndexed { index, entry ->
                 if (index > 0) {
