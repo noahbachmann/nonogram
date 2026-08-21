@@ -48,9 +48,9 @@ Material 3's `DropdownMenu` supplies the outside-tap and back dismissal.
 **The button's highlight is animated to catch up with the menu.** While open the button wears the
 menu's own `outline` colour, rounded on top and square along the bottom to meet the menu's squared
 top-left corner. `DropdownMenu` hardcodes its enter/exit transition internally and exposes no way to
-change it, so the highlight would otherwise appear a beat before the menu did; instead it fades on
-the same timings (`MENU_ENTER_MS`/`MENU_ENTER_DELAY_MS`/`MENU_EXIT_MS`, copied from Material's
-constants). Adjust those if the highlight ever leads or lags the menu.
+change it, so the highlight would otherwise appear a beat before the menu did; instead it fades over
+`tween(100)`, close enough to Material's own timing that the two arrive together. Adjust that spec
+if the highlight ever leads or lags the menu.
 
 Sorting is a single nullable `sortAttribute`, so "only one chevron active at a time" is structural
 rather than enforced. The chevron cycles none → `DESC` → `ASC` → none, drawn from the one
