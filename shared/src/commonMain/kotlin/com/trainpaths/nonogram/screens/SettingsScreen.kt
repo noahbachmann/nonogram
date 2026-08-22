@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -32,24 +33,26 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.ColorTheme
+import com.trainpaths.nonogram.switchColors
 import com.trainpaths.nonogram.darken
 import com.trainpaths.nonogram.dialogs.SignOutConfirmDialog
 import com.trainpaths.nonogram.icons.settings
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
-import com.trainpaths.nonogram.screens.viewModel.ThemeViewModel
+import com.trainpaths.nonogram.screens.viewModel.SettingsViewModel
 import com.trainpaths.nonogram.auth.AuthState
 
 @Composable
 fun SettingsScreen(
     authViewModel: AuthViewModel,
-    themeViewModel: ThemeViewModel,
+    settingsViewModel: SettingsViewModel,
     onBack: () -> Unit,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
 ) {
     val authState by authViewModel.authState.collectAsState()
-    val theme by themeViewModel.theme.collectAsState()
+    val theme by settingsViewModel.theme.collectAsState()
+    val showAllNames by settingsViewModel.showAllNames.collectAsState()
     var showSignOutDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -77,10 +80,26 @@ fun SettingsScreen(
                         ThemeSwatch(
                             theme = entry,
                             selected = entry == theme,
-                            onSelect = { themeViewModel.selectTheme(entry) },
+                            onSelect = { settingsViewModel.selectTheme(entry) },
                         )
                     }
                 }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    "Always show names",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+                Switch(
+                    checked = showAllNames,
+                    onCheckedChange = { settingsViewModel.setShowAllNames(it) },
+                    colors = switchColors(),
+                )
             }
             if (authState == AuthState.GUEST) {
                 Button(

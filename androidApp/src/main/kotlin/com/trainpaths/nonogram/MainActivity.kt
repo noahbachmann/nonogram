@@ -8,7 +8,7 @@ import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
-import com.trainpaths.nonogram.screens.viewModel.ThemeViewModel
+import com.trainpaths.nonogram.screens.viewModel.SettingsViewModel
 import org.koin.androidx.compose.koinViewModel
 
 class MainActivity : ComponentActivity() {
@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
                 menuViewModelFactory = { koinViewModel<MenuViewModel>() },
                 authViewModel = koinViewModel<AuthViewModel>(),
                 genViewModelFactory = { koinViewModel<GenViewModel>() },
-                themeViewModel = koinViewModel<ThemeViewModel>(),
+                settingsViewModel = koinViewModel<SettingsViewModel>(),
                 gameViewModelFactory = { _ -> koinViewModel<GameViewModel>() },
             )
         }

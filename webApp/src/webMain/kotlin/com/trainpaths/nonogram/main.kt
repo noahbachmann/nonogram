@@ -10,7 +10,7 @@ import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
-import com.trainpaths.nonogram.screens.viewModel.ThemeViewModel
+import com.trainpaths.nonogram.screens.viewModel.SettingsViewModel
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
@@ -37,7 +37,7 @@ fun main() {
             menuViewModelFactory = { koinViewModel<MenuViewModel>() },
             authViewModel = koinViewModel<AuthViewModel>(),
             genViewModelFactory = { koinViewModel<GenViewModel>() },
-            themeViewModel = koinViewModel<ThemeViewModel>(),
+            settingsViewModel = koinViewModel<SettingsViewModel>(),
             gameViewModelFactory = { _ -> koinViewModel<GameViewModel>() },
         )
     }

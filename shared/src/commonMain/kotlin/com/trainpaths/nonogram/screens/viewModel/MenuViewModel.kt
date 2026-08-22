@@ -12,11 +12,18 @@ import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.filter.FilterEntry
 import com.trainpaths.nonogram.filter.FilterSortState
 import com.trainpaths.nonogram.filter.NonogramFilters
+import com.trainpaths.nonogram.settings.SettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class MenuViewModel(private val sdk: AppSDK, private val authRepository: AuthRepository) : ViewModel() {
+class MenuViewModel(
+    private val sdk: AppSDK,
+    private val authRepository: AuthRepository,
+    settingsRepository: SettingsRepository,
+) : ViewModel() {
+
+    val showNames = settingsRepository.showNames
 
     var nonograms: List<Nonogram> by mutableStateOf(emptyList())
         private set

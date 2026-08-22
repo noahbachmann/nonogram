@@ -11,6 +11,8 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.TopAppBar
 import androidx.compose.ui.Alignment
@@ -64,6 +66,7 @@ fun MenuScreen(
                 },
             ) {
                 val visible = viewModel.visibleNonograms
+                val showAllNames by viewModel.showNames.collectAsState()
                 NonogramGrid {
                     items(visible) { nonogram ->
                         NonogramCard(
@@ -71,6 +74,7 @@ fun MenuScreen(
                             progress = viewModel.getProgress(nonogram.id, nonogram.height, nonogram.width),
                             beatCount = viewModel.getBeatCount(nonogram.id),
                             isOwn = nonogram.isOwned(viewModel.userId),
+                            alwaysShowName = showAllNames,
                             onClick = { onNonogramClick(nonogram) })
                     }
                 }
