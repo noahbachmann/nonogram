@@ -43,17 +43,17 @@ import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.GeneratorSyncState
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
-import com.trainpaths.nonogram.screens.viewModel.ThemeViewModel
+import com.trainpaths.nonogram.screens.viewModel.SettingsViewModel
 
 @Composable
 fun App(
     menuViewModelFactory: @Composable () -> MenuViewModel,
     authViewModel: AuthViewModel,
     genViewModelFactory: @Composable () -> GenViewModel,
-    themeViewModel: ThemeViewModel,
+    settingsViewModel: SettingsViewModel,
     gameViewModelFactory: @Composable (Long) -> GameViewModel,
 ) {
-    val theme by themeViewModel.theme.collectAsState()
+    val theme by settingsViewModel.theme.collectAsState()
     val authState by authViewModel.authState.collectAsState()
 
     AppTheme(theme = theme) {
@@ -64,7 +64,7 @@ fun App(
                 menuViewModel = menuViewModelFactory(),
                 authViewModel = authViewModel,
                 genViewModel = genViewModelFactory(),
-                themeViewModel = themeViewModel,
+                settingsViewModel = settingsViewModel,
                 gameViewModelFactory = gameViewModelFactory,
             )
         }
@@ -76,7 +76,7 @@ private fun AppContent(
     menuViewModel: MenuViewModel,
     authViewModel: AuthViewModel,
     genViewModel: GenViewModel,
-    themeViewModel: ThemeViewModel,
+    settingsViewModel: SettingsViewModel,
     gameViewModelFactory: @Composable (Long) -> GameViewModel,
 ) {
     val startDestination = if (authViewModel.hasCompletedOnboarding) MenuRoute else LoginRoute
@@ -258,7 +258,7 @@ private fun AppContent(
             composable<SettingsRoute> {
                 SettingsScreen(
                     authViewModel = authViewModel,
-                    themeViewModel = themeViewModel,
+                    settingsViewModel = settingsViewModel,
                     onBack = { navController.popBackStack() },
                     onSignIn = { navController.navigate(LoginRoute) },
                     onSignOut = {

@@ -72,9 +72,11 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   suspend (call the suspend `AppSDK`). `signOut()` doesn't delete the signed-in user's local row — it creates a new
   guest `User` and repoints `current_user_id` at it, so re-linking the same Firebase UID later restores the original
   row (progress and authored puzzles intact). Onboarding flag and per-UID sync cursors are left untouched.
-- **`theme/ThemeRepository`** — holds the selected `ColorTheme`, persisted via `multiplatform-settings` (key
-  `color_theme`, stores the enum name). Same shape as `AuthRepository`: reads synchronously in the constructor (no
-  `initialize()` needed), exposes a `StateFlow`, writes through on `setTheme`. See **AppTheme** below.
+- **`settings/SettingsRepository`** — holds the app's persisted preferences via `multiplatform-settings`: the selected
+  `ColorTheme` (key `color_theme`, stores the enum name) and `showNames` (key `show_all_nonogram_names`, default
+  `true` — the Settings screen's "Always show names" switch, read by `MenuViewModel`). Same shape as `AuthRepository`:
+  reads synchronously in the constructor (no `initialize()` needed), exposes a `StateFlow` per preference, writes
+  through on set. See **AppTheme** below.
 - **`sync/SyncService`** — interface for syncing *both* progress and the shared `nonograms` collection (push/pull/merge;
   `mergeRemoteNonograms` is the shared merge policy). `sync/FirebaseAndroidSyncService` (androidMain)
   implements it with `dev.gitlive:firebase-firestore`; web binds `sync/FirebaseWebSyncService` (webMain), built on
@@ -146,7 +148,7 @@ dirty puzzle). Icons come from the hand-built `icons/` package of `ImageVector`s
 
 ### DI (Koin)
 
-- `di/AppModule.kt` — common singletons: `AppSDK`, `Settings`, `AuthRepository`, `ThemeRepository`, plus all ViewModel
+- `di/AppModule.kt` — common singletons: `AppSDK`, `Settings`, `AuthRepository`, `SettingsRepository`, plus all ViewModel
   registrations via `viewModelOf` (koin-core-viewmodel, shared across platforms).
 - `di/AndroidModule.kt` — platform bindings: `DatabaseFactory` → `AndroidDatabaseFactory`, `SyncService` →
   `FirebaseAndroidSyncService`.
@@ -198,10 +200,10 @@ Frozen roles (identical across every theme — difficulty semantics, always draw
 
 `surface` and `error` are never overridden (M3 light defaults) — don't put per-theme content on `surface`, use
 `outline` instead. `AppTheme(theme: ColorTheme, content: ...)` requires the theme explicitly (no default), so every
-call site must supply one. The active theme lives in `theme/ThemeRepository`/`ThemeViewModel` and is threaded as a
-required `App(..., themeViewModel)` param.
+call site must supply one. The active theme lives in `settings/SettingsRepository`/`SettingsViewModel` and is
+threaded as a required `App(..., settingsViewModel)` param.
 
-`App()` itself owns the single `AppTheme` call site and the auth-init gate: it reads `themeViewModel.theme` and
+`App()` itself owns the single `AppTheme` call site and the auth-init gate: it reads `settingsViewModel.theme` and
 `authViewModel.authState`, wraps everything in `AppTheme(theme)`, and renders `LoadingScreen()` while
 `authState == INITIALIZING` instead of the real content (`AppContent`, a private composable with the NavHost). The
 two platform entry points (`MainActivity.kt`, `webApp/main.kt`) therefore just call `App(...)` unconditionally — no

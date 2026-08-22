@@ -25,7 +25,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchColors
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,9 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.switchColors
 import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.MAX_NONOGRAM_NAME_LENGTH
 import com.trainpaths.nonogram.classes.normalizeNonogramName
@@ -80,28 +79,6 @@ fun GenConfScreen(
             handleColor = MaterialTheme.colorScheme.onBackground,
             backgroundColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
         )
-    )
-
-    val switchColors: SwitchColors = SwitchDefaults.colors(
-        checkedThumbColor = MaterialTheme.colorScheme.onSecondary,
-        uncheckedThumbColor = MaterialTheme.colorScheme.onSecondary,
-        disabledCheckedThumbColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.5f),
-        disabledUncheckedThumbColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.5f),
-
-        checkedTrackColor = MaterialTheme.colorScheme.onTertiary,
-        uncheckedTrackColor = MaterialTheme.colorScheme.tertiary,
-        disabledCheckedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0f),
-        disabledUncheckedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0f),
-
-        checkedBorderColor = MaterialTheme.colorScheme.onPrimary,
-        uncheckedBorderColor = MaterialTheme.colorScheme.onPrimary,
-        disabledCheckedBorderColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.6f),
-        disabledUncheckedBorderColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.6f),
-
-        checkedIconColor = MaterialTheme.colorScheme.primary,
-        uncheckedIconColor = MaterialTheme.colorScheme.primary,
-        disabledCheckedIconColor = MaterialTheme.colorScheme.primary,
-        disabledUncheckedIconColor = MaterialTheme.colorScheme.primary,
     )
 
     LaunchedEffect(
@@ -236,7 +213,7 @@ fun GenConfScreen(
                         checked = isPublic,
                         onCheckedChange = { isPublic = it },
                         enabled = !genViewModel.isSaving && (isPublic || canMakePublic),
-                        colors = switchColors
+                        colors = switchColors()
                     )
                 }
 

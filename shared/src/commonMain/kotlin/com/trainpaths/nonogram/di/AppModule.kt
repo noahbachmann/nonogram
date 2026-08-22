@@ -7,8 +7,8 @@ import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
-import com.trainpaths.nonogram.screens.viewModel.ThemeViewModel
-import com.trainpaths.nonogram.theme.ThemeRepository
+import com.trainpaths.nonogram.screens.viewModel.SettingsViewModel
+import com.trainpaths.nonogram.settings.SettingsRepository
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -16,10 +16,10 @@ val appModule = module {
     single { AppSDK(get()) }
     single { Settings() }
     single { AuthRepository(get(), get()) }
-    single { ThemeRepository(get()) }
+    single { SettingsRepository(get()) }
     viewModelOf(::AuthViewModel)
     viewModelOf(::MenuViewModel)
     viewModelOf(::GameViewModel)
     viewModelOf(::GenViewModel)
-    viewModelOf(::ThemeViewModel)
+    viewModelOf(::SettingsViewModel)
 }

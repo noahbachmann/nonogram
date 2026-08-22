@@ -2,6 +2,8 @@ package com.trainpaths.nonogram
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwitchColors
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -102,3 +104,26 @@ fun AppTheme(
         content = content
     )
 }
+
+@Composable
+fun switchColors(): SwitchColors = SwitchDefaults.colors(
+    checkedThumbColor = MaterialTheme.colorScheme.onSecondary,
+    uncheckedThumbColor = MaterialTheme.colorScheme.onSecondary,
+    disabledCheckedThumbColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.5f),
+    disabledUncheckedThumbColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.5f),
+
+    checkedTrackColor = MaterialTheme.colorScheme.onTertiary,
+    uncheckedTrackColor = MaterialTheme.colorScheme.tertiary,
+    disabledCheckedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0f),
+    disabledUncheckedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0f),
+
+    checkedBorderColor = MaterialTheme.colorScheme.onPrimary,
+    uncheckedBorderColor = MaterialTheme.colorScheme.onPrimary,
+    disabledCheckedBorderColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.6f),
+    disabledUncheckedBorderColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.6f),
+
+    checkedIconColor = MaterialTheme.colorScheme.primary,
+    uncheckedIconColor = MaterialTheme.colorScheme.primary,
+    disabledCheckedIconColor = MaterialTheme.colorScheme.primary,
+    disabledUncheckedIconColor = MaterialTheme.colorScheme.primary,
+)

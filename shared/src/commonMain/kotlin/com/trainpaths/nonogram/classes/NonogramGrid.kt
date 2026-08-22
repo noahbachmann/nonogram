@@ -54,8 +54,10 @@ fun NonogramCard(
     progress: List<List<Int>> = emptyList(),
     beatCount: Long = -1,
     isOwn: Boolean = false,
+    alwaysShowName: Boolean = true,
     onClick: () -> Unit
 ) {
+    val nameVisible = alwaysShowName || beatCount > 0 || isOwn
     val accent = when {
         beatCount > 0 -> MaterialTheme.colorScheme.tertiary
         isOwn -> MaterialTheme.colorScheme.onSecondary
@@ -88,7 +90,7 @@ fun NonogramCard(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = nonogram.name ?: UNNAMED_NONOGRAM_TITLE,
+                            text = if (nameVisible) (nonogram.name ?: UNNAMED_NONOGRAM_TITLE) else UNNAMED_NONOGRAM_TITLE,
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
