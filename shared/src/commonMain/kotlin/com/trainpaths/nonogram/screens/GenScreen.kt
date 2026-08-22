@@ -19,7 +19,9 @@ import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.classes.Board
 import com.trainpaths.nonogram.classes.DrawMode
 import com.trainpaths.nonogram.dialogs.GenSaveConfirmDialog
+import com.trainpaths.nonogram.dialogs.PublicEditConfirmDialog
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
+import com.trainpaths.nonogram.screens.viewModel.needsPublicEditConfirmation
 
 @Composable
 fun GenScreen(
@@ -28,8 +30,19 @@ fun GenScreen(
     onExitToList: () -> Unit,
 ) {
     var showSaveDialog by remember { mutableStateOf(false) }
+    var pendingPublicSave by remember { mutableStateOf<(() -> Unit)?>(null) }
     var isLocked by remember { mutableStateOf(true) }
     var drawMode by remember { mutableStateOf(DrawMode.TOGGLE) }
+
+    // Saving an edited public puzzle un-publishes it, so every path that saves asks first —
+    // including the wrench, whose `onConfig` saves before it navigates.
+    fun requestSave(save: () -> Unit) {
+        if (needsPublicEditConfirmation(genViewModel.nonogram.isPublic, genViewModel.isDirty)) {
+            pendingPublicSave = save
+        } else {
+            save()
+        }
+    }
 
     val attemptLeave = {
         if (!genViewModel.isSaving) {
@@ -42,7 +55,7 @@ fun GenScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            onBack = { if (!genViewModel.isSaving) onConfig() },
+            onBack = { if (!genViewModel.isSaving) requestSave { onConfig() } },
             showSettings = true,
             mode = AppBarMode.GENERATOR,
             onSwapMode = { attemptLeave() },
@@ -73,7 +86,7 @@ fun GenScreen(
             history = genViewModel.history,
             showSave = true,
             saveEnabled = genViewModel.canSave,
-            onSave = { genViewModel.onSave() },
+            onSave = { requestSave { genViewModel.onSave() } },
         )
     }
 
@@ -81,13 +94,23 @@ fun GenScreen(
         GenSaveConfirmDialog(
             onSave = {
                 showSaveDialog = false
-                genViewModel.onSave { onExitToList() }
+                requestSave { genViewModel.onSave { onExitToList() } }
             },
             onDiscard = {
                 showSaveDialog = false
                 onExitToList()
             },
             onCancel = { showSaveDialog = false },
+        )
+    }
+
+    pendingPublicSave?.let { save ->
+        PublicEditConfirmDialog(
+            onConfirm = {
+                pendingPublicSave = null
+                save()
+            },
+            onCancel = { pendingPublicSave = null },
         )
     }
 }

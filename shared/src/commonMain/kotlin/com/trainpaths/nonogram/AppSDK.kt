@@ -5,6 +5,7 @@ import com.trainpaths.nonogram.cache.DatabaseFactory
 import com.trainpaths.nonogram.cache.NonogramProgress
 import com.trainpaths.nonogram.cache.ProgressWithTimestamp
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.classes.PublishStatus
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -26,7 +27,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0), listOf(1, 1, 1, 1, 1),
                 listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0)
             ),
-            isPublic = true,
+            publishStatus = PublishStatus.APPROVED,
             id = 1,
         )
         addNonogram(
@@ -35,7 +36,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(1, 1, 1, 1, 1), listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 0, 0),
                 listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 1, 1)
             ),
-            isPublic = true,
+            publishStatus = PublishStatus.APPROVED,
             id = 2,
         )
         addNonogram(
@@ -44,7 +45,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(1, 1, 0, 0, 0), listOf(0, 1, 1, 0, 0), listOf(0, 0, 1, 1, 0),
                 listOf(0, 0, 0, 1, 1), listOf(0, 0, 0, 0, 1)
             ),
-            isPublic = true,
+            publishStatus = PublishStatus.APPROVED,
             id = 3,
         )
         addNonogram(
@@ -61,7 +62,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(0, 0, 1, 1, 1, 1, 0, 1, 0, 1),
                 listOf(0, 0, 0, 0, 1, 1, 1, 0, 0, 1),
             ),
-            isPublic = true,
+            publishStatus = PublishStatus.APPROVED,
             id = 4,
         )
     }
@@ -85,11 +86,11 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
         difficulty: String,
         solution: List<List<Int>>,
         authorId: Long = 0,
-        isPublic: Boolean = false,
         id: Long? = null,
         name: String? = null,
+        publishStatus: PublishStatus = PublishStatus.NONE,
     ): Long =
-        db().addNonogram(difficulty, solution, authorId, isPublic, id, name)
+        db().addNonogram(difficulty, solution, authorId, id, name, publishStatus)
 
     suspend fun updateNonogram(
         id: Long,

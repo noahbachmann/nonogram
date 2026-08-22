@@ -10,6 +10,9 @@ private const val KEY_CURRENT_USER_ID = "current_user_id"
 private const val KEY_HAS_COMPLETED_ONBOARDING = "has_completed_onboarding"
 private const val KEY_PUBLIC_NONOGRAM_PREFIX = "public_nonogram_sync_timestamp_"
 private const val KEY_OWNED_NONOGRAM_PREFIX = "owned_nonogram_sync_timestamp_"
+private const val KEY_PUBLISH_BANNED_PREFIX = "publish_banned_"
+private const val KEY_DENIAL_STREAK_PREFIX = "denial_streak_"
+private const val KEY_IS_ADMIN_PREFIX = "is_admin_"
 
 enum class AuthState { INITIALIZING, GUEST, SIGNED_IN }
 
@@ -55,6 +58,23 @@ class AuthRepository(private val sdk: AppSDK, private val settings: Settings) {
     fun setLastOwnedNonogramSyncTimestamp(firebaseUid: String, timestamp: Long) {
         settings.putLong(KEY_OWNED_NONOGRAM_PREFIX + firebaseUid, timestamp)
     }
+
+    fun getPublishBanned(firebaseUid: String): Boolean =
+        settings.getBoolean(KEY_PUBLISH_BANNED_PREFIX + firebaseUid, false)
+
+    fun getDenialStreak(firebaseUid: String): Int =
+        settings.getInt(KEY_DENIAL_STREAK_PREFIX + firebaseUid, 0)
+
+    fun setModerationGate(firebaseUid: String, denialStreak: Int, banned: Boolean) {
+        settings.putInt(KEY_DENIAL_STREAK_PREFIX + firebaseUid, denialStreak)
+        settings.putBoolean(KEY_PUBLISH_BANNED_PREFIX + firebaseUid, banned)
+    }
+
+    fun getIsAdmin(firebaseUid: String): Boolean =
+        settings.getBoolean(KEY_IS_ADMIN_PREFIX + firebaseUid, false)
+
+    fun setIsAdmin(firebaseUid: String, isAdmin: Boolean) =
+        settings.putBoolean(KEY_IS_ADMIN_PREFIX + firebaseUid, isAdmin)
 
     suspend fun linkFirebaseUser(firebaseUid: String, displayName: String?) {
         val existingUser = sdk.getUserByFirebaseUid(firebaseUid)

@@ -11,6 +11,7 @@ import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.BoardHistory
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileState
 import com.trainpaths.nonogram.sync.SyncService
@@ -22,8 +23,49 @@ import kotlinx.coroutines.withContext
 internal fun canSaveNonogram(isSaving: Boolean, isDirty: Boolean, nonogramId: Long): Boolean =
     !isSaving && (isDirty || nonogramId == 0L)
 
-internal fun publicationStatus(isPublic: Boolean, isValid: Boolean?, isSignedIn: Boolean): Boolean =
-    isPublic && isValid == true && isSignedIn
+/** Editing a live public puzzle takes it private and back into review, so the author confirms first. */
+internal fun needsPublicEditConfirmation(isPublic: Boolean, changesContent: Boolean): Boolean =
+    isPublic && changesContent
+
+/**
+ * The author's visibility switch, which only an already-approved puzzle has: it moves between
+ * `APPROVED` and `UNLISTED` and never costs a new review. Every other state ignores it, because
+ * publication is the admin's call — see `docs/publish-moderation.md`.
+ */
+internal fun visibilityAfterToggle(publishStatus: PublishStatus, requestedPublic: Boolean): PublishStatus =
+    when (publishStatus) {
+        PublishStatus.APPROVED, PublishStatus.UNLISTED ->
+            if (requestedPublic) PublishStatus.APPROVED else PublishStatus.UNLISTED
+
+        else -> publishStatus
+    }
+
+/** What the generator's publish control offers for the puzzle currently being edited. */
+enum class PublishAction {
+    REQUEST,
+    REQUEST_DISABLED,
+    SENT,
+    APPROVED_TOGGLE,
+    DENIED,
+    BANNED,
+}
+
+internal fun publishAction(
+    publishStatus: PublishStatus,
+    isValid: Boolean?,
+    isSignedIn: Boolean,
+    isBanned: Boolean,
+    isSaving: Boolean,
+): PublishAction = when (publishStatus) {
+    PublishStatus.PENDING -> PublishAction.SENT
+    PublishStatus.APPROVED, PublishStatus.UNLISTED -> PublishAction.APPROVED_TOGGLE
+    PublishStatus.DENIED -> PublishAction.DENIED
+    PublishStatus.NONE -> when {
+        isBanned -> PublishAction.BANNED
+        !isSaving && isSignedIn && isValid == true -> PublishAction.REQUEST
+        else -> PublishAction.REQUEST_DISABLED
+    }
+}
 
 internal data class SaveValidationResult(
     val isValid: Boolean?,
@@ -105,6 +147,14 @@ class GenViewModel(
     var validationError by mutableStateOf<String?>(null)
         private set
 
+    /** True while a publish request is in flight. */
+    var isRequestingPublish by mutableStateOf(false)
+        private set
+
+    /** A user-facing message when the latest publish request could not be filed. */
+    var publishError by mutableStateOf<String?>(null)
+        private set
+
     /** Whether the editor has a new or changed puzzle that can currently be persisted. */
     val canSave: Boolean
         get() = canSaveNonogram(
@@ -181,6 +231,7 @@ class GenViewModel(
         validationState = ValidationState.UNCHECKED
         saveError = null
         validationError = null
+        publishError = null
     }
 
     fun updateNonogram() {
@@ -208,7 +259,8 @@ class GenViewModel(
         val nonogramId = nonogram.id
         val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
         nonogram = nonogram.copy(solution = board)
-        val isSignedIn = authRepository.authState.value == AuthState.SIGNED_IN
+        // Any content change revokes approval, so the reviewer's verdict always matches the puzzle.
+        val contentChanged = isDirty
         isSaving = true
         validationState = ValidationState.CHECKING
         saveError = null
@@ -221,10 +273,10 @@ class GenViewModel(
                 validationState = validation.state
                 validationError = validation.error
 
-                nonogram.isPublic = publicationStatus(
-                    isPublic = requestedPublic,
-                    isValid = validation.isValid,
-                    isSignedIn = isSignedIn,
+                nonogram = nonogram.copy(
+                    publishStatus =
+                        if (contentChanged) PublishStatus.NONE
+                        else visibilityAfterToggle(nonogram.publishStatus, requestedPublic),
                 )
 
                 val savedNonogram = withContext(Dispatchers.Default) {
@@ -235,8 +287,8 @@ class GenViewModel(
                             difficulty = nonogram.difficulty.toString(),
                             solution = nonogram.solution,
                             authorId = userId,
-                            isPublic = nonogram.isPublic,
                             name = nonogram.name,
+                            publishStatus = nonogram.publishStatus,
                         )
                     }
                     // Re-fetch so the UI and pushed copy carry the freshly stamped updatedAt.
@@ -244,7 +296,7 @@ class GenViewModel(
                     if (persistedNonogram != null) {
                         val firebaseUid = sdk.getUserById(userId)?.firebaseUid
                         if (firebaseUid != null) {
-                            syncService.pushNonogram(firebaseUid, persistedNonogram)
+                            syncService.pushNonogram(firebaseUid, persistedNonogram, contentChanged)
                         }
                     }
                     persistedNonogram
@@ -258,6 +310,49 @@ class GenViewModel(
                 saveError = error.message ?: "Unable to save this nonogram."
             } finally {
                 isSaving = false
+            }
+        }
+    }
+
+    /**
+     * Files a publish request for the saved puzzle. The local row moves to `PENDING` first so the
+     * button responds immediately; a rejection by the Firestore rules (a banned author) rolls it back.
+     */
+    fun requestPublish() {
+        if (isSaving || isRequestingPublish) return
+        val nonogramId = nonogram.id
+        if (nonogramId == 0L) return
+        val userId = authRepository.currentUserId.value ?: return
+        if (authRepository.authState.value != AuthState.SIGNED_IN) return
+        isRequestingPublish = true
+        publishError = null
+        viewModelScope.launch {
+            try {
+                val requested = nonogram.copy(publishStatus = PublishStatus.PENDING)
+                val result = withContext(Dispatchers.Default) {
+                    sdk.updateNonogram(nonogramId, requested)
+                    val persisted = sdk.getNonogramById(nonogramId)
+                    val firebaseUid = sdk.getUserById(userId)?.firebaseUid
+                    val accepted = persisted != null && firebaseUid != null &&
+                            syncService.requestPublish(firebaseUid, persisted)
+                    if (!accepted && persisted != null) {
+                        sdk.updateNonogram(
+                            nonogramId,
+                            persisted.copy(publishStatus = PublishStatus.NONE),
+                        )
+                    }
+                    sdk.getNonogramById(nonogramId)
+                }
+                if (result != null) nonogram = result
+                if (nonogram.publishStatus != PublishStatus.PENDING) {
+                    publishError = "Could not send this publish request."
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                publishError = error.message ?: "Could not send this publish request."
+            } finally {
+                isRequestingPublish = false
             }
         }
     }

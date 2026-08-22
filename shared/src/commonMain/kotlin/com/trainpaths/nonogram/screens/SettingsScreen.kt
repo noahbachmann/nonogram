@@ -47,12 +47,14 @@ fun SettingsScreen(
     authViewModel: AuthViewModel,
     settingsViewModel: SettingsViewModel,
     onBack: () -> Unit,
+    onAdminPanel: () -> Unit,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
 ) {
     val authState by authViewModel.authState.collectAsState()
     val theme by settingsViewModel.theme.collectAsState()
     val showAllNames by settingsViewModel.showAllNames.collectAsState()
+    val isAdmin by authViewModel.isAdmin.collectAsState()
     var showSignOutDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -100,6 +102,18 @@ fun SettingsScreen(
                     onCheckedChange = { settingsViewModel.setShowAllNames(it) },
                     colors = switchColors(),
                 )
+            }
+            if (isAdmin) {
+                Button(
+                    onClick = onAdminPanel,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onPrimary,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                ) {
+                    Text("Admin panel")
+                }
             }
             if (authState == AuthState.GUEST) {
                 Button(

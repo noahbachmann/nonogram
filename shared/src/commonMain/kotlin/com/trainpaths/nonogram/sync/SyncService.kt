@@ -10,8 +10,12 @@ interface SyncService {
     suspend fun pullAllProgress(firebaseUid: String, localUserId: Long)
     suspend fun pullAndMergeAllProgress(firebaseUid: String, localUserId: Long)
 
-    /** Writes the puzzle to the shared `nonograms` collection, authored by [firebaseUid]. */
-    suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram)
+    /**
+     * Writes the puzzle to the shared `nonograms` collection, authored by [firebaseUid]. This is a
+     * merge write that leaves the publish status alone unless [resetPublishStatus] is set, which
+     * the caller does when the puzzle's content changed and its approval must be revoked.
+     */
+    suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, resetPublishStatus: Boolean = false)
 
     /** Pushes every locally authored puzzle; used once when an account first signs in. */
     suspend fun uploadAllLocalNonograms(firebaseUid: String, localUserId: Long)
@@ -27,6 +31,20 @@ interface SyncService {
         localUserId: Long,
         since: Long,
     ): Long?
+
+    /** Moves the puzzle to `PENDING`. Returns false when the rules reject it (e.g. banned author). */
+    suspend fun requestPublish(firebaseUid: String, nonogram: Nonogram): Boolean
+
+    /** Reads the author's denial streak / ban flag; null when the read failed. */
+    suspend fun fetchModerationGate(firebaseUid: String): ModerationGate?
+
+    suspend fun isAdmin(firebaseUid: String): Boolean
+
+    /** Admin only: the oldest pending requests, oldest first. */
+    suspend fun pullPendingReviews(firebaseUid: String, limit: Int): List<PendingReview>
+
+    /** Admin only: accepts or denies [review] and updates the author's denial streak. */
+    suspend fun decideReview(firebaseUid: String, review: PendingReview, approve: Boolean): Boolean
 }
 
 /**

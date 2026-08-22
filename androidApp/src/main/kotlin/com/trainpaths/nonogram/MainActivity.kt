@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.trainpaths.nonogram.screens.viewModel.AdminViewModel
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
@@ -25,6 +26,7 @@ class MainActivity : ComponentActivity() {
                 genViewModelFactory = { koinViewModel<GenViewModel>() },
                 settingsViewModel = koinViewModel<SettingsViewModel>(),
                 gameViewModelFactory = { _ -> koinViewModel<GameViewModel>() },
+                adminViewModelFactory = { koinViewModel<AdminViewModel>() },
             )
         }
     }

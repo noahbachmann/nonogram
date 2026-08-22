@@ -78,7 +78,9 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   reads synchronously in the constructor (no `initialize()` needed), exposes a `StateFlow` per preference, writes
   through on set. See **AppTheme** below.
 - **`sync/SyncService`** — interface for syncing *both* progress and the shared `nonograms` collection (push/pull/merge;
-  `mergeRemoteNonograms` is the shared merge policy). `sync/FirebaseAndroidSyncService` (androidMain)
+  `mergeRemoteNonograms` is the shared merge policy), plus the publish-review calls (`requestPublish`,
+  `fetchModerationGate`, `isAdmin`, `pullPendingReviews`, `decideReview` — see `docs/publish-moderation.md`;
+  pure streak/ban helpers live in `sync/Moderation.kt`). `sync/FirebaseAndroidSyncService` (androidMain)
   implements it with `dev.gitlive:firebase-firestore`; web binds `sync/FirebaseWebSyncService` (webMain), built on
   hand-written Kotlin externals to the Firebase JS SDK in `firebase/` (see `docs/web-architecture.md` for the externals
   pattern and the auth-session gate). Same Firestore shape on both platforms, so data interoperates.
@@ -101,7 +103,9 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   board and save/sync. `GenViewModel` drives the generator (draw/resize/save + validation). `MenuViewModel` holds the
   nonogram list and progress preview map. `AuthViewModel` orchestrates login flow and **all remote sync** —
   `syncAll` pulls progress + public + owned nonograms in one pass (separate public/owned cursors read via
-  `AuthRepository`), `retryOwnNonograms` re-runs just the owned stream for the generator's retry button.
+  `AuthRepository`) and then refreshes the admin flag and publish ban (`isAdmin` / `publishBanned` StateFlows),
+  `retryOwnNonograms` re-runs just the owned stream for the generator's retry button. `AdminViewModel` drives the
+  admin review queue (one pending request at a time, buffered a batch at a time).
   All depend on the suspend `AppSDK`/`SyncService` from inside `viewModelScope.launch`.
 
   **When sync runs.** `syncAll` fires once from `AppContent`'s app-start `LaunchedEffect`, and after that
@@ -114,7 +118,7 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
 ### Navigation
 
 Type-safe navigation via `navigation-compose` with `@Serializable` route objects in `navigation/Routes.kt`. Routes:
-`LoginRoute`, `MenuRoute`, `GameRoute(nonogramId)`, `SettingsRoute`, plus the generator routes `GenListRoute`,
+`LoginRoute`, `MenuRoute`, `GameRoute(nonogramId)`, `SettingsRoute`, `AdminRoute`, plus the generator routes `GenListRoute`,
 `GenConfRoute(editing)`, `GeneratorRoute` (the board editor), plus dialog routes (`PlayDialogRoute`, `WinDialogRoute`,
 `LeaveDialogRoute`).
 
@@ -158,9 +162,11 @@ dirty puzzle). Icons come from the hand-built `icons/` package of `ImageVector`s
 ### Data Model
 
 - **`Nonogram`** — `id`, `difficulty` (enum: EASY/MEDIUM/HARD/HARDCORE), `solution` (List<List<Int>> stored as JSON),
-  `name: String?`, `authorId`, `isPublic: Boolean`, `updatedAt`. Computes `rowClues`/`colClues` on the fly, and
-  `isValid` lazily via the `Solver`. Note: `isPublic` is backed by the DB column named `status` (0/1). Name helpers live
-  alongside: `MAX_NONOGRAM_NAME_LENGTH` (30), `normalizeNonogramName()`, `UNNAMED_NONOGRAM_TITLE`.
+  `name: String?`, `authorId`, `updatedAt`, `publishState` (enum: NONE/PENDING/APPROVED/UNLISTED/DENIED, stored as its
+  ordinal in the DB column `status`, as its name in the Firestore field `publishStatus`). Visibility is derived, not stored:
+  `isPublic get() = publishState == APPROVED`, and the author's on/off switch moves an approved puzzle between
+  APPROVED and UNLISTED. Computes `rowClues`/`colClues` on the fly, and `isValid` lazily via the `Solver`.
+  Name helpers live alongside: `MAX_NONOGRAM_NAME_LENGTH` (30), `normalizeNonogramName()`, `UNNAMED_NONOGRAM_TITLE`.
 - **`Tile`** — mutable Compose state. Cycles: NONE → FILLED → CROSSED → NONE.
 - Board state is serialized as `List<List<Int>>` (0/1) for persistence and sync.
 
@@ -223,14 +229,16 @@ defined.
 - `AppInitializer.onApplicationStart()` sets up `GoogleAuthProvider` with a web client ID. Android passes
   `R.string.default_web_client_id` (generated from `androidApp/google-services.json`); web passes
   `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID` (committed constants in `webApp` — Firebase web config is public-by-design).
-- Firestore paths: `users/{firebaseUid}/progress/{nonogramId}` (progress) and `nonograms/{id}` (puzzles — own + public
-  per the `status` column). Puzzles are pulled incrementally by `AuthViewModel.syncAll` in **two independent
+- Firestore paths: `users/{firebaseUid}/progress/{nonogramId}` (progress), `nonograms/{id}` (puzzles — own + public
+  per their `publishStatus` field), `users/{firebaseUid}` (`denialStreak` /
+  `publishBanned`) and `admins/{firebaseUid}` (admin roster). Puzzles are pulled incrementally by `AuthViewModel.syncAll` in **two independent
   streams** — public and owned — each with its own `updatedAt` cursor persisted via `AuthRepository`
   (`getLast{Public,Owned}NonogramSyncTimestamp`); merge policy is `sync/SyncService.kt` `mergeRemoteNonograms` (remote
   newer → upsert; local newer & locally authored → push back). On both platforms — Android via
   `dev.gitlive:firebase-firestore` (androidMain), web via hand-written Firebase JS SDK externals (webMain), both
-  isolated behind `sync/SyncService`. The `nonograms` queries need security rules (read: public or own; write: own)
-  and two composite indexes — `(status, updatedAt)`, `(authorUid, updatedAt)` — set up in the Firebase console.
+  isolated behind `sync/SyncService`. Security rules and indexes are checked in at `firestore.rules` / `firestore.indexes.json`
+  (`firebase deploy --only firestore`): the rules are what actually enforces publish moderation, and two composite
+  indexes are needed — `(publishStatus, updatedAt)` (public pull + review queue) and `(authorUid, updatedAt)` (owned pull).
 - `auth/PlatformAuth.kt` declares `expect suspend fun firebaseSignOut()`, ending the platform Firebase session —
   `dev.gitlive.firebase.auth.auth.signOut()` on Android, `FirebaseWeb.signOut()` (a new `firebase/auth` `signOut`
   external) on web. `AuthViewModel.signOut()` calls it before `AuthRepository.signOut()`, swallowing failures so local
@@ -242,7 +250,11 @@ The generator is implemented end-to-end: `GenListScreen` lists the signed-in use
 grid size, `GenScreen` is the tile-drawing board, all driven by the shared `GenViewModel`. Users can create new puzzles
 and edit existing ones (with non-destructive resize). See **Navigation → Generator flow** above. On save, `GenViewModel`
 runs `Nonogram.isValid` (the `Solver`) to check the puzzle is uniquely solvable — validation is *advisory* (the puzzle
-still saves if it fails or the check throws) and only gates whether it may be published as public. Difficulty is still
+still saves if it fails or the check throws) and only gates whether the author may *request* publication. Publishing
+itself is admin-moderated: the generator's config screen offers a "Request publish" button, an admin accepts or denies
+in `AdminScreen` (reachable from Settings), and five denials in a row ban a user from requesting. Editing a puzzle
+that is currently public un-publishes it, so every save path first confirms via `PublicEditConfirmDialog`. See
+`docs/publish-moderation.md`. Difficulty is still
 hardcoded to `EASY` in `GenViewModel` (no selector yet).
 
 Web (js + wasmJs) has persistent OPFS storage plus Google sign-in and Firestore sync via hand-written Firebase JS SDK

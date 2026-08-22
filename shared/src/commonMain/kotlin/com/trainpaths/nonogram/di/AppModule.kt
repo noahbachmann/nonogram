@@ -3,6 +3,7 @@ package com.trainpaths.nonogram.di
 import com.russhwolf.settings.Settings
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
+import com.trainpaths.nonogram.screens.viewModel.AdminViewModel
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
@@ -22,4 +23,5 @@ val appModule = module {
     viewModelOf(::GameViewModel)
     viewModelOf(::GenViewModel)
     viewModelOf(::SettingsViewModel)
+    viewModelOf(::AdminViewModel)
 }

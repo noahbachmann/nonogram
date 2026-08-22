@@ -32,6 +32,12 @@ class AuthViewModel(
         MutableStateFlow(GeneratorSyncState.IDLE)
     val generatorNonogramSyncState = _generatorSyncState.asStateFlow()
 
+    private val _isAdmin = MutableStateFlow(false)
+    val isAdmin = _isAdmin.asStateFlow()
+
+    private val _publishBanned = MutableStateFlow(false)
+    val publishBanned = _publishBanned.asStateFlow()
+
     fun onFirebaseSignInSuccess(firebaseUid: String, displayName: String?) {
         _signInComplete.value = false
         viewModelScope.launch(Dispatchers.Default) {
@@ -44,6 +50,7 @@ class AuthViewModel(
                 syncService.uploadAllLocalProgress(firebaseUid, userId)
             }
             syncService.uploadAllLocalNonograms(firebaseUid, userId)
+            refreshModeration(firebaseUid)
             _signInComplete.value = true
         }
     }
@@ -58,6 +65,7 @@ class AuthViewModel(
                 syncService.pullAndMergeAllProgress(firebaseUid, userId)
                 syncPublicNonograms(firebaseUid, userId)
                 syncOwnedNonograms(firebaseUid, userId)
+                refreshModeration(firebaseUid)
             } finally {
                 withContext(Dispatchers.Main) { onComplete() }
             }
@@ -75,6 +83,20 @@ class AuthViewModel(
                 withContext(Dispatchers.Main) { onComplete() }
             }
         }
+    }
+
+    /** Shows the cached standing first so the UI is right offline, then refreshes it from Firestore. */
+    private suspend fun refreshModeration(firebaseUid: String) {
+        _isAdmin.value = authRepository.getIsAdmin(firebaseUid)
+        _publishBanned.value = authRepository.getPublishBanned(firebaseUid)
+
+        val admin = syncService.isAdmin(firebaseUid)
+        authRepository.setIsAdmin(firebaseUid, admin)
+        _isAdmin.value = admin
+
+        val gate = syncService.fetchModerationGate(firebaseUid) ?: return
+        authRepository.setModerationGate(firebaseUid, gate.denialStreak, gate.banned)
+        _publishBanned.value = gate.banned
     }
 
     private suspend fun syncPublicNonograms(
@@ -122,6 +144,8 @@ class AuthViewModel(
                 authRepository.signOut()
                 _signInComplete.value = false
                 _generatorSyncState.value = GeneratorSyncState.IDLE
+                _isAdmin.value = false
+                _publishBanned.value = false
             } finally {
                 withContext(Dispatchers.Main) { onComplete() }
             }

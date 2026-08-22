@@ -2,7 +2,6 @@
 
 package com.trainpaths.nonogram.firebase
 
-import com.trainpaths.nonogram.util.toLong
 import kotlinx.coroutines.await
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -75,8 +74,8 @@ object FirebaseWeb {
         solutionJson: String,
         name: String?,
         authorUid: String,
-        isPublic: Boolean,
         updatedAt: Long,
+        publishStatus: String?,
     ): JsAny =
         JSON.parse(
             buildJsonObject {
@@ -84,8 +83,28 @@ object FirebaseWeb {
                 put("solution", solutionJson)
                 put("name", name)
                 put("authorUid", authorUid)
-                put("status", isPublic.toLong())
+                put("updatedAt", updatedAt)
+                // Omitted unless the caller means to reset it: a merge write must not clobber it.
+                if (publishStatus != null) put("publishStatus", publishStatus)
+            }.toString()
+        )!!
+
+    internal fun makePublishStatusData(publishStatus: String, updatedAt: Long): JsAny =
+        JSON.parse(
+            buildJsonObject {
+                put("publishStatus", publishStatus)
                 put("updatedAt", updatedAt)
             }.toString()
         )!!
+
+    internal fun makeUserGateData(denialStreak: Int, publishBanned: Boolean): JsAny =
+        JSON.parse(
+            buildJsonObject {
+                put("denialStreak", denialStreak)
+                put("publishBanned", publishBanned)
+            }.toString()
+        )!!
+
+    internal fun mergeOptions(): JsAny =
+        JSON.parse(buildJsonObject { put("merge", true) }.toString())!!
 }
