@@ -3,6 +3,7 @@ package com.trainpaths.nonogram.screens
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -15,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.TopAppBar
+import com.trainpaths.nonogram.MAX_CONTENT_WIDTH
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.trainpaths.nonogram.classes.Nonogram
@@ -30,7 +32,10 @@ fun MenuScreen(
     onNonogramClick: (Nonogram) -> Unit,
     onGenClick: () -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         TopAppBar(
             showSettings = true,
             mode = AppBarMode.PUZZLE,
@@ -54,7 +59,7 @@ fun MenuScreen(
                 isRefreshing = viewModel.isRefreshing,
                 onRefresh = onRefresh,
                 state = pullState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.widthIn(max = MAX_CONTENT_WIDTH).fillMaxSize(),
                 indicator = {
                     PullToRefreshDefaults.Indicator(
                         state = pullState,

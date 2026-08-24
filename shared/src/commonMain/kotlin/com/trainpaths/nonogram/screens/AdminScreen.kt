@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -26,6 +27,7 @@ import com.trainpaths.nonogram.classes.DrawNonogram
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.UNNAMED_NONOGRAM_TITLE
 import com.trainpaths.nonogram.navigation.TopAppBar
+import com.trainpaths.nonogram.MAX_CONTENT_WIDTH
 import com.trainpaths.nonogram.screens.viewModel.AdminViewModel
 
 @Composable
@@ -33,7 +35,10 @@ fun AdminScreen(
     adminViewModel: AdminViewModel,
     onBack: () -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         TopAppBar(title = "Admin panel", onBack = onBack, backArrow = true)
 
         val pending = adminViewModel.current
@@ -76,7 +81,7 @@ private fun ReviewCard(
     onDeny: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.widthIn(max = MAX_CONTENT_WIDTH).fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -93,7 +98,7 @@ private fun ReviewCard(
 
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(1f)
                 .aspectRatio(1f)
                 .background(MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
                 .border(1.dp, MaterialTheme.colorScheme.onPrimary, RoundedCornerShape(12.dp))

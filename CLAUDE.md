@@ -96,6 +96,10 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
 - **`classes/` board + game** — the interactive grid (clues, tiles, pan/zoom, drag-to-draw) is a self-contained Compose
   engine: `Board`/`BoardTransform` (one Canvas for all tiles + a layer-transform pan/zoom model),
   `Game` (win check), `Tile`/`TileState`. Performance-critical and gesture-heavy — see `docs/board-rendering.md`.
+- **Desktop widths** — `MAX_CONTENT_WIDTH = 1000.dp` lives in `AppTheme.kt` alongside the palettes, applied as
+  `Modifier.widthIn(max = …)` ahead of any `fillMax*` and centred by the screen root's `horizontalAlignment`. App bars
+  stay full-bleed with capped content, the Board is deliberately exempt, and `NonogramGrid` picks its column count from
+  the available width — see `docs/responsive-layout.md`.
 - **`filter/`** — the menu's combined filter/sorter: a pure `FilterSortState` model plus the
   `FilterMenuButton` dropdown hosted in the `TopAppBar`'s `navigationContent` slot. Rows are data —
   a sortable `FilterAttribute` with checkable values, or a standalone `FilterToggle` (the "Personal"
