@@ -9,21 +9,17 @@ CREATE TABLE NonogramData (
 );
 
 CREATE TABLE User (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    firebaseUid TEXT
+    uid TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL
 );
 
-CREATE UNIQUE INDEX idx_user_firebaseUid ON User(firebaseUid);
-
 CREATE TABLE UserProgress (
-    userId INTEGER NOT NULL,
+    userUid TEXT NOT NULL,
     nonogramId INTEGER NOT NULL,
     boardState TEXT,
     updatedAt INTEGER NOT NULL,
     beat INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (userId, nonogramId),
-    FOREIGN KEY (userId) REFERENCES User(id),
+    PRIMARY KEY (userUid, nonogramId),
     FOREIGN KEY (nonogramId) REFERENCES NonogramData(id)
 );
 
@@ -65,43 +61,47 @@ selectRandomNonogramByDifficulty:
 SELECT NonogramData.* FROM NonogramData WHERE difficulty = ? ORDER BY RANDOM() LIMIT 1;
 
 upsertProgress:
-INSERT OR REPLACE INTO UserProgress(userId, nonogramId, boardState, updatedAt, beat)
-VALUES (:userId, :nonogramId, :boardState, :updatedAt, COALESCE((SELECT beat FROM UserProgress WHERE userId = :userId AND nonogramId = :nonogramId), 0));
-
-incrementBeat:
-UPDATE UserProgress SET beat = beat + 1 WHERE userId = ? AND nonogramId = ?;
+INSERT OR REPLACE INTO UserProgress(userUid, nonogramId, boardState, updatedAt, beat)
+VALUES (:userUid, :nonogramId, :boardState, :updatedAt, COALESCE((SELECT beat FROM UserProgress WHERE userUid = :userUid AND nonogramId = :nonogramId), 0));
 
 upsertProgressAfterWin:
-INSERT OR REPLACE INTO UserProgress(userId, nonogramId, boardState, updatedAt, beat)
-VALUES (:userId, :nonogramId, NULL, :updatedAt, COALESCE((SELECT beat FROM UserProgress WHERE userId = :userId AND nonogramId = :nonogramId), 0) + 1);
+INSERT OR REPLACE INTO UserProgress(userUid, nonogramId, boardState, updatedAt, beat)
+VALUES (:userUid, :nonogramId, NULL, :updatedAt, COALESCE((SELECT beat FROM UserProgress WHERE userUid = :userUid AND nonogramId = :nonogramId), 0) + 1);
 
 selectProgressForUser:
 SELECT NonogramData.*, UserProgress.boardState, UserProgress.beat
 FROM NonogramData
 JOIN UserProgress ON UserProgress.nonogramId = NonogramData.id
-WHERE UserProgress.userId = ?;
+WHERE UserProgress.userUid = ?;
 
-insertUser:
-INSERT INTO User(id, name) VALUES (NULL, ?);
+mergeProgressInto:
+INSERT OR REPLACE INTO UserProgress(userUid, nonogramId, boardState, updatedAt, beat)
+SELECT :toUid, src.nonogramId, src.boardState, src.updatedAt,
+       max(src.beat, COALESCE((SELECT dst.beat FROM UserProgress dst
+                               WHERE dst.userUid = :toUid AND dst.nonogramId = src.nonogramId), 0))
+FROM UserProgress src
+WHERE src.userUid = :fromUid
+  AND src.updatedAt > COALESCE((SELECT dst.updatedAt FROM UserProgress dst
+                                WHERE dst.userUid = :toUid AND dst.nonogramId = src.nonogramId), 0);
 
-lastInsertedId:
-SELECT last_insert_rowid();
+deleteProgressFor:
+DELETE FROM UserProgress WHERE userUid = :uid;
 
-selectUserById:
-SELECT User.* FROM User WHERE id = ?;
+upsertUser:
+INSERT OR REPLACE INTO User(uid, name) VALUES (?, ?);
 
-selectUserByFirebaseUid:
-SELECT User.* FROM User WHERE firebaseUid = ?;
+selectUser:
+SELECT User.* FROM User WHERE uid = ?;
 
-updateUserFirebaseUid:
-UPDATE User SET firebaseUid = ?, name = ? WHERE id = ?;
+deleteUser:
+DELETE FROM User WHERE uid = ?;
 
 selectProgressForUserWithTimestamp:
 SELECT UserProgress.nonogramId, UserProgress.boardState, UserProgress.updatedAt
 FROM UserProgress
-WHERE UserProgress.userId = ?;
+WHERE UserProgress.userUid = ?;
 
 selectSingleProgress:
 SELECT UserProgress.boardState, UserProgress.updatedAt
 FROM UserProgress
-WHERE UserProgress.userId = ? AND UserProgress.nonogramId = ?;
+WHERE UserProgress.userUid = ? AND UserProgress.nonogramId = ?;

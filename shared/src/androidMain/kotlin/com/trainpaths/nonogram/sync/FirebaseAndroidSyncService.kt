@@ -44,9 +44,9 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
         }
     }
 
-    override suspend fun uploadAllLocalProgress(firebaseUid: String, localUserId: Long) {
+    override suspend fun uploadAllLocalProgress(firebaseUid: String) {
         try {
-            val allProgress = sdk.getProgressForUserWithTimestamp(localUserId)
+            val allProgress = sdk.getProgressForUserWithTimestamp(firebaseUid)
             for ((nonogramId, boardState, updatedAt) in allProgress) {
                 pushProgress(firebaseUid, nonogramId, boardState, updatedAt)
             }
@@ -55,21 +55,21 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
         }
     }
 
-    override suspend fun pullAllProgress(firebaseUid: String, localUserId: Long) {
+    override suspend fun pullAllProgress(firebaseUid: String) {
         try {
             val remoteDocuments = progressCollection(firebaseUid).get()
             for (doc in remoteDocuments.documents) {
                 val nonogramId = doc.id.toLongOrNull() ?: continue
                 val remoteBoardState = doc.get<String?>("boardState")
                 val remoteUpdatedAt = doc.get<Long>("updatedAt")
-                sdk.saveProgressWithTimestamp(localUserId, nonogramId, remoteBoardState, remoteUpdatedAt)
+                sdk.saveProgressWithTimestamp(firebaseUid, nonogramId, remoteBoardState, remoteUpdatedAt)
             }
         } catch (e: Exception) {
             println("FirestoreSync: pull all failed: ${e.message}")
         }
     }
 
-    override suspend fun pullAndMergeAllProgress(firebaseUid: String, localUserId: Long) {
+    override suspend fun pullAndMergeAllProgress(firebaseUid: String) {
         try {
             val remoteDocuments = progressCollection(firebaseUid).get()
             for (doc in remoteDocuments.documents) {
@@ -77,10 +77,10 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
                 val remoteBoardState = doc.get<String?>("boardState")
                 val remoteUpdatedAt = doc.get<Long>("updatedAt")
 
-                val local = sdk.getSingleProgress(localUserId, nonogramId)
+                val local = sdk.getSingleProgress(firebaseUid, nonogramId)
 
                 if (local == null || local.updatedAt < remoteUpdatedAt) {
-                    sdk.saveProgressWithTimestamp(localUserId, nonogramId, remoteBoardState, remoteUpdatedAt)
+                    sdk.saveProgressWithTimestamp(firebaseUid, nonogramId, remoteBoardState, remoteUpdatedAt)
                 } else if (local.updatedAt > remoteUpdatedAt) {
                     pushProgress(firebaseUid, nonogramId, local.boardState, local.updatedAt)
                 }

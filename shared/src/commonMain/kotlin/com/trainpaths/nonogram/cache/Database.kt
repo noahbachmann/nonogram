@@ -1,7 +1,6 @@
 package com.trainpaths.nonogram.cache
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
-import app.cash.sqldelight.async.coroutines.awaitAsOne
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.db.SqlDriver
 import com.trainpaths.nonogram.classes.Difficulty
@@ -96,68 +95,67 @@ internal class Database(driver: SqlDriver) {
     }
     // ---------- Users ----------
 
-    internal suspend fun addUser(name: String): Long =
-        dbQuery.transactionWithResult {
-            dbQuery.insertUser(name)
-            dbQuery.lastInsertedId().awaitAsOne()
+    internal suspend fun upsertUser(uid: String, name: String) {
+        dbQuery.upsertUser(uid, name)
+    }
+
+    internal suspend fun getUser(uid: String) =
+        dbQuery.selectUser(uid).awaitAsOneOrNull()
+
+    internal suspend fun deleteUser(uid: String) {
+        dbQuery.deleteUser(uid)
+    }
+
+    /** Moves one user's progress onto another, newest row winning; see database.sq. */
+    internal suspend fun mergeProgressInto(fromUid: String, toUid: String) {
+        dbQuery.transaction {
+            dbQuery.mergeProgressInto(toUid = toUid, fromUid = fromUid)
+            dbQuery.deleteProgressFor(fromUid)
         }
-
-    internal suspend fun getUserById(id: Long) =
-        dbQuery.selectUserById(id).awaitAsOneOrNull()
-
-    internal suspend fun getUserByFirebaseUid(uid: String) =
-        dbQuery.selectUserByFirebaseUid(uid).awaitAsOneOrNull()
-
-    internal suspend fun updateUserFirebaseUid(userId: Long, firebaseUid: String, name: String) {
-        dbQuery.updateUserFirebaseUid(firebaseUid, name, userId)
     }
 
     internal suspend fun saveProgress(
-        userId: Long,
+        userUid: String,
         nonogramId: Long,
         board: List<List<Int>>?
     ) {
         dbQuery.upsertProgress(
-            userId = userId,
+            userUid = userUid,
             nonogramId = nonogramId,
             boardState = board?.let { json.encodeToString(it) },
             updatedAt = Clock.System.now().toEpochMilliseconds()
         )
     }
 
-    internal suspend fun incrementBeat(userId: Long, nonogramId: Long) {
-        dbQuery.incrementBeat(userId, nonogramId)
-    }
-
-    internal suspend fun saveProgressAfterWin(userId: Long, nonogramId: Long) {
+    internal suspend fun saveProgressAfterWin(userUid: String, nonogramId: Long) {
         dbQuery.upsertProgressAfterWin(
-            userId = userId,
+            userUid = userUid,
             nonogramId = nonogramId,
             updatedAt = Clock.System.now().toEpochMilliseconds()
         )
     }
 
-    internal suspend fun getProgressForUser(userId: Long): List<NonogramProgress> =
-        dbQuery.selectProgressForUser(userId, ::mapProgress).awaitAsList()
+    internal suspend fun getProgressForUser(userUid: String): List<NonogramProgress> =
+        dbQuery.selectProgressForUser(userUid, ::mapProgress).awaitAsList()
 
-    internal suspend fun getProgressForUserWithTimestamp(userId: Long): List<ProgressWithTimestamp> =
-        dbQuery.selectProgressForUserWithTimestamp(userId) { nonogramId, boardState, updatedAt ->
+    internal suspend fun getProgressForUserWithTimestamp(userUid: String): List<ProgressWithTimestamp> =
+        dbQuery.selectProgressForUserWithTimestamp(userUid) { nonogramId, boardState, updatedAt ->
             ProgressWithTimestamp(nonogramId, boardState, updatedAt)
         }.awaitAsList()
 
-    internal suspend fun getSingleProgress(userId: Long, nonogramId: Long): ProgressWithTimestamp? =
-        dbQuery.selectSingleProgress(userId, nonogramId) { boardState, updatedAt ->
+    internal suspend fun getSingleProgress(userUid: String, nonogramId: Long): ProgressWithTimestamp? =
+        dbQuery.selectSingleProgress(userUid, nonogramId) { boardState, updatedAt ->
             ProgressWithTimestamp(nonogramId, boardState, updatedAt)
         }.awaitAsOneOrNull()
 
     internal suspend fun saveProgressWithTimestamp(
-        userId: Long,
+        userUid: String,
         nonogramId: Long,
         boardState: String?,
         updatedAt: Long
     ) {
         dbQuery.upsertProgress(
-            userId = userId,
+            userUid = userUid,
             nonogramId = nonogramId,
             boardState = boardState,
             updatedAt = updatedAt

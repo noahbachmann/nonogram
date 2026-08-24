@@ -137,85 +137,148 @@ class AppSDKTest {
     }
 
     @Test
-    fun addUser_and_getUserById_roundTrip() = runTest {
-        val userId = sdk.addUser("Alice")
-        val user = sdk.getUserById(userId)
+    fun upsertUser_and_getUser_roundTrip() = runTest {
+        sdk.upsertUser("uid-alice", "Alice")
+        val user = sdk.getUser("uid-alice")
         assertNotNull(user)
         assertEquals("Alice", user.name)
-        assertNull(user.firebaseUid)
     }
 
     @Test
-    fun getUserByFirebaseUid_returnsNullInitially() = runTest {
-        sdk.addUser("Bob")
-        assertNull(sdk.getUserByFirebaseUid("firebase-123"))
+    fun getUser_returnsNullForAnUnknownUid() = runTest {
+        sdk.upsertUser("uid-bob", "Bob")
+        assertNull(sdk.getUser("uid-123"))
     }
 
     @Test
-    fun updateUserFirebaseUid_thenFindByUid() = runTest {
-        val userId = sdk.addUser("Charlie")
-        sdk.updateUserFirebaseUid(userId, "firebase-456", "Charlie Updated")
-        val found = sdk.getUserByFirebaseUid("firebase-456")
+    fun upsertUser_replacesTheDisplayName() = runTest {
+        sdk.upsertUser("uid-charlie", "Charlie")
+        sdk.upsertUser("uid-charlie", "Charlie Updated")
+
+        val found = sdk.getUser("uid-charlie")
         assertNotNull(found)
-        assertEquals(userId, found.id)
         assertEquals("Charlie Updated", found.name)
+    }
+
+    @Test
+    fun deleteUser_removesOnlyThatRow() = runTest {
+        sdk.upsertUser("local:1", "Guest")
+        sdk.upsertUser("uid-keep", "Keeper")
+
+        sdk.deleteUser("local:1")
+
+        assertNull(sdk.getUser("local:1"))
+        assertNotNull(sdk.getUser("uid-keep"))
     }
 
     @Test
     fun saveProgress_and_getProgressForUser_roundTrip() = runTest {
         val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1, 0), listOf(0, 1)))
-        val userId = sdk.addUser("Dave")
         val board = listOf(listOf(1, 0), listOf(0, 0))
 
-        sdk.saveProgress(userId, nonogramId, board)
+        sdk.saveProgress("uid-dave", nonogramId, board)
 
-        val progress = sdk.getProgressForUser(userId)
+        val progress = sdk.getProgressForUser("uid-dave")
         assertEquals(1, progress.size)
         assertEquals(nonogramId, progress[0].nonogram.id)
         assertEquals(board, progress[0].board)
     }
 
     @Test
-    fun incrementBeat_incrementsCounter() = runTest {
+    fun saveProgressAfterWin_incrementsBeatCount() = runTest {
         val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
-        val userId = sdk.addUser("Eve")
 
-        sdk.saveProgress(userId, nonogramId, listOf(listOf(1)))
-        sdk.incrementBeat(userId, nonogramId)
+        sdk.saveProgress("uid-eve", nonogramId, listOf(listOf(1)))
+        sdk.saveProgressAfterWin("uid-eve", nonogramId)
 
-        val progress = sdk.getProgressForUser(userId)
-        assertEquals(1, progress[0].beat)
+        assertEquals(1, sdk.getProgressForUser("uid-eve")[0].beat)
 
-        sdk.incrementBeat(userId, nonogramId)
-        val progress2 = sdk.getProgressForUser(userId)
-        assertEquals(2, progress2[0].beat)
+        sdk.saveProgressAfterWin("uid-eve", nonogramId)
+        assertEquals(2, sdk.getProgressForUser("uid-eve")[0].beat)
     }
 
     @Test
     fun upsertProgress_preservesBeatCount() = runTest {
         val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
-        val userId = sdk.addUser("Frank")
 
-        sdk.saveProgress(userId, nonogramId, listOf(listOf(1)))
-        sdk.incrementBeat(userId, nonogramId)
-        sdk.incrementBeat(userId, nonogramId)
+        sdk.saveProgress("uid-frank", nonogramId, listOf(listOf(1)))
+        sdk.saveProgressAfterWin("uid-frank", nonogramId)
+        sdk.saveProgressAfterWin("uid-frank", nonogramId)
 
-        sdk.saveProgress(userId, nonogramId, listOf(listOf(0)))
+        sdk.saveProgress("uid-frank", nonogramId, listOf(listOf(0)))
 
-        val progress = sdk.getProgressForUser(userId)
+        val progress = sdk.getProgressForUser("uid-frank")
         assertEquals(2, progress[0].beat)
         assertEquals(listOf(listOf(0)), progress[0].board)
     }
 
     @Test
+    fun mergeProgressInto_movesRowsThatDoNotCollide() = runTest {
+        val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
+        sdk.saveProgressWithTimestamp("local:1", nonogramId, "[[1]]", 100)
+
+        sdk.mergeProgressInto("local:1", "uid-7")
+
+        val moved = sdk.getSingleProgress("uid-7", nonogramId)
+        assertNotNull(moved)
+        assertEquals("[[1]]", moved.boardState)
+        assertEquals(100, moved.updatedAt)
+        assertTrue(sdk.getProgressForUserWithTimestamp("local:1").isEmpty())
+    }
+
+    @Test
+    fun mergeProgressInto_newerSourceWins() = runTest {
+        val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
+        sdk.saveProgressWithTimestamp("uid-7", nonogramId, "[[0]]", 100)
+        sdk.saveProgressWithTimestamp("local:1", nonogramId, "[[1]]", 200)
+
+        sdk.mergeProgressInto("local:1", "uid-7")
+
+        val merged = sdk.getSingleProgress("uid-7", nonogramId)
+        assertNotNull(merged)
+        assertEquals("[[1]]", merged.boardState)
+        assertEquals(200, merged.updatedAt)
+    }
+
+    @Test
+    fun mergeProgressInto_olderSourceLoses() = runTest {
+        val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
+        sdk.saveProgressWithTimestamp("uid-7", nonogramId, "[[0]]", 200)
+        sdk.saveProgressWithTimestamp("local:1", nonogramId, "[[1]]", 100)
+
+        sdk.mergeProgressInto("local:1", "uid-7")
+
+        val merged = sdk.getSingleProgress("uid-7", nonogramId)
+        assertNotNull(merged)
+        assertEquals("[[0]]", merged.boardState)
+        assertEquals(200, merged.updatedAt)
+        assertTrue(sdk.getProgressForUserWithTimestamp("local:1").isEmpty())
+    }
+
+    @Test
+    fun mergeProgressInto_keepsTheHigherBeatCount() = runTest {
+        val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
+        // The account has been beaten twice but has a stale board; the guest has a newer board.
+        sdk.saveProgressAfterWin("uid-7", nonogramId)
+        sdk.saveProgressAfterWin("uid-7", nonogramId)
+        sdk.saveProgressWithTimestamp("uid-7", nonogramId, "[[0]]", 100)
+        sdk.saveProgressWithTimestamp("local:1", nonogramId, "[[1]]", 200)
+
+        sdk.mergeProgressInto("local:1", "uid-7")
+
+        val merged = sdk.getProgressForUser("uid-7").single()
+        assertEquals(2, merged.beat)
+        assertEquals(listOf(listOf(1)), merged.board)
+    }
+
+    @Test
     fun saveProgressWithTimestamp_and_getSingleProgress_roundTrip() = runTest {
         val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
-        val userId = sdk.addUser("Grace")
         val timestamp = 1700000000000L
 
-        sdk.saveProgressWithTimestamp(userId, nonogramId, "[[1]]", timestamp)
+        sdk.saveProgressWithTimestamp("uid-grace", nonogramId, "[[1]]", timestamp)
 
-        val single = sdk.getSingleProgress(userId, nonogramId)
+        val single = sdk.getSingleProgress("uid-grace", nonogramId)
         assertNotNull(single)
         assertEquals("[[1]]", single.boardState)
         assertEquals(timestamp, single.updatedAt)
@@ -225,23 +288,21 @@ class AppSDKTest {
     fun getProgressForUserWithTimestamp_returnsAllProgress() = runTest {
         val id1 = sdk.addNonogram("EASY", listOf(listOf(1)))
         val id2 = sdk.addNonogram("HARD", listOf(listOf(0)))
-        val userId = sdk.addUser("Heidi")
 
-        sdk.saveProgress(userId, id1, listOf(listOf(1)))
-        sdk.saveProgress(userId, id2, listOf(listOf(0)))
+        sdk.saveProgress("uid-heidi", id1, listOf(listOf(1)))
+        sdk.saveProgress("uid-heidi", id2, listOf(listOf(0)))
 
-        val progress = sdk.getProgressForUserWithTimestamp(userId)
+        val progress = sdk.getProgressForUserWithTimestamp("uid-heidi")
         assertEquals(2, progress.size)
     }
 
     @Test
     fun saveProgress_nullBoard() = runTest {
         val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
-        val userId = sdk.addUser("Ivan")
 
-        sdk.saveProgress(userId, nonogramId, null)
+        sdk.saveProgress("uid-ivan", nonogramId, null)
 
-        val single = sdk.getSingleProgress(userId, nonogramId)
+        val single = sdk.getSingleProgress("uid-ivan", nonogramId)
         assertNotNull(single)
         assertNull(single.boardState)
     }

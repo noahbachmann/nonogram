@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
-import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.BoardHistory
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
@@ -138,7 +137,7 @@ class GenViewModel(
     fun loadMyNonograms() {
         isLoadingMine = true
         viewModelScope.launch {
-            val authorUid = authRepository.currentAuthorUid.value
+            val authorUid = authRepository.currentUserUid.value
             myNonograms = if (authorUid == null) {
                 emptyList()
             } else {
@@ -222,8 +221,7 @@ class GenViewModel(
 
     fun onSave(onDone: () -> Unit = {}) {
         if (isSaving) return
-        val userId = authRepository.currentUserId.value ?: return
-        val authorUid = authRepository.currentAuthorUid.value ?: return
+        val authorUid = authRepository.currentUserUid.value ?: return
         val nonogramId = nonogram.id
         val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
         nonogram = nonogram.copy(solution = board)
@@ -258,7 +256,7 @@ class GenViewModel(
                     // Re-fetch so the UI and pushed copy carry the freshly stamped updatedAt.
                     val persistedNonogram = sdk.getNonogramById(savedId)
                     if (persistedNonogram != null) {
-                        val firebaseUid = sdk.getUserById(userId)?.firebaseUid
+                        val firebaseUid = authRepository.currentFirebaseUid
                         if (firebaseUid != null) {
                             syncService.pushNonogram(firebaseUid, persistedNonogram, contentChanged)
                         }
@@ -286,8 +284,7 @@ class GenViewModel(
         if (isSaving || isRequestingPublish) return
         val nonogramId = nonogram.id
         if (nonogramId == 0L) return
-        val userId = authRepository.currentUserId.value ?: return
-        if (authRepository.authState.value != AuthState.SIGNED_IN) return
+        val firebaseUid = authRepository.currentFirebaseUid ?: return
         isRequestingPublish = true
         publishError = null
         viewModelScope.launch {
@@ -296,8 +293,7 @@ class GenViewModel(
                 val result = withContext(Dispatchers.Default) {
                     sdk.updateNonogram(nonogramId, requested)
                     val persisted = sdk.getNonogramById(nonogramId)
-                    val firebaseUid = sdk.getUserById(userId)?.firebaseUid
-                    val accepted = persisted != null && firebaseUid != null &&
+                    val accepted = persisted != null &&
                             syncService.requestPublish(firebaseUid, persisted)
                     if (!accepted && persisted != null) {
                         sdk.updateNonogram(

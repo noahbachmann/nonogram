@@ -6,9 +6,9 @@ import com.trainpaths.nonogram.classes.Nonogram
 interface SyncService {
     suspend fun pushProgress(firebaseUid: String, nonogramId: Long, boardState: String?, updatedAt: Long)
     suspend fun hasRemoteProgress(firebaseUid: String): Boolean
-    suspend fun uploadAllLocalProgress(firebaseUid: String, localUserId: Long)
-    suspend fun pullAllProgress(firebaseUid: String, localUserId: Long)
-    suspend fun pullAndMergeAllProgress(firebaseUid: String, localUserId: Long)
+    suspend fun uploadAllLocalProgress(firebaseUid: String)
+    suspend fun pullAllProgress(firebaseUid: String)
+    suspend fun pullAndMergeAllProgress(firebaseUid: String)
 
     /** Writes the puzzle to the shared `nonograms` collection, authored by [firebaseUid]. */
     suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, resetPublishStatus: Boolean = false)
