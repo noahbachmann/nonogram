@@ -1,7 +1,5 @@
 rules_version = '2';
 
-// Publish moderation lives here, not in the client: see docs/publish-moderation.md.
-// Deploy with `firebase deploy --only firestore:rules`, or paste into the Firebase console.
 service cloud.firestore {
   match /databases/{database}/documents {
 
