@@ -1,13 +1,16 @@
 package com.trainpaths.nonogram.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -15,10 +18,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.MAX_CONTENT_WIDTH
 import com.trainpaths.nonogram.classes.BoardHistory
 import com.trainpaths.nonogram.classes.DrawMode
 import com.trainpaths.nonogram.icons.expand_content
@@ -44,72 +49,77 @@ fun BottomToolBar(
     saveEnabled: Boolean = false,
     onSave: () -> Unit = {},
 ) {
-    BottomAppBar(
-        modifier = Modifier.fillMaxWidth(),
-        containerColor = MaterialTheme.colorScheme.secondary,
-        contentColor = MaterialTheme.colorScheme.onSecondary,
+    Box(
+        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.secondary),
+        contentAlignment = Alignment.BottomCenter,
     ) {
-        BottomBarItem(
-            label = if (isLocked) "Locked" else "Unlocked",
-            imageVector = if (isLocked) lockClosed else lockOpen,
-            contentDescription = if (isLocked) "Locked" else "Unlocked",
-            onClick = onLockToggle,
-        )
-
-        val drawModeLabel = when (drawMode) {
-            DrawMode.TOGGLE -> "Draw"
-            DrawMode.FILL -> "Fill"
-            DrawMode.CROSS -> "Cross"
-            DrawMode.ERASE -> "Erase"
-        }
-        BottomBarItem(
-            label = drawModeLabel,
-            imageVector = when (drawMode) {
-                DrawMode.TOGGLE -> stylus
-                DrawMode.FILL -> tileFill
-                DrawMode.CROSS -> tileCross
-                DrawMode.ERASE -> tileErase
-            },
-            contentDescription = "Draw mode: $drawModeLabel",
-            onClick = onDrawModeToggle,
-        )
-
-        if (resetZoom != null) {
+        BottomAppBar(
+            modifier = Modifier.widthIn(max = MAX_CONTENT_WIDTH).fillMaxWidth(),
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSecondary,
+        ) {
             BottomBarItem(
-                label = "Zoom out",
-                imageVector = expand_content,
-                contentDescription = "Zoom out to fit",
-                onClick = resetZoom,
+                label = if (isLocked) "Locked" else "Unlocked",
+                imageVector = if (isLocked) lockClosed else lockOpen,
+                contentDescription = if (isLocked) "Locked" else "Unlocked",
+                onClick = onLockToggle,
             )
-        }
 
-        if (history != null) {
+            val drawModeLabel = when (drawMode) {
+                DrawMode.TOGGLE -> "Draw"
+                DrawMode.FILL -> "Fill"
+                DrawMode.CROSS -> "Cross"
+                DrawMode.ERASE -> "Erase"
+            }
             BottomBarItem(
-                label = "Undo",
-                imageVector = undo,
-                contentDescription = "Undo",
-                onClick = { history.undo() },
-                enabled = history.canUndo,
+                label = drawModeLabel,
+                imageVector = when (drawMode) {
+                    DrawMode.TOGGLE -> stylus
+                    DrawMode.FILL -> tileFill
+                    DrawMode.CROSS -> tileCross
+                    DrawMode.ERASE -> tileErase
+                },
+                contentDescription = "Draw mode: $drawModeLabel",
+                onClick = onDrawModeToggle,
             )
-            BottomBarItem(
-                label = "Redo",
-                imageVector = redo,
-                contentDescription = "Redo",
-                onClick = { history.redo() },
-                enabled = history.canRedo,
-            )
-        }
 
-        Spacer(Modifier.weight(1f))
+            if (resetZoom != null) {
+                BottomBarItem(
+                    label = "Zoom out",
+                    imageVector = expand_content,
+                    contentDescription = "Zoom out to fit",
+                    onClick = resetZoom,
+                )
+            }
 
-        if (showSave) {
-            BottomBarItem(
-                label = "Save",
-                imageVector = save,
-                contentDescription = "Save nonogram",
-                onClick = onSave,
-                enabled = saveEnabled,
-            )
+            if (history != null) {
+                BottomBarItem(
+                    label = "Undo",
+                    imageVector = undo,
+                    contentDescription = "Undo",
+                    onClick = { history.undo() },
+                    enabled = history.canUndo,
+                )
+                BottomBarItem(
+                    label = "Redo",
+                    imageVector = redo,
+                    contentDescription = "Redo",
+                    onClick = { history.redo() },
+                    enabled = history.canRedo,
+                )
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            if (showSave) {
+                BottomBarItem(
+                    label = "Save",
+                    imageVector = save,
+                    contentDescription = "Save nonogram",
+                    onClick = onSave,
+                    enabled = saveEnabled,
+                )
+            }
         }
     }
 }

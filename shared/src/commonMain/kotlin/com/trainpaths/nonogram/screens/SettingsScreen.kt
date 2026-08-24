@@ -59,14 +59,17 @@ fun SettingsScreen(
     val isAdmin by authViewModel.isAdmin.collectAsState()
     var showSignOutDialog by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         TopAppBar(
             titleIcon = settings,
             onBack = onBack,
             backArrow = true,
         )
         Column(
-            modifier = Modifier.fillMaxHeight().width(260.dp).padding(16.dp),
+            modifier = Modifier.fillMaxHeight().width(320.dp).padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(40.dp, Alignment.CenterVertically),
         ) {
             Column(
@@ -79,7 +82,7 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     ColorTheme.entries.forEach { entry ->
                         ThemeSwatch(
                             theme = entry,
@@ -161,18 +164,18 @@ private fun ThemeSwatch(
     onSelect: () -> Unit,
 ) {
     val shape = RoundedCornerShape(6.dp)
-    Box(modifier = Modifier.size(48.dp)) {
+    Box(modifier = Modifier.size(46.dp)) {
         if (selected) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(42.dp)
                     .offset(x = 4.dp, y = 4.dp)
                     .background(color = MaterialTheme.colorScheme.onPrimary, shape = shape)
             )
         }
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(42.dp)
                 .clip(shape)
                 .background(theme.scheme.primary.darken(if (selected) 0.15f else 0f))
                 .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect)

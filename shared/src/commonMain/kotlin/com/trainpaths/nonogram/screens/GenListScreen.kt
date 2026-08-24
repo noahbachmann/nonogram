@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -27,6 +28,7 @@ import com.trainpaths.nonogram.classes.NonogramCard
 import com.trainpaths.nonogram.classes.NonogramGrid
 import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.TopAppBar
+import com.trainpaths.nonogram.MAX_CONTENT_WIDTH
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.GeneratorSyncState
 
@@ -39,78 +41,83 @@ fun GenListScreen(
     onNewClick: () -> Unit,
     onEditClick: (Nonogram) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         TopAppBar(
             showSettings = true,
             mode = AppBarMode.GENERATOR,
             onSwapMode = { onSwap() },
         )
 
-        Button(
-            onClick = onNewClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .height(48.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.onPrimary,
-                contentColor = MaterialTheme.colorScheme.primary,
-            ),
-        ) {
-            Text("+ New", style = MaterialTheme.typography.titleMedium)
-        }
-
-        when (generatorSyncState) {
-            GeneratorSyncState.IDLE -> Unit
-            GeneratorSyncState.SYNCING -> {
-                LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.secondary,
-                )
+        Column(modifier = Modifier.widthIn(max = MAX_CONTENT_WIDTH).fillMaxSize()) {
+            Button(
+                onClick = onNewClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onPrimary,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                ),
+            ) {
+                Text("+ New", style = MaterialTheme.typography.titleMedium)
             }
 
-            GeneratorSyncState.ERROR -> {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.outline),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            when (generatorSyncState) {
+                GeneratorSyncState.IDLE -> Unit
+                GeneratorSyncState.SYNCING -> {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+
+                GeneratorSyncState.ERROR -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.outline),
                     ) {
-                        Text(
-                            text = "Your nonograms couldn't be synced. Check your connection and try again.",
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        OutlinedButton(onClick = onRetrySync) {
-                            Text("Retry")
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                text = "Your nonograms couldn't be synced. Check your connection and try again.",
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            OutlinedButton(onClick = onRetrySync) {
+                                Text("Retry")
+                            }
                         }
                     }
                 }
             }
-        }
 
-        if (genViewModel.isLoadingMine) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-            }
-        } else if (genViewModel.myNonograms.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "You haven't created any nonograms yet.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            }
-        } else {
-            NonogramGrid {
-                items(genViewModel.myNonograms) { nonogram ->
-                    NonogramCard(
-                        nonogram = nonogram,
-                        onClick = { onEditClick(nonogram) },
+            if (genViewModel.isLoadingMine) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+                }
+            } else if (genViewModel.myNonograms.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "You haven't created any nonograms yet.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
+                }
+            } else {
+                NonogramGrid {
+                    items(genViewModel.myNonograms) { nonogram ->
+                        NonogramCard(
+                            nonogram = nonogram,
+                            onClick = { onEditClick(nonogram) },
+                        )
+                    }
                 }
             }
         }
