@@ -15,9 +15,19 @@ internal external interface NonogramDocData : JsAny {
     val difficulty: String
     val solution: String
     val name: String?
-    val authorUid: String
-    val status: Double
+
+    /** Nullable only for docs written before the field existed; every writer sets it. */
+    val authorUid: String?
     val updatedAt: Double
+    val publishStatus: String?
+
+    /** Legacy visibility flag, read only to classify docs written before review existed. */
+    val status: Double?
+}
+
+internal external interface UserGateDocData : JsAny {
+    val denialStreak: Double?
+    val publishBanned: Boolean?
 }
 
 // Global JSON — the portable way to build plain JS objects from webMain, where js(...) is unavailable.

@@ -6,6 +6,7 @@ import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.di.appModule
 import com.trainpaths.nonogram.di.webModule
 import com.trainpaths.nonogram.firebase.FirebaseWeb
+import com.trainpaths.nonogram.screens.viewModel.AdminViewModel
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
@@ -39,6 +40,7 @@ fun main() {
             genViewModelFactory = { koinViewModel<GenViewModel>() },
             settingsViewModel = koinViewModel<SettingsViewModel>(),
             gameViewModelFactory = { _ -> koinViewModel<GameViewModel>() },
+            adminViewModelFactory = { koinViewModel<AdminViewModel>() },
         )
     }
 }

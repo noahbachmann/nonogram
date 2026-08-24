@@ -20,6 +20,7 @@ import androidx.navigation.toRoute
 import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.dialogs.PlayConfirmDialog
 import com.trainpaths.nonogram.dialogs.WinConfirmDialog
+import com.trainpaths.nonogram.navigation.AdminRoute
 import com.trainpaths.nonogram.navigation.GameRoute
 import com.trainpaths.nonogram.navigation.GenConfRoute
 import com.trainpaths.nonogram.navigation.GenListRoute
@@ -30,6 +31,7 @@ import com.trainpaths.nonogram.navigation.MenuRoute
 import com.trainpaths.nonogram.navigation.PlayDialogRoute
 import com.trainpaths.nonogram.navigation.SettingsRoute
 import com.trainpaths.nonogram.navigation.WinDialogRoute
+import com.trainpaths.nonogram.screens.AdminScreen
 import com.trainpaths.nonogram.screens.GameScreen
 import com.trainpaths.nonogram.screens.GenConfScreen
 import com.trainpaths.nonogram.screens.GenScreen
@@ -38,6 +40,7 @@ import com.trainpaths.nonogram.screens.LoginScreen
 import com.trainpaths.nonogram.screens.MenuScreen
 import com.trainpaths.nonogram.screens.GenListScreen
 import com.trainpaths.nonogram.screens.SettingsScreen
+import com.trainpaths.nonogram.screens.viewModel.AdminViewModel
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
@@ -52,6 +55,7 @@ fun App(
     genViewModelFactory: @Composable () -> GenViewModel,
     settingsViewModel: SettingsViewModel,
     gameViewModelFactory: @Composable (Long) -> GameViewModel,
+    adminViewModelFactory: @Composable () -> AdminViewModel,
 ) {
     val theme by settingsViewModel.theme.collectAsState()
     val authState by authViewModel.authState.collectAsState()
@@ -66,6 +70,7 @@ fun App(
                 genViewModel = genViewModelFactory(),
                 settingsViewModel = settingsViewModel,
                 gameViewModelFactory = gameViewModelFactory,
+                adminViewModelFactory = adminViewModelFactory,
             )
         }
     }
@@ -78,6 +83,7 @@ private fun AppContent(
     genViewModel: GenViewModel,
     settingsViewModel: SettingsViewModel,
     gameViewModelFactory: @Composable (Long) -> GameViewModel,
+    adminViewModelFactory: @Composable () -> AdminViewModel,
 ) {
     val startDestination = if (authViewModel.hasCompletedOnboarding) MenuRoute else LoginRoute
 
@@ -165,9 +171,11 @@ private fun AppContent(
             }
             composable<GenConfRoute> { entry ->
                 val route: GenConfRoute = entry.toRoute()
+                val isPublishBanned by authViewModel.publishBanned.collectAsState()
                 GenConfScreen(
                     genViewModel = genViewModel,
                     editing = route.editing,
+                    isPublishBanned = isPublishBanned,
                     onBack = { navController.popBackStack() },
                     onDone = {
                         if (route.editing) {
@@ -260,6 +268,7 @@ private fun AppContent(
                     authViewModel = authViewModel,
                     settingsViewModel = settingsViewModel,
                     onBack = { navController.popBackStack() },
+                    onAdminPanel = { navController.navigate(AdminRoute) },
                     onSignIn = { navController.navigate(LoginRoute) },
                     onSignOut = {
                         authViewModel.signOut {
@@ -267,6 +276,12 @@ private fun AppContent(
                             genViewModel.loadMyNonograms()
                         }
                     },
+                )
+            }
+            composable<AdminRoute> {
+                AdminScreen(
+                    adminViewModel = adminViewModelFactory(),
+                    onBack = { navController.popBackStack() },
                 )
             }
         }

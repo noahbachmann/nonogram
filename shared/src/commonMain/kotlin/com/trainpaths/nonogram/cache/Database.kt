@@ -6,9 +6,10 @@ import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.db.SqlDriver
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.normalizeNonogramName
-import com.trainpaths.nonogram.util.toBoolean
 import com.trainpaths.nonogram.util.toLong
+import com.trainpaths.nonogram.util.toPublishStatus
 import kotlinx.serialization.json.Json
 import kotlin.random.Random
 import kotlin.time.Clock
@@ -26,8 +27,8 @@ internal class Database(driver: SqlDriver) {
     internal suspend fun getNonogramsByDifficulty(difficulty: String): List<Nonogram> =
         dbQuery.selectNonogramsByDifficulty(difficulty, ::mapNonogram).awaitAsList()
 
-    internal suspend fun getNonogramsByAuthor(authorId: Long): List<Nonogram> =
-        dbQuery.selectNonogramsByAuthor(authorId, ::mapNonogram).awaitAsList()
+    internal suspend fun getNonogramsByAuthor(authorUid: String): List<Nonogram> =
+        dbQuery.selectNonogramsByAuthor(authorUid, ::mapNonogram).awaitAsList()
 
     internal suspend fun getNonogramById(id: Long): Nonogram? =
         dbQuery.selectNonogramById(id, ::mapNonogram).awaitAsOneOrNull()
@@ -43,10 +44,10 @@ internal class Database(driver: SqlDriver) {
     internal suspend fun addNonogram(
         difficulty: String,
         solution: List<List<Int>>,
-        authorId: Long = 0,
-        isPublic: Boolean = false,
+        authorUid: String = "",
         id: Long? = null,
         name: String? = null,
+        publishStatus: PublishStatus = PublishStatus.NONE,
     ): Long {
         // Random ids in [2^20, 2^53) stay unique across devices (Firestore doc ids) and JS-double-safe.
         val nonogramId = id ?: Random.nextLong(1L shl 20, 1L shl 53)
@@ -54,8 +55,8 @@ internal class Database(driver: SqlDriver) {
             nonogramId,
             difficulty,
             json.encodeToString(solution),
-            authorId,
-            isPublic.toLong(),
+            authorUid,
+            publishStatus.toLong(),
             Clock.System.now().toEpochMilliseconds(),
             name?.let(::normalizeNonogramName),
         )
@@ -69,8 +70,8 @@ internal class Database(driver: SqlDriver) {
         dbQuery.updateNonogram(
             nonogram.difficulty.toString(),
             json.encodeToString(nonogram.solution),
-            nonogram.authorId,
-            nonogram.isPublic.toLong(),
+            nonogram.authorUid,
+            nonogram.publishStatus.toLong(),
             Clock.System.now().toEpochMilliseconds(),
             nonogram.name?.let(::normalizeNonogramName),
             id
@@ -78,13 +79,17 @@ internal class Database(driver: SqlDriver) {
         return id
     }
 
+    internal suspend fun reassignAuthor(fromUid: String, toUid: String) {
+        dbQuery.reassignAuthor(toUid = toUid, fromUid = fromUid)
+    }
+
     internal suspend fun upsertNonogram(nonogram: Nonogram) {
         dbQuery.upsertNonogram(
             nonogram.id,
             nonogram.difficulty.toString(),
             json.encodeToString(nonogram.solution),
-            nonogram.authorId,
-            nonogram.isPublic.toLong(),
+            nonogram.authorUid,
+            nonogram.publishStatus.toLong(),
             nonogram.updatedAt,
             nonogram.name?.let(::normalizeNonogramName),
         )
@@ -163,7 +168,7 @@ internal class Database(driver: SqlDriver) {
         id: Long,
         difficulty: String,
         solution: String,
-        authorId: Long,
+        authorUid: String,
         status: Long,
         updatedAt: Long,
         name: String?,
@@ -172,16 +177,16 @@ internal class Database(driver: SqlDriver) {
         difficulty = Difficulty.valueOf(difficulty),
         solution = json.decodeFromString(solution),
         name = name,
-        authorId = authorId,
-        isPublic = status.toBoolean(),
-        updatedAt = updatedAt
+        authorUid = authorUid,
+        updatedAt = updatedAt,
+        publishStatus = status.toPublishStatus(),
     )
 
     private fun mapProgress(
         id: Long,
         difficulty: String,
         solution: String,
-        authorId: Long,
+        authorUid: String,
         status: Long,
         updatedAt: Long,
         name: String?,
@@ -193,9 +198,9 @@ internal class Database(driver: SqlDriver) {
             difficulty = Difficulty.valueOf(difficulty),
             solution = json.decodeFromString(solution),
             name = name,
-            authorId = authorId,
-            isPublic = status.toBoolean(),
-            updatedAt = updatedAt
+            authorUid = authorUid,
+            updatedAt = updatedAt,
+            publishStatus = status.toPublishStatus(),
         ),
         board = boardState?.let { json.decodeFromString(it) },
         beat = beat

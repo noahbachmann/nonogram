@@ -61,10 +61,10 @@ their database order.
 
 ## Own puzzles
 
-Ownership is `Nonogram.isOwned(userId)`, which excludes `authorId == 0L` — seeded puzzles and
-puzzles pulled from another author both carry 0 (see `sync/SyncService.kt` and its two platform
-implementations). Guests count: a guest has a local user id and can author puzzles, so the Personal
-row is meaningful before sign-in and is always shown.
+Ownership is `Nonogram.isOwned(uid)`, which excludes a blank `authorUid` — seeded puzzles carry one.
+The uid compared against is `AuthRepository.currentAuthorUid`: a Firebase uid once signed in, a
+`"local:<userId>"` key while a guest. Guests count: a guest can author puzzles, so the Personal row
+is meaningful before sign-in and is always shown.
 
 Your puzzles are pinned to the top of the grid **only while nothing is sorted**. That is
 `MenuViewModel`'s private `ownFirst()`, applied *after* `applyTo` rather than inside it, and skipped
@@ -87,10 +87,10 @@ with several values, a `FilterToggle` for a single show/hide switch. Nothing in 
 
 `MenuViewModel` owns the applied `filterSort` (in memory only — it resets on restart, and there is
 deliberately no `Settings` key) and exposes `visibleNonograms`, a `derivedStateOf` over the
-unfiltered `nonograms` list. Because `AuthRepository.currentUserId` is a `StateFlow` that
-`derivedStateOf` cannot observe, `reload()` mirrors it into a Compose-state `userId`, which
+unfiltered `nonograms` list. Because `AuthRepository.currentAuthorUid` is a `StateFlow` that
+`derivedStateOf` cannot observe, `reload()` mirrors it into a Compose-state `authorUid`, which
 `filterEntries` and `visibleNonograms` derive from and which `MenuScreen` reads directly for
-`nonogram.isOwned(viewModel.userId)` — so the entries, the pinning, and the card tint all refresh on
+`nonogram.isOwned(viewModel.authorUid)` — so the entries, the pinning, and the card tint all refresh on
 sign-in/sign-out, both of which run `loadAll()`. `MenuScreen` passes
 `FilterMenuButton` through the `TopAppBar`'s `navigationContent` slot — an optional caller-supplied
 composable that takes precedence over the default back button.

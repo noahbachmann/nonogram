@@ -5,6 +5,7 @@ import com.trainpaths.nonogram.cache.DatabaseFactory
 import com.trainpaths.nonogram.cache.NonogramProgress
 import com.trainpaths.nonogram.cache.ProgressWithTimestamp
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.classes.PublishStatus
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -26,7 +27,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0), listOf(1, 1, 1, 1, 1),
                 listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0)
             ),
-            isPublic = true,
+            publishStatus = PublishStatus.APPROVED,
             id = 1,
         )
         addNonogram(
@@ -35,7 +36,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(1, 1, 1, 1, 1), listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 0, 0),
                 listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 1, 1)
             ),
-            isPublic = true,
+            publishStatus = PublishStatus.APPROVED,
             id = 2,
         )
         addNonogram(
@@ -44,7 +45,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(1, 1, 0, 0, 0), listOf(0, 1, 1, 0, 0), listOf(0, 0, 1, 1, 0),
                 listOf(0, 0, 0, 1, 1), listOf(0, 0, 0, 0, 1)
             ),
-            isPublic = true,
+            publishStatus = PublishStatus.APPROVED,
             id = 3,
         )
         addNonogram(
@@ -61,7 +62,7 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
                 listOf(0, 0, 1, 1, 1, 1, 0, 1, 0, 1),
                 listOf(0, 0, 0, 0, 1, 1, 1, 0, 0, 1),
             ),
-            isPublic = true,
+            publishStatus = PublishStatus.APPROVED,
             id = 4,
         )
     }
@@ -72,8 +73,8 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
     suspend fun getNonogramsByDifficulty(difficulty: String): List<Nonogram> =
         db().getNonogramsByDifficulty(difficulty)
 
-    suspend fun getNonogramsByAuthor(authorId: Long): List<Nonogram> =
-        db().getNonogramsByAuthor(authorId)
+    suspend fun getNonogramsByAuthor(authorUid: String): List<Nonogram> =
+        db().getNonogramsByAuthor(authorUid)
 
     suspend fun getNonogramById(id: Long): Nonogram? =
         db().getNonogramById(id)
@@ -84,12 +85,12 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
     suspend fun addNonogram(
         difficulty: String,
         solution: List<List<Int>>,
-        authorId: Long = 0,
-        isPublic: Boolean = false,
+        authorUid: String = "",
         id: Long? = null,
         name: String? = null,
+        publishStatus: PublishStatus = PublishStatus.NONE,
     ): Long =
-        db().addNonogram(difficulty, solution, authorId, isPublic, id, name)
+        db().addNonogram(difficulty, solution, authorUid, id, name, publishStatus)
 
     suspend fun updateNonogram(
         id: Long,
@@ -99,6 +100,10 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
 
     suspend fun upsertNonogramFromRemote(nonogram: Nonogram) =
         db().upsertNonogram(nonogram)
+
+    /** Moves every puzzle authored under one author key to another, as sign-in does. */
+    suspend fun reassignAuthor(fromUid: String, toUid: String) =
+        db().reassignAuthor(fromUid, toUid)
 
     suspend fun addUser(name: String): Long =
         db().addUser(name)

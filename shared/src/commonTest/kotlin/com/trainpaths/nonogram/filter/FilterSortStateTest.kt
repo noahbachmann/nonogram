@@ -7,12 +7,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-private const val OWNER_ID = 7L
+private const val OWNER_UID = "uid-7"
 
 class FilterSortStateTest {
 
-    private fun nonogram(id: Long, difficulty: Difficulty, authorId: Long = 0) =
-        Nonogram(id = id, difficulty = difficulty, solution = listOf(listOf(1)), authorId = authorId)
+    private fun nonogram(id: Long, difficulty: Difficulty, authorUid: String = "") =
+        Nonogram(id = id, difficulty = difficulty, solution = listOf(listOf(1)), authorUid = authorUid)
 
     private val easy = nonogram(1, Difficulty.EASY)
     private val hard = nonogram(2, Difficulty.HARD)
@@ -20,11 +20,11 @@ class FilterSortStateTest {
     private val easyToo = nonogram(4, Difficulty.EASY)
     private val all = listOf(easy, hard, medium, easyToo)
 
-    private val myHard = nonogram(5, Difficulty.HARD, OWNER_ID)
-    private val myEasy = nonogram(6, Difficulty.EASY, OWNER_ID)
+    private val myHard = nonogram(5, Difficulty.HARD, OWNER_UID)
+    private val myEasy = nonogram(6, Difficulty.EASY, OWNER_UID)
     private val mixed = listOf(easy, myHard, hard, myEasy)
 
-    private val entries = NonogramFilters.forUser(OWNER_ID)
+    private val entries = NonogramFilters.forUser(OWNER_UID)
     private val difficulty = NonogramFilters.DIFFICULTY.label
     private val personal = NonogramFilters.PERSONAL
 
@@ -121,7 +121,7 @@ class FilterSortStateTest {
 
     @Test
     fun personal_appliesToTheOwnerOnly() {
-        val someoneElse = NonogramFilters.forUser(OWNER_ID + 1)
+        val someoneElse = NonogramFilters.forUser("uid-8")
         val state = FilterSortState().toggle(personal)
 
         assertEquals(mixed, state.applyTo(mixed, someoneElse))

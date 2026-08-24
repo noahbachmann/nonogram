@@ -3,12 +3,13 @@ package com.trainpaths.nonogram.sync
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
-import com.trainpaths.nonogram.util.toBoolean
-import com.trainpaths.nonogram.util.toLong
+import com.trainpaths.nonogram.classes.PublishStatus
+import com.trainpaths.nonogram.util.toPublishStatus
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.firestore
 import kotlinx.serialization.json.Json
+import kotlin.time.Clock
 
 class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
 
@@ -19,6 +20,9 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
         firestore.collection("users").document(firebaseUid).collection("progress")
 
     private fun nonogramsCollection() = firestore.collection("nonograms")
+
+    private fun userDocument(firebaseUid: String) =
+        firestore.collection("users").document(firebaseUid)
 
     override suspend fun pushProgress(firebaseUid: String, nonogramId: Long, boardState: String?, updatedAt: Long) {
         try {
@@ -86,27 +90,27 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
         }
     }
 
-    override suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram) {
+    override suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, resetPublishStatus: Boolean) {
         try {
-            nonogramsCollection().document(nonogram.id.toString()).set(
-                mapOf(
-                    "difficulty" to nonogram.difficulty.toString(),
-                    // Solution stays a JSON string: Firestore rejects nested arrays.
-                    "solution" to json.encodeToString(nonogram.solution),
-                    "name" to nonogram.name,
-                    "authorUid" to firebaseUid,
-                    "status" to nonogram.isPublic.toLong(),
-                    "updatedAt" to nonogram.updatedAt,
-                )
-            )
+            val fields = buildMap<String, Any?> {
+                put("difficulty", nonogram.difficulty.toString())
+                // Solution stays a JSON string: Firestore rejects nested arrays.
+                put("solution", json.encodeToString(nonogram.solution))
+                put("name", nonogram.name)
+                put("authorUid", firebaseUid)
+                put("updatedAt", nonogram.updatedAt)
+                if (resetPublishStatus) put("publishStatus", PublishStatus.NONE.name)
+            }
+            // Merge, so an ordinary save never clobbers a pending or approved publish status.
+            nonogramsCollection().document(nonogram.id.toString()).set(fields, merge = true)
         } catch (e: Exception) {
             println("FirestoreSync: push nonogram ${nonogram.id} failed: ${e.message}")
         }
     }
 
-    override suspend fun uploadAllLocalNonograms(firebaseUid: String, localUserId: Long) {
+    override suspend fun uploadAllLocalNonograms(firebaseUid: String) {
         try {
-            for (nonogram in sdk.getNonogramsByAuthor(localUserId)) {
+            for (nonogram in sdk.getNonogramsByAuthor(firebaseUid)) {
                 pushNonogram(firebaseUid, nonogram)
             }
         } catch (e: Exception) {
@@ -114,47 +118,102 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
         }
     }
 
-    override suspend fun pullPublicNonogramsSince(
-        firebaseUid: String,
-        localUserId: Long,
-        since: Long,
-    ): Long? = try {
+    override suspend fun pullPublicNonogramsSince(firebaseUid: String, since: Long): Long? = try {
         val documents = nonogramsCollection()
-            .where { "status" equalTo 1L }
+            .where { "publishStatus" equalTo PublishStatus.APPROVED.name }
             .where { "updatedAt" greaterThan since }
             .get().documents
-        mergeRemoteNonograms(
-            sdk, firebaseUid, localUserId, since,
-            parseNonograms(documents, firebaseUid, localUserId),
-        )
+        mergeRemoteNonograms(sdk, firebaseUid, since, parseNonograms(documents))
     } catch (e: Exception) {
         println("FirestoreSync: pull public nonograms for puzzle list failed: ${e.message}")
         null
     }
 
-    override suspend fun pullOwnedNonograms(
-        firebaseUid: String,
-        localUserId: Long,
-        since: Long,
-    ): Long? = try {
+    override suspend fun pullOwnedNonograms(firebaseUid: String, since: Long): Long? = try {
         val documents = nonogramsCollection()
             .where { "authorUid" equalTo firebaseUid }
             .where { "updatedAt" greaterThan since }
             .get().documents
-        mergeRemoteNonograms(
-            sdk, firebaseUid, localUserId, since,
-            parseNonograms(documents, firebaseUid, localUserId),
-        )
+        mergeRemoteNonograms(sdk, firebaseUid, since, parseNonograms(documents))
     } catch (e: Exception) {
         println("FirestoreSync: pull owned nonograms for Generator failed: ${e.message}")
         null
     }
 
-    private fun parseNonograms(
-        documents: List<DocumentSnapshot>,
+    override suspend fun requestPublish(firebaseUid: String, nonogram: Nonogram): Boolean = try {
+        nonogramsCollection().document(nonogram.id.toString()).set(
+            mapOf(
+                "publishStatus" to PublishStatus.PENDING.name,
+                "updatedAt" to nonogram.updatedAt,
+            ),
+            merge = true,
+        )
+        true
+    } catch (e: Exception) {
+        println("FirestoreSync: publish request for nonogram ${nonogram.id} rejected: ${e.message}")
+        false
+    }
+
+    override suspend fun fetchModerationGate(firebaseUid: String): ModerationGate? = try {
+        val snapshot = userDocument(firebaseUid).get()
+        if (!snapshot.exists) {
+            ModerationGate()
+        } else {
+            val streak = snapshot.get<Long?>("denialStreak")?.toInt() ?: 0
+            ModerationGate(streak, snapshot.get<Boolean?>("publishBanned") ?: isPublishBanned(streak))
+        }
+    } catch (e: Exception) {
+        println("FirestoreSync: moderation gate read failed: ${e.message}")
+        null
+    }
+
+    override suspend fun isAdmin(firebaseUid: String): Boolean = try {
+        firestore.collection("admins").document(firebaseUid).get().exists
+    } catch (e: Exception) {
+        println("FirestoreSync: admin check failed: ${e.message}")
+        false
+    }
+
+    override suspend fun pullPendingReviews(firebaseUid: String, limit: Int): List<Nonogram> = try {
+        parseNonograms(
+            nonogramsCollection()
+                .where { "publishStatus" equalTo PublishStatus.PENDING.name }
+                .orderBy("updatedAt")
+                .limit(limit)
+                .get().documents
+        )
+    } catch (e: Exception) {
+        println("FirestoreSync: pending review fetch failed: ${e.message}")
+        emptyList()
+    }
+
+    override suspend fun decideReview(
         firebaseUid: String,
-        localUserId: Long,
-    ): List<Nonogram> = buildList {
+        nonogram: Nonogram,
+        approve: Boolean,
+    ): Boolean = try {
+        nonogramsCollection().document(nonogram.id.toString()).set(
+            mapOf(
+                "publishStatus" to (if (approve) PublishStatus.APPROVED else PublishStatus.DENIED).name,
+                "updatedAt" to Clock.System.now().toEpochMilliseconds(),
+            ),
+            merge = true,
+        )
+        val streak = nextDenialStreak(
+            current = fetchModerationGate(nonogram.authorUid)?.denialStreak ?: 0,
+            approved = approve,
+        )
+        userDocument(nonogram.authorUid).set(
+            mapOf("denialStreak" to streak.toLong(), "publishBanned" to isPublishBanned(streak)),
+            merge = true,
+        )
+        true
+    } catch (e: Exception) {
+        println("FirestoreSync: decision on nonogram ${nonogram.id} failed: ${e.message}")
+        false
+    }
+
+    private fun parseNonograms(documents: List<DocumentSnapshot>): List<Nonogram> = buildList {
         for (doc in documents) {
             val nonogramId = doc.id.toLongOrNull() ?: continue
             try {
@@ -164,9 +223,9 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
                         difficulty = Difficulty.valueOf(doc.get("difficulty")),
                         solution = json.decodeFromString(doc.get<String>("solution")),
                         name = doc.get<String?>("name"),
-                        authorId = if (doc.get<String>("authorUid") == firebaseUid) localUserId else 0,
-                        isPublic = doc.get<Long>("status").toBoolean(),
+                        authorUid = doc.get<String?>("authorUid") ?: "",
                         updatedAt = doc.get("updatedAt"),
+                        publishStatus = doc.publishStatus(),
                     )
                 )
             } catch (e: Exception) {
@@ -174,4 +233,12 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
             }
         }
     }
+
+    /**
+     * Docs written before review existed carry no `publishStatus`, only the old numeric `status`; a
+     * public one was implicitly approved. Drop this fallback once those docs are backfilled.
+     */
+    private fun DocumentSnapshot.publishStatus(): PublishStatus =
+        get<String?>("publishStatus")?.toPublishStatus()
+            ?: if (get<Long?>("status") == 1L) PublishStatus.APPROVED else PublishStatus.NONE
 }

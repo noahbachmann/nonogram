@@ -19,6 +19,7 @@ import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.classes.Board
 import com.trainpaths.nonogram.classes.DrawMode
 import com.trainpaths.nonogram.dialogs.GenSaveConfirmDialog
+import com.trainpaths.nonogram.dialogs.PublicEditConfirmDialog
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 
 @Composable
@@ -28,8 +29,17 @@ fun GenScreen(
     onExitToList: () -> Unit,
 ) {
     var showSaveDialog by remember { mutableStateOf(false) }
+    var pendingPublicSave by remember { mutableStateOf<(() -> Unit)?>(null) }
     var isLocked by remember { mutableStateOf(true) }
     var drawMode by remember { mutableStateOf(DrawMode.TOGGLE) }
+
+    fun requestSave(save: () -> Unit) {
+        if (genViewModel.needsPublicEditConfirmation()) {
+            pendingPublicSave = save
+        } else {
+            save()
+        }
+    }
 
     val attemptLeave = {
         if (!genViewModel.isSaving) {
@@ -42,7 +52,7 @@ fun GenScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            onBack = { if (!genViewModel.isSaving) onConfig() },
+            onBack = { if (!genViewModel.isSaving) requestSave { onConfig() } },
             showSettings = true,
             mode = AppBarMode.GENERATOR,
             onSwapMode = { attemptLeave() },
@@ -73,7 +83,7 @@ fun GenScreen(
             history = genViewModel.history,
             showSave = true,
             saveEnabled = genViewModel.canSave,
-            onSave = { genViewModel.onSave() },
+            onSave = { requestSave { genViewModel.onSave() } },
         )
     }
 
@@ -81,13 +91,23 @@ fun GenScreen(
         GenSaveConfirmDialog(
             onSave = {
                 showSaveDialog = false
-                genViewModel.onSave { onExitToList() }
+                requestSave { genViewModel.onSave { onExitToList() } }
             },
             onDiscard = {
                 showSaveDialog = false
                 onExitToList()
             },
             onCancel = { showSaveDialog = false },
+        )
+    }
+
+    pendingPublicSave?.let { save ->
+        PublicEditConfirmDialog(
+            onConfirm = {
+                pendingPublicSave = null
+                save()
+            },
+            onCancel = { pendingPublicSave = null },
         )
     }
 }
