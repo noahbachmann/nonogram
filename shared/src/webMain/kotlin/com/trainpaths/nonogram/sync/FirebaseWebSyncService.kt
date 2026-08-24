@@ -152,9 +152,9 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
             println("FirestoreSync(web): upload all nonograms failed: ${e.message}")
         }
     }
-
-    override suspend fun pullPublicNonogramsSince(firebaseUid: String, since: Long): Long? {
-        if (!sessionMatches(firebaseUid)) return null
+    
+    override suspend fun pullPublicNonogramsSince(firebaseUid: String?, since: Long): Long? {
+        if (firebaseUid != null) FirebaseWeb.awaitSignedInUid()
 
         val nonograms = collection(FirebaseWeb.requireFirestore(), "nonograms")
         val updatedAfterValue = since.toDouble().toJsNumber()

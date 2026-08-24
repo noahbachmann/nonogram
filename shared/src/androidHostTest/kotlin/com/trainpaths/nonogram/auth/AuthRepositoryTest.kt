@@ -189,19 +189,30 @@ class AuthRepositoryTest {
 
     @Test
     fun nonogramSyncTimestamps_defaultToZero() {
-        assertEquals(0L, authRepo.getLastPublicNonogramSyncTimestamp("firebase-user"))
+        assertEquals(0L, authRepo.getLastPublicNonogramSyncTimestamp())
         assertEquals(0L, authRepo.getLastOwnedNonogramSyncTimestamp("firebase-user"))
     }
 
     @Test
-    fun nonogramSyncTimestamps_areIndependentByListAndUser() {
-        authRepo.setLastPublicNonogramSyncTimestamp("firebase-user", 100)
+    fun nonogramSyncTimestamps_areIndependentByList() {
+        authRepo.setLastPublicNonogramSyncTimestamp(100)
         authRepo.setLastOwnedNonogramSyncTimestamp("firebase-user", 200)
 
-        assertEquals(100L, authRepo.getLastPublicNonogramSyncTimestamp("firebase-user"))
+        assertEquals(100L, authRepo.getLastPublicNonogramSyncTimestamp())
         assertEquals(200L, authRepo.getLastOwnedNonogramSyncTimestamp("firebase-user"))
-        assertEquals(0L, authRepo.getLastPublicNonogramSyncTimestamp("other-user"))
         assertEquals(0L, authRepo.getLastOwnedNonogramSyncTimestamp("other-user"))
+    }
+
+    // The public cursor is device-wide: guests have no uid to key it by, and every user on the
+    // device shares the same approved puzzles.
+    @Test
+    fun publicNonogramSyncTimestamp_isSharedAcrossUsers() = runTest {
+        authRepo.initialize()
+        authRepo.setLastPublicNonogramSyncTimestamp(100)
+
+        authRepo.linkFirebaseUser("firebase-abc", "Name")
+
+        assertEquals(100L, authRepo.getLastPublicNonogramSyncTimestamp())
     }
 
     @Test
@@ -238,13 +249,13 @@ class AuthRepositoryTest {
     fun signOut_keepsOnboardingAndSyncCursors() = runTest {
         authRepo.initialize()
         authRepo.linkFirebaseUser("firebase-abc", "Name")
-        authRepo.setLastPublicNonogramSyncTimestamp("firebase-abc", 100)
+        authRepo.setLastPublicNonogramSyncTimestamp(100)
         authRepo.setLastOwnedNonogramSyncTimestamp("firebase-abc", 200)
 
         authRepo.signOut()
 
         assertTrue(authRepo.hasCompletedOnboarding)
-        assertEquals(100L, authRepo.getLastPublicNonogramSyncTimestamp("firebase-abc"))
+        assertEquals(100L, authRepo.getLastPublicNonogramSyncTimestamp())
         assertEquals(200L, authRepo.getLastOwnedNonogramSyncTimestamp("firebase-abc"))
     }
 }

@@ -53,10 +53,10 @@ class AuthViewModel(
     fun syncAll(onComplete: () -> Unit = {}) {
         viewModelScope.launch(Dispatchers.Default) {
             try {
-                val firebaseUid = authRepository.currentFirebaseUid ?: return@launch
+                syncPublicNonograms(authRepository.currentFirebaseUid)
 
+                val firebaseUid = authRepository.currentFirebaseUid ?: return@launch
                 syncService.pullAndMergeAllProgress(firebaseUid)
-                syncPublicNonograms(firebaseUid)
                 syncOwnedNonograms(firebaseUid)
                 refreshPublishState(firebaseUid)
             } finally {
@@ -86,11 +86,11 @@ class AuthViewModel(
         _publishBanned.value = gate.banned
     }
 
-    private suspend fun syncPublicNonograms(firebaseUid: String) {
-        val lastSyncedAt = authRepository.getLastPublicNonogramSyncTimestamp(firebaseUid)
+    private suspend fun syncPublicNonograms(firebaseUid: String?) {
+        val lastSyncedAt = authRepository.getLastPublicNonogramSyncTimestamp()
         val newestReceivedAt = syncService.pullPublicNonogramsSince(firebaseUid, lastSyncedAt)
         if (newestReceivedAt != null && newestReceivedAt != lastSyncedAt) {
-            authRepository.setLastPublicNonogramSyncTimestamp(firebaseUid, newestReceivedAt)
+            authRepository.setLastPublicNonogramSyncTimestamp(newestReceivedAt)
         }
     }
 

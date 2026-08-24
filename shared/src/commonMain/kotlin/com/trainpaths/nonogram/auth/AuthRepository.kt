@@ -9,7 +9,7 @@ import kotlin.random.Random
 
 private const val KEY_CURRENT_USER_UID = "current_user_uid"
 private const val KEY_HAS_COMPLETED_ONBOARDING = "has_completed_onboarding"
-private const val KEY_PUBLIC_NONOGRAM_PREFIX = "public_nonogram_sync_timestamp_"
+private const val KEY_PUBLIC_NONOGRAM_SYNC = "public_nonogram_sync_timestamp"
 private const val KEY_OWNED_NONOGRAM_PREFIX = "owned_nonogram_sync_timestamp_"
 private const val KEY_PUBLISH_BANNED_PREFIX = "publish_banned_"
 private const val KEY_DENIAL_STREAK_PREFIX = "denial_streak_"
@@ -54,11 +54,11 @@ class AuthRepository(private val sdk: AppSDK, private val settings: Settings) {
         settings.putBoolean(KEY_HAS_COMPLETED_ONBOARDING, true)
     }
 
-    fun getLastPublicNonogramSyncTimestamp(firebaseUid: String): Long =
-        settings.getLong(KEY_PUBLIC_NONOGRAM_PREFIX + firebaseUid, 0L)
+    fun getLastPublicNonogramSyncTimestamp(): Long =
+        settings.getLong(KEY_PUBLIC_NONOGRAM_SYNC, 0L)
 
-    fun setLastPublicNonogramSyncTimestamp(firebaseUid: String, timestamp: Long) {
-        settings.putLong(KEY_PUBLIC_NONOGRAM_PREFIX + firebaseUid, timestamp)
+    fun setLastPublicNonogramSyncTimestamp(timestamp: Long) {
+        settings.putLong(KEY_PUBLIC_NONOGRAM_SYNC, timestamp)
     }
 
     fun getLastOwnedNonogramSyncTimestamp(firebaseUid: String): Long =
