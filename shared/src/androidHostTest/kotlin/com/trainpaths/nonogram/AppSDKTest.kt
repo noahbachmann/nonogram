@@ -94,6 +94,37 @@ class AppSDKTest {
     }
 
     @Test
+    fun getVisibleNonograms_hidesOtherAuthorsUnapprovedPuzzles() = runTest {
+        sdk.seedIfEmpty()
+        val minePrivate = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "uid-a")
+        val minePending = sdk.addNonogram(
+            "EASY", listOf(listOf(1)), authorUid = "uid-a", publishStatus = PublishStatus.PENDING,
+        )
+        val theirsApproved = sdk.addNonogram(
+            "EASY", listOf(listOf(1)), authorUid = "uid-b", publishStatus = PublishStatus.APPROVED,
+        )
+        val theirsPrivate = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "uid-b")
+
+        val mine = sdk.getVisibleNonograms("uid-a").map { it.id }.toSet()
+        assertTrue(mine.containsAll(setOf(minePrivate, minePending, theirsApproved)))
+        assertFalse(theirsPrivate in mine)
+        // The four seeds are approved, so everyone sees them.
+        assertTrue(mine.containsAll(setOf(1L, 2L, 3L, 4L)))
+
+        // A signed-out guest key owns none of them.
+        val guest = sdk.getVisibleNonograms("local:9").map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L, 3L, 4L, theirsApproved), guest)
+    }
+
+    @Test
+    fun getVisibleNonograms_blankUidOwnsNothing() = runTest {
+        sdk.seedIfEmpty()
+        sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "uid-a")
+
+        assertEquals(setOf(1L, 2L, 3L, 4L), sdk.getVisibleNonograms("").map { it.id }.toSet())
+    }
+
+    @Test
     fun addNonogram_and_getAllNonograms_roundTrip() = runTest {
         val solution = listOf(listOf(1, 0), listOf(0, 1))
         val id = sdk.addNonogram("EASY", solution)

@@ -48,6 +48,10 @@ SELECT NonogramData.* FROM NonogramData WHERE difficulty = ?;
 selectNonogramsByAuthor:
 SELECT NonogramData.* FROM NonogramData WHERE authorUid = ?;
 
+selectVisibleNonograms:
+SELECT NonogramData.* FROM NonogramData
+WHERE status = :approvedStatus OR authorUid = :authorUid;
+
 reassignAuthor:
 UPDATE NonogramData SET authorUid = :toUid WHERE authorUid = :fromUid;
 

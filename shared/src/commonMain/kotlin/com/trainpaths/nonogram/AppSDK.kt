@@ -77,6 +77,10 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
     suspend fun getNonogramsByAuthor(authorUid: String): List<Nonogram> =
         db().getNonogramsByAuthor(authorUid)
 
+    /** Approved puzzles plus everything [authorUid] owns — what the menu may list. */
+    suspend fun getVisibleNonograms(authorUid: String): List<Nonogram> =
+        db().getVisibleNonograms(authorUid)
+
     suspend fun getNonogramById(id: Long): Nonogram? =
         db().getNonogramById(id)
 
