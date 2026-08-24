@@ -110,7 +110,9 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   yields an access token, not an ID token — see `docs/web-architecture.md`).
 - **ViewModels** (`screens/viewModel/`) — Compose state holders using `mutableStateOf`. `GameViewModel` manages the tile
   board and save/sync. `GenViewModel` drives the generator (draw/resize/save + validation). `MenuViewModel` holds the
-  nonogram list and progress preview map. `AuthViewModel` orchestrates login flow and **all remote sync** —
+  nonogram list and progress preview map; it loads via `AppSDK.getVisibleNonograms(uid)` — approved puzzles plus
+  whatever the current user key owns — so a signed-out user stops seeing the previous account's puzzles (the rows
+  stay in the DB, they are just filtered out). `AuthViewModel` orchestrates login flow and **all remote sync** —
   `syncAll` pulls progress + public + owned nonograms in one pass (separate public/owned cursors read via
   `AuthRepository`) and then refreshes the admin flag and publish ban (`isAdmin` / `publishBanned` StateFlows),
   `retryOwnNonograms` re-runs just the owned stream for the generator's retry button. `AdminViewModel` drives the

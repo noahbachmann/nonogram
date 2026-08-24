@@ -29,6 +29,11 @@ internal class Database(driver: SqlDriver) {
     internal suspend fun getNonogramsByAuthor(authorUid: String): List<Nonogram> =
         dbQuery.selectNonogramsByAuthor(authorUid, ::mapNonogram).awaitAsList()
 
+    /** Approved puzzles plus everything [authorUid] owns — what the menu may list. */
+    internal suspend fun getVisibleNonograms(authorUid: String): List<Nonogram> =
+        dbQuery.selectVisibleNonograms(PublishStatus.APPROVED.toLong(), authorUid, ::mapNonogram)
+            .awaitAsList()
+
     internal suspend fun getNonogramById(id: Long): Nonogram? =
         dbQuery.selectNonogramById(id, ::mapNonogram).awaitAsOneOrNull()
 

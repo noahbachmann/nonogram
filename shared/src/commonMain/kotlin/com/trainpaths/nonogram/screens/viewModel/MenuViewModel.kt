@@ -50,12 +50,12 @@ class MenuViewModel(
     fun reload(loadAll: Boolean = false) {
         isLoading = loadAll
         viewModelScope.launch {
-            nonograms = withContext(Dispatchers.Default) {
-                sdk.seedIfEmpty()
-                sdk.getAllNonograms()
-            }
             val uid = authRepository.currentUserUid.value
             authorUid = uid
+            nonograms = withContext(Dispatchers.Default) {
+                sdk.seedIfEmpty()
+                sdk.getVisibleNonograms(uid.orEmpty())
+            }
             if (uid != null) {
                 val allProgress = withContext(Dispatchers.Default) {
                     sdk.getProgressForUser(uid)
@@ -66,6 +66,9 @@ class MenuViewModel(
                 beatMap = allProgress
                     .filter { it.beat > 0 }
                     .associate { it.nonogram.id to it.beat }
+            } else {
+                progressMap = emptyMap()
+                beatMap = emptyMap()
             }
             isLoading = false
             isRefreshing = false
