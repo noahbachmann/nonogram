@@ -24,10 +24,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,7 +38,9 @@ import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.switchColors
 import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.MAX_NONOGRAM_NAME_LENGTH
+import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.normalizeNonogramName
+import com.trainpaths.nonogram.dialogs.PublicEditConfirmDialog
 import com.trainpaths.nonogram.icons.build
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
@@ -50,15 +50,14 @@ import com.trainpaths.nonogram.screens.viewModel.ValidationState
 fun GenConfScreen(
     genViewModel: GenViewModel,
     editing: Boolean,
+    isPublishBanned: Boolean,
     onBack: () -> Unit,
     onDone: () -> Unit,
 ) {
     var name by remember { mutableStateOf(genViewModel.nonogram.name.orEmpty()) }
     var rows by remember { mutableStateOf(genViewModel.height.toString()) }
     var cols by remember { mutableStateOf(genViewModel.width.toString()) }
-    var isPublic by remember {
-        mutableStateOf(genViewModel.nonogram.isPublic)
-    }
+    var pendingPublicSave by remember { mutableStateOf<(() -> Unit)?>(null) }
     val authState by genViewModel.authState.collectAsState()
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
@@ -80,16 +79,6 @@ fun GenConfScreen(
             backgroundColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
         )
     )
-
-    LaunchedEffect(
-        genViewModel.isSaving,
-        genViewModel.validationState,
-        genViewModel.nonogram.isPublic,
-    ) {
-        if (!genViewModel.isSaving) {
-            isPublic = genViewModel.nonogram.isPublic
-        }
-    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -151,12 +140,21 @@ fun GenConfScreen(
 
             if (editing) {
                 val validationState = genViewModel.validationState
-                val isValid = validationState == ValidationState.VALID
-                val canMakePublic =
-                    !genViewModel.isSaving &&
-                            genViewModel.saveError == null &&
-                            isValid &&
-                            authState == AuthState.SIGNED_IN
+                val isValid = validationState == ValidationState.VALID &&
+                        genViewModel.saveError == null
+                val status = genViewModel.nonogram.publishStatus
+                val isSignedIn = authState == AuthState.SIGNED_IN
+                val canRequest = !genViewModel.isSaving && isSignedIn && isValid && !isPublishBanned
+                val hint = when {
+                    genViewModel.isSaving -> null
+                    status == PublishStatus.PENDING -> "Waiting for review."
+                    status == PublishStatus.DENIED -> "Edit the puzzle to request again."
+                    status != PublishStatus.NONE -> null
+                    isPublishBanned -> "You can no longer request publishing."
+                    !isSignedIn -> "Sign in to publish this nonogram."
+                    !isValid -> "Only valid nonograms can be published."
+                    else -> null
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 28.dp),
@@ -209,24 +207,63 @@ fun GenConfScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(Modifier.weight(1f))
-                    Switch(
-                        checked = isPublic,
-                        onCheckedChange = { isPublic = it },
-                        enabled = !genViewModel.isSaving && (isPublic || canMakePublic),
-                        colors = switchColors()
-                    )
+                    when (status) {
+                        PublishStatus.APPROVED, PublishStatus.UNLISTED -> {
+                            val isPublic = genViewModel.nonogram.isPublic
+                            Text(
+                                text = if (isPublic) "Public" else "Private",
+                                style = MaterialTheme.typography.titleMedium,
+                                color =
+                                    if (isPublic) MaterialTheme.colorScheme.onTertiary
+                                    else MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(end = 12.dp),
+                            )
+                            Switch(
+                                checked = isPublic,
+                                onCheckedChange = { genViewModel.setPublic(it) },
+                                enabled = !genViewModel.isSaving,
+                                colors = switchColors(),
+                            )
+                        }
+
+                        PublishStatus.DENIED -> Text(
+                            "Denied",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.tertiaryFixed,
+                        )
+
+                        else -> Button(
+                            onClick = { genViewModel.requestPublish() },
+                            enabled = status == PublishStatus.NONE && canRequest &&
+                                    !genViewModel.isRequestingPublish,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.onPrimary,
+                                contentColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        ) {
+                            Text(
+                                if (status == PublishStatus.PENDING) "Sent" else "Request publish",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
                 }
 
-                if (!genViewModel.isSaving && !isPublic && !canMakePublic) {
+                hint?.let {
                     Text(
-                        text = if (authState != AuthState.SIGNED_IN) {
-                            "Sign in to make this nonogram public."
-                        } else {
-                            "Only valid nonograms can be public."
-                        },
+                        text = it,
                         modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+
+                genViewModel.publishError?.let { error ->
+                    Text(
+                        text = error,
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
                     )
                 }
 
@@ -254,13 +291,25 @@ fun GenConfScreen(
                     val h = rows.toIntOrNull() ?: return@Button
                     val w = cols.toIntOrNull() ?: return@Button
                     val normalizedName = normalizeNonogramName(name)
-                    if (editing) {
-                        genViewModel.updateName(normalizedName)
-                        genViewModel.resizeNonogram(h, w)
-                        genViewModel.onSave(requestedPublic = isPublic, onDone = onDone)
-                    } else {
+                    if (!editing) {
                         genViewModel.setNonogram(h, w, normalizedName)
                         onDone()
+                        return@Button
+                    }
+                    val save = {
+                        genViewModel.updateName(normalizedName)
+                        genViewModel.resizeNonogram(h, w)
+                        genViewModel.onSave(onDone = onDone)
+                    }
+                    // Checked before the edits are applied, so cancelling leaves the board untouched.
+                    val changesContent = genViewModel.isDirty ||
+                            normalizedName != genViewModel.nonogram.name ||
+                            h != genViewModel.height ||
+                            w != genViewModel.width
+                    if (genViewModel.needsPublicEditConfirmation(changesContent)) {
+                        pendingPublicSave = save
+                    } else {
+                        save()
                     }
                 },
                 enabled = !genViewModel.isSaving,
@@ -276,5 +325,15 @@ fun GenConfScreen(
                 Text(if (editing) "Save" else "Generate", style = MaterialTheme.typography.titleMedium)
             }
         }
+    }
+
+    pendingPublicSave?.let { save ->
+        PublicEditConfirmDialog(
+            onConfirm = {
+                pendingPublicSave = null
+                save()
+            },
+            onCancel = { pendingPublicSave = null },
+        )
     }
 }

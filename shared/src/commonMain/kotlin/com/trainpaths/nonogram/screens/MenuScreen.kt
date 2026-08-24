@@ -73,7 +73,7 @@ fun MenuScreen(
                             nonogram = nonogram,
                             progress = viewModel.getProgress(nonogram.id, nonogram.height, nonogram.width),
                             beatCount = viewModel.getBeatCount(nonogram.id),
-                            isOwn = nonogram.isOwned(viewModel.userId),
+                            isOwn = nonogram.isOwned(viewModel.authorUid),
                             alwaysShowName = showAllNames,
                             onClick = { onNonogramClick(nonogram) })
                     }

@@ -102,6 +102,74 @@ class AuthRepositoryTest {
     }
 
     @Test
+    fun initialize_guest_getsALocalAuthorKey() = runTest {
+        authRepo.initialize()
+
+        assertEquals("local:${authRepo.currentUserId.value}", authRepo.currentAuthorUid.value)
+    }
+
+    @Test
+    fun initialize_signedInUser_usesTheFirebaseUidAsAuthorKey() = runTest {
+        val userId = sdk.addUser("Signed User")
+        sdk.updateUserFirebaseUid(userId, "firebase-abc", "Signed User")
+        settings.putLong("current_user_id", userId)
+
+        authRepo.initialize()
+
+        assertEquals("firebase-abc", authRepo.currentAuthorUid.value)
+    }
+
+    @Test
+    fun linkFirebaseUser_movesGuestAuthoredPuzzlesToTheUid() = runTest {
+        authRepo.initialize()
+        val guestKey = authRepo.currentAuthorUid.value!!
+        val drawn = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = guestKey)
+
+        authRepo.linkFirebaseUser("firebase-new", "New Name")
+
+        assertEquals("firebase-new", authRepo.currentAuthorUid.value)
+        assertEquals(listOf(drawn), sdk.getNonogramsByAuthor("firebase-new").map { it.id })
+        assertTrue(sdk.getNonogramsByAuthor(guestKey).isEmpty())
+    }
+
+    @Test
+    fun linkFirebaseUser_existingUid_alsoTakesTheGuestPuzzlesAlong() = runTest {
+        val existingUserId = sdk.addUser("Existing")
+        sdk.updateUserFirebaseUid(existingUserId, "firebase-existing", "Existing")
+
+        authRepo.initialize()
+        val guestKey = authRepo.currentAuthorUid.value!!
+        val drawn = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = guestKey)
+
+        authRepo.linkFirebaseUser("firebase-existing", "Existing")
+
+        assertEquals("firebase-existing", authRepo.currentAuthorUid.value)
+        assertEquals(listOf(drawn), sdk.getNonogramsByAuthor("firebase-existing").map { it.id })
+    }
+
+    @Test
+    fun linkFirebaseUser_neverReassignsAnotherAccountsPuzzles() = runTest {
+        authRepo.initialize()
+        authRepo.linkFirebaseUser("firebase-a", "A")
+        val theirs = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "firebase-a")
+
+        authRepo.linkFirebaseUser("firebase-b", "B")
+
+        assertEquals(listOf(theirs), sdk.getNonogramsByAuthor("firebase-a").map { it.id })
+        assertTrue(sdk.getNonogramsByAuthor("firebase-b").isEmpty())
+    }
+
+    @Test
+    fun signOut_returnsToAFreshLocalAuthorKey() = runTest {
+        authRepo.initialize()
+        authRepo.linkFirebaseUser("firebase-abc", "Name")
+
+        authRepo.signOut()
+
+        assertEquals("local:${authRepo.currentUserId.value}", authRepo.currentAuthorUid.value)
+    }
+
+    @Test
     fun completeOnboarding_setsFlag() {
         assertFalse(authRepo.hasCompletedOnboarding)
         authRepo.completeOnboarding()

@@ -14,8 +14,8 @@ object NonogramFilters {
         ascending = compareBy { it.difficulty.ordinal },
     )
 
-    fun forUser(userId: Long?): List<FilterEntry> = listOf(
+    fun forUser(authorUid: String?): List<FilterEntry> = listOf(
         DIFFICULTY,
-        FilterToggle(PERSONAL) { it.isOwned(userId) },
+        FilterToggle(PERSONAL) { it.isOwned(authorUid) },
     )
 }

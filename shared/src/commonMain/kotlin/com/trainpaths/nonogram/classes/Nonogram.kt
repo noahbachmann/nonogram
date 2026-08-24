@@ -9,6 +9,20 @@ enum class Difficulty(val label: String) {
     HARDCORE("Hardcore"),
 }
 
+/**
+ * Where a puzzle stands in the publish-review flow; see `docs/publish-moderation.md`.
+ *
+ * The ordinal is what the `status` column stores, so entries may be appended but never reordered
+ * or removed without a migration.
+ */
+enum class PublishStatus {
+    NONE,
+    PENDING,
+    DENIED,
+    UNLISTED,
+    APPROVED,
+}
+
 const val MAX_NONOGRAM_NAME_LENGTH = 30
 const val UNNAMED_NONOGRAM_TITLE = "???"
 
@@ -18,10 +32,12 @@ data class Nonogram(
     val difficulty: Difficulty,
     val solution: List<List<Int>>,
     val name: String? = null,
-    val authorId: Long = 0,
-    var isPublic: Boolean = false,
-    val updatedAt: Long = 0
+    val authorUid: String = "",
+    val updatedAt: Long = 0,
+    val publishStatus: PublishStatus = PublishStatus.NONE,
 ) {
+    val isPublic: Boolean get() = publishStatus == PublishStatus.APPROVED
+
     val height: Int get() = solution.size
     val width: Int get() = solution.firstOrNull()?.size ?: 0
 
@@ -37,8 +53,8 @@ data class Nonogram(
         Solver(this).solveNonogram().map { row -> row.toList() } == solution
     }
 
-    /** Seeded puzzles and puzzles authored elsewhere both carry `authorId = 0`, so 0 owns nothing. */
-    fun isOwned(userId: Long?): Boolean = userId != null && authorId != 0L && authorId == userId
+    /** Seeded puzzles and puzzles authored elsewhere both carry a blank uid, so "" owns nothing. */
+    fun isOwned(uid: String?): Boolean = uid != null && authorUid.isNotEmpty() && authorUid == uid
 }
 
 private fun computeLineClues(line: List<Int>): List<Int> {

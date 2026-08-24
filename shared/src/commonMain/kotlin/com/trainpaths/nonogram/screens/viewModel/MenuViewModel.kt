@@ -33,9 +33,9 @@ class MenuViewModel(
         private set
     var filterSort: FilterSortState by mutableStateOf(FilterSortState())
         private set
-    var userId: Long? by mutableStateOf(null)
+    var authorUid: String? by mutableStateOf(null)
         private set
-    val filterEntries: List<FilterEntry> by derivedStateOf { NonogramFilters.forUser(userId) }
+    val filterEntries: List<FilterEntry> by derivedStateOf { NonogramFilters.forUser(authorUid) }
     val visibleNonograms: List<Nonogram> by derivedStateOf {
         val filtered = filterSort.applyTo(nonograms, filterEntries)
         if (filterSort.sortsBy(filterEntries)) filtered else filtered.ownFirst()
@@ -54,10 +54,11 @@ class MenuViewModel(
                 sdk.seedIfEmpty()
                 sdk.getAllNonograms()
             }
-            userId = authRepository.currentUserId.value
+            authorUid = authRepository.currentAuthorUid.value
+            val userId = authRepository.currentUserId.value
             if (userId != null) {
                 val allProgress = withContext(Dispatchers.Default) {
-                    sdk.getProgressForUser(userId!!)
+                    sdk.getProgressForUser(userId)
                 }
                 progressMap = allProgress
                     .filter { it.board != null }
@@ -76,7 +77,7 @@ class MenuViewModel(
     }
 
     /** Your puzzles first, but only unsorted: an explicit sort orders own and other puzzles together. */
-    private fun List<Nonogram>.ownFirst(): List<Nonogram> = sortedByDescending { it.isOwned(userId) }
+    private fun List<Nonogram>.ownFirst(): List<Nonogram> = sortedByDescending { it.isOwned(authorUid) }
 
     fun updateSingleProgress(nonogramId: Long, board: List<List<Int>>) {
         progressMap = progressMap + (nonogramId to board)

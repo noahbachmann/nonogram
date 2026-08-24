@@ -32,6 +32,12 @@ class AuthViewModel(
         MutableStateFlow(GeneratorSyncState.IDLE)
     val generatorNonogramSyncState = _generatorSyncState.asStateFlow()
 
+    private val _isAdmin = MutableStateFlow(false)
+    val isAdmin = _isAdmin.asStateFlow()
+
+    private val _publishBanned = MutableStateFlow(false)
+    val publishBanned = _publishBanned.asStateFlow()
+
     fun onFirebaseSignInSuccess(firebaseUid: String, displayName: String?) {
         _signInComplete.value = false
         viewModelScope.launch(Dispatchers.Default) {
@@ -43,7 +49,8 @@ class AuthViewModel(
             } else {
                 syncService.uploadAllLocalProgress(firebaseUid, userId)
             }
-            syncService.uploadAllLocalNonograms(firebaseUid, userId)
+            syncService.uploadAllLocalNonograms(firebaseUid)
+            refreshPublishState(firebaseUid)
             _signInComplete.value = true
         }
     }
@@ -56,8 +63,9 @@ class AuthViewModel(
                 val firebaseUid = sdk.getUserById(userId)?.firebaseUid ?: return@launch
 
                 syncService.pullAndMergeAllProgress(firebaseUid, userId)
-                syncPublicNonograms(firebaseUid, userId)
-                syncOwnedNonograms(firebaseUid, userId)
+                syncPublicNonograms(firebaseUid)
+                syncOwnedNonograms(firebaseUid)
+                refreshPublishState(firebaseUid)
             } finally {
                 withContext(Dispatchers.Main) { onComplete() }
             }
@@ -70,32 +78,36 @@ class AuthViewModel(
                 if (authRepository.authState.value != AuthState.SIGNED_IN) return@launch
                 val userId = authRepository.currentUserId.value ?: return@launch
                 val firebaseUid = sdk.getUserById(userId)?.firebaseUid ?: return@launch
-                syncOwnedNonograms(firebaseUid, userId)
+                syncOwnedNonograms(firebaseUid)
             } finally {
                 withContext(Dispatchers.Main) { onComplete() }
             }
         }
     }
 
-    private suspend fun syncPublicNonograms(
-        firebaseUid: String,
-        userId: Long,
-    ) {
+    private suspend fun refreshPublishState(firebaseUid: String) {
+        val admin = syncService.isAdmin(firebaseUid)
+        authRepository.setIsAdmin(firebaseUid, admin)
+        _isAdmin.value = admin
+
+        val gate = syncService.fetchModerationGate(firebaseUid) ?: return
+        authRepository.setModerationGate(firebaseUid, gate.denialStreak, gate.banned)
+        _publishBanned.value = gate.banned
+    }
+
+    private suspend fun syncPublicNonograms(firebaseUid: String) {
         val lastSyncedAt = authRepository.getLastPublicNonogramSyncTimestamp(firebaseUid)
-        val newestReceivedAt = syncService.pullPublicNonogramsSince(firebaseUid, userId, lastSyncedAt)
+        val newestReceivedAt = syncService.pullPublicNonogramsSince(firebaseUid, lastSyncedAt)
         if (newestReceivedAt != null && newestReceivedAt != lastSyncedAt) {
             authRepository.setLastPublicNonogramSyncTimestamp(firebaseUid, newestReceivedAt)
         }
     }
 
-    private suspend fun syncOwnedNonograms(
-        firebaseUid: String,
-        userId: Long,
-    ) {
+    private suspend fun syncOwnedNonograms(firebaseUid: String) {
         val lastSyncedAt = authRepository.getLastOwnedNonogramSyncTimestamp(firebaseUid)
         _generatorSyncState.value = GeneratorSyncState.SYNCING
         try {
-            val newestReceivedAt = syncService.pullOwnedNonograms(firebaseUid, userId, lastSyncedAt)
+            val newestReceivedAt = syncService.pullOwnedNonograms(firebaseUid, lastSyncedAt)
             if (newestReceivedAt == null) {
                 _generatorSyncState.value = GeneratorSyncState.ERROR
                 return
@@ -122,6 +134,8 @@ class AuthViewModel(
                 authRepository.signOut()
                 _signInComplete.value = false
                 _generatorSyncState.value = GeneratorSyncState.IDLE
+                _isAdmin.value = false
+                _publishBanned.value = false
             } finally {
                 withContext(Dispatchers.Main) { onComplete() }
             }

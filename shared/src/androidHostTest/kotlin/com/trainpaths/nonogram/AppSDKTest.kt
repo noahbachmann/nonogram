@@ -2,10 +2,12 @@ package com.trainpaths.nonogram
 
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.classes.PublishStatus
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -52,7 +54,7 @@ class AppSDKTest {
     fun upsertNonogramFromRemote_insertsThenOverwrites() = runTest {
         val remote = Nonogram(
             id = 42, difficulty = Difficulty.HARD, solution = listOf(listOf(1, 0)),
-            name = "Comet", authorId = 7, isPublic = true, updatedAt = 123,
+            name = "Comet", authorUid = "uid-7", updatedAt = 123, publishStatus = PublishStatus.APPROVED,
         )
         sdk.upsertNonogramFromRemote(remote)
         assertEquals(remote, sdk.getNonogramById(42))
@@ -61,6 +63,34 @@ class AppSDKTest {
         sdk.upsertNonogramFromRemote(newer)
         assertEquals(newer, sdk.getNonogramById(42))
         assertEquals(1, sdk.getAllNonograms().size)
+    }
+
+    @Test
+    fun reassignAuthor_movesOnlyTheMatchingAuthorsPuzzles() = runTest {
+        val guestOne = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "local:1")
+        val guestTwo = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "local:1")
+        val other = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "local:2")
+
+        sdk.reassignAuthor("local:1", "uid-7")
+
+        assertEquals(setOf(guestOne, guestTwo), sdk.getNonogramsByAuthor("uid-7").map { it.id }.toSet())
+        assertEquals(listOf(other), sdk.getNonogramsByAuthor("local:2").map { it.id })
+        assertTrue(sdk.getNonogramsByAuthor("local:1").isEmpty())
+    }
+
+    @Test
+    fun upsertNonogramFromRemote_roundTripsPublishStatus() = runTest {
+        val remote = Nonogram(
+            id = 43, difficulty = Difficulty.EASY, solution = listOf(listOf(1)),
+            authorUid = "uid-7", updatedAt = 5, publishStatus = PublishStatus.APPROVED,
+        )
+        sdk.upsertNonogramFromRemote(remote)
+        assertEquals(PublishStatus.APPROVED, sdk.getNonogramById(43)!!.publishStatus)
+        assertTrue(sdk.getNonogramById(43)!!.isPublic)
+
+        sdk.updateNonogram(43, remote.copy(publishStatus = PublishStatus.UNLISTED))
+        assertEquals(PublishStatus.UNLISTED, sdk.getNonogramById(43)!!.publishStatus)
+        assertFalse(sdk.getNonogramById(43)!!.isPublic)
     }
 
     @Test

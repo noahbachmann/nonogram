@@ -39,6 +39,15 @@ internal external interface NonogramQuerySnapshot : JsAny {
     fun forEach(callback: (NonogramDocSnapshot) -> Unit)
 }
 
+internal external interface ExistsDocSnapshot : JsAny {
+    fun exists(): Boolean
+}
+
+internal external interface UserGateDocSnapshot : JsAny {
+    fun exists(): Boolean
+    fun data(): UserGateDocData?
+}
+
 internal external fun getFirestore(app: FirebaseApp): Firestore
 
 internal external fun doc(firestore: Firestore, path: String): DocumentReference
@@ -47,12 +56,38 @@ internal external fun collection(firestore: Firestore, path: String): Collection
 
 internal external fun setDoc(reference: DocumentReference, data: JsAny): Promise<JsAny?>
 
+// The JS `setDoc`/`query` are variadic; externals need one declaration per arity.
+@JsName("setDoc")
+internal external fun setDocMerged(
+    reference: DocumentReference,
+    data: JsAny,
+    options: JsAny,
+): Promise<JsAny?>
+
 internal external fun query(base: Query, c1: QueryConstraint, c2: QueryConstraint): Query
 
+@JsName("query")
+internal external fun query3(
+    base: Query,
+    c1: QueryConstraint,
+    c2: QueryConstraint,
+    c3: QueryConstraint,
+): Query
+
 internal external fun where(fieldPath: String, opStr: String, value: JsAny): QueryConstraint
+
+internal external fun orderBy(fieldPath: String): QueryConstraint
+
+internal external fun limit(limit: Int): QueryConstraint
 
 @JsName("getDocs")
 internal external fun getProgressDocs(query: Query): Promise<ProgressQuerySnapshot>
 
 @JsName("getDocs")
 internal external fun getNonogramDocs(query: Query): Promise<NonogramQuerySnapshot>
+
+@JsName("getDoc")
+internal external fun getExistsDoc(reference: DocumentReference): Promise<ExistsDocSnapshot>
+
+@JsName("getDoc")
+internal external fun getUserGateDoc(reference: DocumentReference): Promise<UserGateDocSnapshot>

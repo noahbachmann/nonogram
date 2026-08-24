@@ -11,6 +11,7 @@ import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.BoardHistory
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileState
 import com.trainpaths.nonogram.sync.SyncService
@@ -18,12 +19,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-internal fun canSaveNonogram(isSaving: Boolean, isDirty: Boolean, nonogramId: Long): Boolean =
-    !isSaving && (isDirty || nonogramId == 0L)
-
-internal fun publicationStatus(isPublic: Boolean, isValid: Boolean?, isSignedIn: Boolean): Boolean =
-    isPublic && isValid == true && isSignedIn
 
 internal data class SaveValidationResult(
     val isValid: Boolean?,
@@ -105,24 +100,49 @@ class GenViewModel(
     var validationError by mutableStateOf<String?>(null)
         private set
 
+    /** True while a publish request is in flight. */
+    var isRequestingPublish by mutableStateOf(false)
+        private set
+
+    /** A user-facing message when the latest publish request could not be filed. */
+    var publishError by mutableStateOf<String?>(null)
+        private set
+
     /** Whether the editor has a new or changed puzzle that can currently be persisted. */
     val canSave: Boolean
-        get() = canSaveNonogram(
-            isSaving = isSaving,
-            isDirty = isDirty,
-            nonogramId = nonogram.id,
+        get() = !isSaving && (isDirty || nonogram.id == 0L)
+
+    /** Editing a live public puzzle takes it private and back into review, so the author confirms first. */
+    fun needsPublicEditConfirmation(changesContent: Boolean = isDirty): Boolean =
+        nonogram.isPublic && changesContent
+
+    /**
+     * The author's visibility switch, which only an already-approved puzzle has: it moves between
+     * `APPROVED` and `UNLISTED` and never costs a new review. Every other state ignores it, because
+     * publication is the admin's call — see `docs/publish-moderation.md`. Staged in memory until
+     * the next save, and never an edit: [isDirty] means a *content* change.
+     */
+    fun setPublic(requested: Boolean) {
+        nonogram = nonogram.copy(
+            publishStatus = when (nonogram.publishStatus) {
+                PublishStatus.APPROVED, PublishStatus.UNLISTED ->
+                    if (requested) PublishStatus.APPROVED else PublishStatus.UNLISTED
+
+                else -> return
+            }
         )
+    }
 
     val authState = authRepository.authState
 
     fun loadMyNonograms() {
         isLoadingMine = true
         viewModelScope.launch {
-            val userId = authRepository.currentUserId.value
-            myNonograms = if (userId == null) {
+            val authorUid = authRepository.currentAuthorUid.value
+            myNonograms = if (authorUid == null) {
                 emptyList()
             } else {
-                withContext(Dispatchers.Default) { sdk.getNonogramsByAuthor(userId) }
+                withContext(Dispatchers.Default) { sdk.getNonogramsByAuthor(authorUid) }
             }
             isLoadingMine = false
         }
@@ -181,6 +201,7 @@ class GenViewModel(
         validationState = ValidationState.UNCHECKED
         saveError = null
         validationError = null
+        publishError = null
     }
 
     fun updateNonogram() {
@@ -199,16 +220,15 @@ class GenViewModel(
         validationError = null
     }
 
-    fun onSave(
-        requestedPublic: Boolean = nonogram.isPublic,
-        onDone: () -> Unit = {},
-    ) {
+    fun onSave(onDone: () -> Unit = {}) {
         if (isSaving) return
         val userId = authRepository.currentUserId.value ?: return
+        val authorUid = authRepository.currentAuthorUid.value ?: return
         val nonogramId = nonogram.id
         val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
         nonogram = nonogram.copy(solution = board)
-        val isSignedIn = authRepository.authState.value == AuthState.SIGNED_IN
+        // Any content change revokes approval, so the reviewer's verdict always matches the puzzle.
+        val contentChanged = isDirty
         isSaving = true
         validationState = ValidationState.CHECKING
         saveError = null
@@ -221,11 +241,7 @@ class GenViewModel(
                 validationState = validation.state
                 validationError = validation.error
 
-                nonogram.isPublic = publicationStatus(
-                    isPublic = requestedPublic,
-                    isValid = validation.isValid,
-                    isSignedIn = isSignedIn,
-                )
+                if (contentChanged) nonogram = nonogram.copy(publishStatus = PublishStatus.NONE)
 
                 val savedNonogram = withContext(Dispatchers.Default) {
                     val savedId = if (nonogramId != 0L) {
@@ -234,9 +250,9 @@ class GenViewModel(
                         sdk.addNonogram(
                             difficulty = nonogram.difficulty.toString(),
                             solution = nonogram.solution,
-                            authorId = userId,
-                            isPublic = nonogram.isPublic,
+                            authorUid = authorUid,
                             name = nonogram.name,
+                            publishStatus = nonogram.publishStatus,
                         )
                     }
                     // Re-fetch so the UI and pushed copy carry the freshly stamped updatedAt.
@@ -244,7 +260,7 @@ class GenViewModel(
                     if (persistedNonogram != null) {
                         val firebaseUid = sdk.getUserById(userId)?.firebaseUid
                         if (firebaseUid != null) {
-                            syncService.pushNonogram(firebaseUid, persistedNonogram)
+                            syncService.pushNonogram(firebaseUid, persistedNonogram, contentChanged)
                         }
                     }
                     persistedNonogram
@@ -258,6 +274,49 @@ class GenViewModel(
                 saveError = error.message ?: "Unable to save this nonogram."
             } finally {
                 isSaving = false
+            }
+        }
+    }
+
+    /**
+     * Files a publish request for the saved puzzle. The local row moves to `PENDING` first so the
+     * button responds immediately; a rejection by the Firestore rules (a banned author) rolls it back.
+     */
+    fun requestPublish() {
+        if (isSaving || isRequestingPublish) return
+        val nonogramId = nonogram.id
+        if (nonogramId == 0L) return
+        val userId = authRepository.currentUserId.value ?: return
+        if (authRepository.authState.value != AuthState.SIGNED_IN) return
+        isRequestingPublish = true
+        publishError = null
+        viewModelScope.launch {
+            try {
+                val requested = nonogram.copy(publishStatus = PublishStatus.PENDING)
+                val result = withContext(Dispatchers.Default) {
+                    sdk.updateNonogram(nonogramId, requested)
+                    val persisted = sdk.getNonogramById(nonogramId)
+                    val firebaseUid = sdk.getUserById(userId)?.firebaseUid
+                    val accepted = persisted != null && firebaseUid != null &&
+                            syncService.requestPublish(firebaseUid, persisted)
+                    if (!accepted && persisted != null) {
+                        sdk.updateNonogram(
+                            nonogramId,
+                            persisted.copy(publishStatus = PublishStatus.NONE),
+                        )
+                    }
+                    sdk.getNonogramById(nonogramId)
+                }
+                if (result != null) nonogram = result
+                if (nonogram.publishStatus != PublishStatus.PENDING) {
+                    publishError = "Could not send this publish request."
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                publishError = error.message ?: "Could not send this publish request."
+            } finally {
+                isRequestingPublish = false
             }
         }
     }

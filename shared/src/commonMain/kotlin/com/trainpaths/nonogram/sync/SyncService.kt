@@ -11,22 +11,28 @@ interface SyncService {
     suspend fun pullAndMergeAllProgress(firebaseUid: String, localUserId: Long)
 
     /** Writes the puzzle to the shared `nonograms` collection, authored by [firebaseUid]. */
-    suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram)
+    suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, resetPublishStatus: Boolean = false)
 
     /** Pushes every locally authored puzzle; used once when an account first signs in. */
-    suspend fun uploadAllLocalNonograms(firebaseUid: String, localUserId: Long)
+    suspend fun uploadAllLocalNonograms(firebaseUid: String)
 
-    suspend fun pullPublicNonogramsSince(
-        firebaseUid: String,
-        localUserId: Long,
-        since: Long,
-    ): Long?
+    suspend fun pullPublicNonogramsSince(firebaseUid: String, since: Long): Long?
 
-    suspend fun pullOwnedNonograms(
-        firebaseUid: String,
-        localUserId: Long,
-        since: Long,
-    ): Long?
+    suspend fun pullOwnedNonograms(firebaseUid: String, since: Long): Long?
+
+    /** Moves the puzzle to `PENDING`. Returns false when the rules reject it (e.g. banned author). */
+    suspend fun requestPublish(firebaseUid: String, nonogram: Nonogram): Boolean
+
+    /** Reads the author's denial streak / ban flag; null when the read failed. */
+    suspend fun fetchModerationGate(firebaseUid: String): ModerationGate?
+
+    suspend fun isAdmin(firebaseUid: String): Boolean
+
+    /** Admin only: the oldest pending requests, oldest first. */
+    suspend fun pullPendingReviews(firebaseUid: String, limit: Int): List<Nonogram>
+
+    /** Admin only: accepts or denies [nonogram] and updates its author's denial streak. */
+    suspend fun decideReview(firebaseUid: String, nonogram: Nonogram, approve: Boolean): Boolean
 }
 
 /**
@@ -37,7 +43,6 @@ interface SyncService {
 internal suspend fun SyncService.mergeRemoteNonograms(
     sdk: AppSDK,
     firebaseUid: String,
-    localUserId: Long,
     lastSyncedAt: Long,
     remotes: List<Nonogram>,
 ): Long {
@@ -47,7 +52,7 @@ internal suspend fun SyncService.mergeRemoteNonograms(
         val local = sdk.getNonogramById(remote.id)
         if (local == null || local.updatedAt < remote.updatedAt) {
             sdk.upsertNonogramFromRemote(remote)
-        } else if (local.updatedAt > remote.updatedAt && local.authorId == localUserId) {
+        } else if (local.updatedAt > remote.updatedAt && local.authorUid == firebaseUid) {
             pushNonogram(firebaseUid, local)
         }
     }
