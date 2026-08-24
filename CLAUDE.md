@@ -115,7 +115,10 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   stay in the DB, they are just filtered out). `AuthViewModel` orchestrates login flow and **all remote sync** —
   `syncAll` pulls progress + public + owned nonograms in one pass (separate public/owned cursors read via
   `AuthRepository`) and then refreshes the admin flag and publish ban (`isAdmin` / `publishBanned` StateFlows),
-  `retryOwnNonograms` re-runs just the owned stream for the generator's retry button. `AdminViewModel` drives the
+  `retryOwnNonograms` re-runs just the owned stream for the generator's retry button. The **public** stream runs
+  first, before the `currentFirebaseUid ?: return@launch` gate, so guests pull public puzzles too — approved
+  puzzles are readable unauthenticated (see `firestore.rules`), while progress, owned puzzles and the
+  admin/moderation reads all need a session and stay behind the gate. `AdminViewModel` drives the
   admin review queue (one pending request at a time, buffered a batch at a time).
   All depend on the suspend `AppSDK`/`SyncService` from inside `viewModelScope.launch`.
 
@@ -248,12 +251,17 @@ defined.
   per their `publishStatus` field), `users/{firebaseUid}` (`denialStreak` /
   `publishBanned`) and `admins/{firebaseUid}` (admin roster). Puzzles are pulled incrementally by `AuthViewModel.syncAll` in **two independent
   streams** — public and owned — each with its own `updatedAt` cursor persisted via `AuthRepository`
-  (`getLast{Public,Owned}NonogramSyncTimestamp`); merge policy is `sync/SyncService.kt` `mergeRemoteNonograms` (remote
-  newer → upsert; local newer & locally authored → push back). On both platforms — Android via
+  (`getLast{Public,Owned}NonogramSyncTimestamp`). The owned cursor is per-uid; the **public** cursor is
+  device-wide (no uid suffix), since every user on the device — guests included — sees the same approved set.
+  `pullPublicNonogramsSince` therefore takes a nullable uid: null is a guest's unauthenticated pull, and
+  `mergeRemoteNonograms` (`sync/SyncService.kt`) then merges without ever pushing back. Merge policy is remote
+  newer → upsert; local newer & locally authored → push back. On both platforms — Android via
   `dev.gitlive:firebase-firestore` (androidMain), web via hand-written Firebase JS SDK externals (webMain), both
-  isolated behind `sync/SyncService`. Security rules and indexes are checked in at `firestore.rules` / `firestore.indexes.json`
-  (`firebase deploy --only firestore`): the rules are what actually enforces publish moderation, and two composite
-  indexes are needed — `(publishStatus, updatedAt)` (public pull + review queue) and `(authorUid, updatedAt)` (owned pull).
+  isolated behind `sync/SyncService`; the web impl gates every call on `sessionMatches` *except* the public pull,
+  which must work signed out. Security rules are checked in at `firestore.rules` — they are what actually enforces
+  publish moderation, and the `nonograms` read rule deliberately allows unauthenticated reads of `APPROVED` docs.
+  Two composite indexes are needed on `nonograms` — `(publishStatus, updatedAt)` (public pull + review queue) and
+  `(authorUid, updatedAt)` (owned pull) — but they are configured in the Firebase console, not checked in.
 - `auth/PlatformAuth.kt` declares `expect suspend fun firebaseSignOut()`, ending the platform Firebase session —
   `dev.gitlive.firebase.auth.auth.signOut()` on Android, `FirebaseWeb.signOut()` (a new `firebase/auth` `signOut`
   external) on web. `AuthViewModel.signOut()` calls it before `AuthRepository.signOut()`, swallowing failures so local

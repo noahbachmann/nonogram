@@ -118,7 +118,7 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
         }
     }
 
-    override suspend fun pullPublicNonogramsSince(firebaseUid: String, since: Long): Long? = try {
+    override suspend fun pullPublicNonogramsSince(firebaseUid: String?, since: Long): Long? = try {
         val documents = nonogramsCollection()
             .where { "publishStatus" equalTo PublishStatus.APPROVED.name }
             .where { "updatedAt" greaterThan since }

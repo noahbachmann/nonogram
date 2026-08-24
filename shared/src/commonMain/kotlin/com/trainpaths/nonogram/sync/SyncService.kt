@@ -16,7 +16,8 @@ interface SyncService {
     /** Pushes every locally authored puzzle; used once when an account first signs in. */
     suspend fun uploadAllLocalNonograms(firebaseUid: String)
 
-    suspend fun pullPublicNonogramsSince(firebaseUid: String, since: Long): Long?
+    /** Runs for guests too ([firebaseUid] null): approved puzzles are readable unauthenticated. */
+    suspend fun pullPublicNonogramsSince(firebaseUid: String?, since: Long): Long?
 
     suspend fun pullOwnedNonograms(firebaseUid: String, since: Long): Long?
 
@@ -38,11 +39,12 @@ interface SyncService {
 /**
  * Merge policy for pulled nonograms, shared by both platform implementations: remote newer →
  * upsert locally, local newer and locally authored → push back. Returns the newest received
- * `updatedAt` timestamp for the next incremental fetch.
+ * `updatedAt` timestamp for the next incremental fetch. A null [firebaseUid] is a guest's
+ * unauthenticated public pull: merge in, never push back.
  */
 internal suspend fun SyncService.mergeRemoteNonograms(
     sdk: AppSDK,
-    firebaseUid: String,
+    firebaseUid: String?,
     lastSyncedAt: Long,
     remotes: List<Nonogram>,
 ): Long {
@@ -52,7 +54,11 @@ internal suspend fun SyncService.mergeRemoteNonograms(
         val local = sdk.getNonogramById(remote.id)
         if (local == null || local.updatedAt < remote.updatedAt) {
             sdk.upsertNonogramFromRemote(remote)
-        } else if (local.updatedAt > remote.updatedAt && local.authorUid == firebaseUid) {
+        } else if (
+            firebaseUid != null &&
+            local.updatedAt > remote.updatedAt &&
+            local.authorUid == firebaseUid
+        ) {
             pushNonogram(firebaseUid, local)
         }
     }
