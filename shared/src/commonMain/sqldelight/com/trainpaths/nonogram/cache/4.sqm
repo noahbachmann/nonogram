@@ -1,1 +1,0 @@
-ALTER TABLE NonogramData ADD COLUMN name TEXT;
