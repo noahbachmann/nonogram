@@ -9,6 +9,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class AuthRepositoryTest {
@@ -32,141 +33,143 @@ class AuthRepositoryTest {
     @Test
     fun initialize_noSavedUser_createsGuestAndSetsGuest() = runTest {
         authRepo.initialize()
+
         assertEquals(AuthState.GUEST, authRepo.authState.value)
-        assertNotNull(authRepo.currentUserId.value)
+        val uid = authRepo.currentUserUid.value
+        assertNotNull(uid)
+        assertTrue(uid.startsWith("local:"))
+        assertNotNull(sdk.getUser(uid))
     }
 
     @Test
     fun initialize_withSavedGuestUser_restoresAndSetsGuest() = runTest {
-        val userId = sdk.addUser("Guest")
-        settings.putLong("current_user_id", userId)
+        sdk.upsertUser("local:1", "Guest")
+        settings.putString("current_user_uid", "local:1")
 
         authRepo.initialize()
 
         assertEquals(AuthState.GUEST, authRepo.authState.value)
-        assertEquals(userId, authRepo.currentUserId.value)
+        assertEquals("local:1", authRepo.currentUserUid.value)
     }
 
     @Test
     fun initialize_withSavedSignedInUser_setsSignedIn() = runTest {
-        val userId = sdk.addUser("Signed User")
-        sdk.updateUserFirebaseUid(userId, "firebase-abc", "Signed User")
-        settings.putLong("current_user_id", userId)
+        sdk.upsertUser("firebase-abc", "Signed User")
+        settings.putString("current_user_uid", "firebase-abc")
 
         authRepo.initialize()
 
         assertEquals(AuthState.SIGNED_IN, authRepo.authState.value)
-        assertEquals(userId, authRepo.currentUserId.value)
+        assertEquals("firebase-abc", authRepo.currentUserUid.value)
     }
 
     @Test
-    fun initialize_withStaleUserId_createsNewGuest() = runTest {
-        settings.putLong("current_user_id", 9999)
+    fun initialize_withStaleUserUid_createsNewGuest() = runTest {
+        settings.putString("current_user_uid", "local:9999")
 
         authRepo.initialize()
 
         assertEquals(AuthState.GUEST, authRepo.authState.value)
-        val userId = authRepo.currentUserId.value
-        assertNotNull(userId)
-        assertNotNull(sdk.getUserById(userId))
+        val uid = authRepo.currentUserUid.value
+        assertNotNull(uid)
+        assertTrue(uid != "local:9999")
+        assertNotNull(sdk.getUser(uid))
     }
 
     @Test
-    fun linkFirebaseUser_newUid_updatesCurrentUser() = runTest {
+    fun currentFirebaseUid_isNullForAGuestAndTheUidWhenSignedIn() = runTest {
         authRepo.initialize()
-        val userId = authRepo.currentUserId.value!!
+        assertNull(authRepo.currentFirebaseUid)
+
+        authRepo.linkFirebaseUser("firebase-abc", "Name")
+        assertEquals("firebase-abc", authRepo.currentFirebaseUid)
+
+        authRepo.signOut()
+        assertNull(authRepo.currentFirebaseUid)
+    }
+
+    @Test
+    fun linkFirebaseUser_switchesTheKeyAndStoresTheDisplayName() = runTest {
+        authRepo.initialize()
 
         authRepo.linkFirebaseUser("firebase-new", "New Name")
 
         assertEquals(AuthState.SIGNED_IN, authRepo.authState.value)
-        assertEquals(userId, authRepo.currentUserId.value)
-        val user = sdk.getUserByFirebaseUid("firebase-new")
+        assertEquals("firebase-new", authRepo.currentUserUid.value)
+        assertEquals("firebase-new", settings.getStringOrNull("current_user_uid"))
+        val user = sdk.getUser("firebase-new")
         assertNotNull(user)
-        assertEquals(userId, user.id)
         assertEquals("New Name", user.name)
-    }
-
-    @Test
-    fun linkFirebaseUser_existingUid_switchesToThatUser() = runTest {
-        val existingUserId = sdk.addUser("Existing")
-        sdk.updateUserFirebaseUid(existingUserId, "firebase-existing", "Existing")
-
-        authRepo.initialize()
-        val guestId = authRepo.currentUserId.value!!
-
-        authRepo.linkFirebaseUser("firebase-existing", "Existing")
-
-        assertEquals(AuthState.SIGNED_IN, authRepo.authState.value)
-        assertEquals(existingUserId, authRepo.currentUserId.value)
-        assertTrue(existingUserId != guestId)
-    }
-
-    @Test
-    fun initialize_guest_getsALocalAuthorKey() = runTest {
-        authRepo.initialize()
-
-        assertEquals("local:${authRepo.currentUserId.value}", authRepo.currentAuthorUid.value)
-    }
-
-    @Test
-    fun initialize_signedInUser_usesTheFirebaseUidAsAuthorKey() = runTest {
-        val userId = sdk.addUser("Signed User")
-        sdk.updateUserFirebaseUid(userId, "firebase-abc", "Signed User")
-        settings.putLong("current_user_id", userId)
-
-        authRepo.initialize()
-
-        assertEquals("firebase-abc", authRepo.currentAuthorUid.value)
     }
 
     @Test
     fun linkFirebaseUser_movesGuestAuthoredPuzzlesToTheUid() = runTest {
         authRepo.initialize()
-        val guestKey = authRepo.currentAuthorUid.value!!
+        val guestKey = authRepo.currentUserUid.value!!
         val drawn = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = guestKey)
 
         authRepo.linkFirebaseUser("firebase-new", "New Name")
 
-        assertEquals("firebase-new", authRepo.currentAuthorUid.value)
         assertEquals(listOf(drawn), sdk.getNonogramsByAuthor("firebase-new").map { it.id })
         assertTrue(sdk.getNonogramsByAuthor(guestKey).isEmpty())
     }
 
     @Test
-    fun linkFirebaseUser_existingUid_alsoTakesTheGuestPuzzlesAlong() = runTest {
-        val existingUserId = sdk.addUser("Existing")
-        sdk.updateUserFirebaseUid(existingUserId, "firebase-existing", "Existing")
-
+    fun linkFirebaseUser_movesGuestProgressToTheUid() = runTest {
         authRepo.initialize()
-        val guestKey = authRepo.currentAuthorUid.value!!
-        val drawn = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = guestKey)
+        val guestKey = authRepo.currentUserUid.value!!
+        val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
+        sdk.saveProgressWithTimestamp(guestKey, nonogramId, "[[1]]", 100)
 
-        authRepo.linkFirebaseUser("firebase-existing", "Existing")
+        authRepo.linkFirebaseUser("firebase-new", "New Name")
 
-        assertEquals("firebase-existing", authRepo.currentAuthorUid.value)
-        assertEquals(listOf(drawn), sdk.getNonogramsByAuthor("firebase-existing").map { it.id })
+        val moved = sdk.getSingleProgress("firebase-new", nonogramId)
+        assertNotNull(moved)
+        assertEquals("[[1]]", moved.boardState)
+        assertTrue(sdk.getProgressForUserWithTimestamp(guestKey).isEmpty())
     }
 
     @Test
-    fun linkFirebaseUser_neverReassignsAnotherAccountsPuzzles() = runTest {
+    fun linkFirebaseUser_mergesGuestProgressOntoAnAccountThatAlreadyHasSome() = runTest {
+        val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
+        sdk.upsertUser("firebase-existing", "Existing")
+        sdk.saveProgressWithTimestamp("firebase-existing", nonogramId, "[[0]]", 100)
+
+        authRepo.initialize()
+        val guestKey = authRepo.currentUserUid.value!!
+        sdk.saveProgressWithTimestamp(guestKey, nonogramId, "[[1]]", 200)
+
+        authRepo.linkFirebaseUser("firebase-existing", "Existing")
+
+        val merged = sdk.getSingleProgress("firebase-existing", nonogramId)
+        assertNotNull(merged)
+        assertEquals("[[1]]", merged.boardState)
+    }
+
+    @Test
+    fun linkFirebaseUser_dropsTheEmptiedGuestRow() = runTest {
+        authRepo.initialize()
+        val guestKey = authRepo.currentUserUid.value!!
+
+        authRepo.linkFirebaseUser("firebase-new", "New Name")
+
+        assertNull(sdk.getUser(guestKey))
+    }
+
+    @Test
+    fun linkFirebaseUser_neverReassignsAnotherAccountsData() = runTest {
+        val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
         authRepo.initialize()
         authRepo.linkFirebaseUser("firebase-a", "A")
         val theirs = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "firebase-a")
+        sdk.saveProgressWithTimestamp("firebase-a", nonogramId, "[[1]]", 100)
 
         authRepo.linkFirebaseUser("firebase-b", "B")
 
         assertEquals(listOf(theirs), sdk.getNonogramsByAuthor("firebase-a").map { it.id })
         assertTrue(sdk.getNonogramsByAuthor("firebase-b").isEmpty())
-    }
-
-    @Test
-    fun signOut_returnsToAFreshLocalAuthorKey() = runTest {
-        authRepo.initialize()
-        authRepo.linkFirebaseUser("firebase-abc", "Name")
-
-        authRepo.signOut()
-
-        assertEquals("local:${authRepo.currentUserId.value}", authRepo.currentAuthorUid.value)
+        assertNotNull(sdk.getSingleProgress("firebase-a", nonogramId))
+        assertNull(sdk.getSingleProgress("firebase-b", nonogramId))
     }
 
     @Test
@@ -202,33 +205,33 @@ class AuthRepositoryTest {
     }
 
     @Test
-    fun signOut_switchesToFreshGuest() = runTest {
+    fun signOut_switchesToAFreshGuestKey() = runTest {
         authRepo.initialize()
         authRepo.linkFirebaseUser("firebase-abc", "Name")
-        val signedInId = authRepo.currentUserId.value!!
 
         authRepo.signOut()
 
         assertEquals(AuthState.GUEST, authRepo.authState.value)
-        val guestId = authRepo.currentUserId.value!!
-        assertTrue(guestId != signedInId)
-        assertEquals(guestId, settings.getLongOrNull("current_user_id"))
-        val originalUser = sdk.getUserByFirebaseUid("firebase-abc")
-        assertNotNull(originalUser)
-        assertEquals(signedInId, originalUser.id)
+        val guestKey = authRepo.currentUserUid.value!!
+        assertTrue(guestKey.startsWith("local:"))
+        assertEquals(guestKey, settings.getStringOrNull("current_user_uid"))
+        // The signed-in row is left intact, so signing back in restores its puzzles and progress.
+        assertNotNull(sdk.getUser("firebase-abc"))
     }
 
     @Test
-    fun signOut_thenLinkAgain_restoresOriginalUser() = runTest {
+    fun signOut_thenLinkAgain_restoresTheOriginalKey() = runTest {
+        val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
         authRepo.initialize()
         authRepo.linkFirebaseUser("firebase-abc", "Name")
-        val signedInId = authRepo.currentUserId.value!!
+        sdk.saveProgressWithTimestamp("firebase-abc", nonogramId, "[[1]]", 100)
 
         authRepo.signOut()
         authRepo.linkFirebaseUser("firebase-abc", "Name")
 
         assertEquals(AuthState.SIGNED_IN, authRepo.authState.value)
-        assertEquals(signedInId, authRepo.currentUserId.value)
+        assertEquals("firebase-abc", authRepo.currentUserUid.value)
+        assertNotNull(sdk.getSingleProgress("firebase-abc", nonogramId))
     }
 
     @Test

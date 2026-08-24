@@ -18,7 +18,7 @@ Everything lives in `shared/src/commonMain/kotlin/com/trainpaths/nonogram/filter
   `FilterSortState` is the user's selection — an immutable data class whose own methods
   (`cycleSort`, `toggle`, `isChecked`, `applyTo`) return the next state. No Compose, no ViewModel —
   unit-tested in `shared/src/commonTest/.../filter/FilterSortStateTest.kt`.
-- **`NonogramFilters.kt`** — the registry. `NonogramFilters.forUser(userId)` is the list the UI
+- **`NonogramFilters.kt`** — the registry. `NonogramFilters.forUser(authorUid)` is the list the UI
   renders; it is a function rather than a constant because the "Personal" toggle needs to know who
   you are.
 - **`FilterMenu.kt`** — `FilterMenuButton`, the app-bar button plus its dropdown panel.
@@ -62,8 +62,8 @@ their database order.
 ## Own puzzles
 
 Ownership is `Nonogram.isOwned(uid)`, which excludes a blank `authorUid` — seeded puzzles carry one.
-The uid compared against is `AuthRepository.currentAuthorUid`: a Firebase uid once signed in, a
-`"local:<userId>"` key while a guest. Guests count: a guest can author puzzles, so the Personal row
+The uid compared against is `AuthRepository.currentUserUid`: a Firebase uid once signed in, a
+`"local:<random>"` key while a guest. Guests count: a guest can author puzzles, so the Personal row
 is meaningful before sign-in and is always shown.
 
 Your puzzles are pinned to the top of the grid **only while nothing is sorted**. That is
@@ -87,7 +87,7 @@ with several values, a `FilterToggle` for a single show/hide switch. Nothing in 
 
 `MenuViewModel` owns the applied `filterSort` (in memory only — it resets on restart, and there is
 deliberately no `Settings` key) and exposes `visibleNonograms`, a `derivedStateOf` over the
-unfiltered `nonograms` list. Because `AuthRepository.currentAuthorUid` is a `StateFlow` that
+unfiltered `nonograms` list. Because `AuthRepository.currentUserUid` is a `StateFlow` that
 `derivedStateOf` cannot observe, `reload()` mirrors it into a Compose-state `authorUid`, which
 `filterEntries` and `visibleNonograms` derive from and which `MenuScreen` reads directly for
 `nonogram.isOwned(viewModel.authorUid)` — so the entries, the pinning, and the card tint all refresh on

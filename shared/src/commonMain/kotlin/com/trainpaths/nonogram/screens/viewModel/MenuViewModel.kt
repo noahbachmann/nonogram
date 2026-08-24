@@ -54,11 +54,11 @@ class MenuViewModel(
                 sdk.seedIfEmpty()
                 sdk.getAllNonograms()
             }
-            authorUid = authRepository.currentAuthorUid.value
-            val userId = authRepository.currentUserId.value
-            if (userId != null) {
+            val uid = authRepository.currentUserUid.value
+            authorUid = uid
+            if (uid != null) {
                 val allProgress = withContext(Dispatchers.Default) {
-                    sdk.getProgressForUser(userId)
+                    sdk.getProgressForUser(uid)
                 }
                 progressMap = allProgress
                     .filter { it.board != null }

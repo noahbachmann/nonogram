@@ -2,9 +2,7 @@ package com.trainpaths.nonogram.screens.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
-import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.auth.firebaseSignOut
 import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.Dispatchers
@@ -18,11 +16,9 @@ enum class GeneratorSyncState { IDLE, SYNCING, ERROR }
 class AuthViewModel(
     private val authRepository: AuthRepository,
     private val syncService: SyncService,
-    private val sdk: AppSDK,
 ) : ViewModel() {
 
     val authState = authRepository.authState
-    val currentUserId = authRepository.currentUserId
     val hasCompletedOnboarding get() = authRepository.hasCompletedOnboarding
 
     private val _signInComplete = MutableStateFlow(false)
@@ -43,11 +39,10 @@ class AuthViewModel(
         viewModelScope.launch(Dispatchers.Default) {
             val hasRemote = syncService.hasRemoteProgress(firebaseUid)
             authRepository.linkFirebaseUser(firebaseUid, displayName)
-            val userId = authRepository.currentUserId.value ?: return@launch
             if (hasRemote) {
-                syncService.pullAllProgress(firebaseUid, userId)
+                syncService.pullAllProgress(firebaseUid)
             } else {
-                syncService.uploadAllLocalProgress(firebaseUid, userId)
+                syncService.uploadAllLocalProgress(firebaseUid)
             }
             syncService.uploadAllLocalNonograms(firebaseUid)
             refreshPublishState(firebaseUid)
@@ -58,11 +53,9 @@ class AuthViewModel(
     fun syncAll(onComplete: () -> Unit = {}) {
         viewModelScope.launch(Dispatchers.Default) {
             try {
-                if (authRepository.authState.value != AuthState.SIGNED_IN) return@launch
-                val userId = authRepository.currentUserId.value ?: return@launch
-                val firebaseUid = sdk.getUserById(userId)?.firebaseUid ?: return@launch
+                val firebaseUid = authRepository.currentFirebaseUid ?: return@launch
 
-                syncService.pullAndMergeAllProgress(firebaseUid, userId)
+                syncService.pullAndMergeAllProgress(firebaseUid)
                 syncPublicNonograms(firebaseUid)
                 syncOwnedNonograms(firebaseUid)
                 refreshPublishState(firebaseUid)
@@ -75,9 +68,7 @@ class AuthViewModel(
     fun retryOwnNonograms(onComplete: () -> Unit = {}) {
         viewModelScope.launch(Dispatchers.Default) {
             try {
-                if (authRepository.authState.value != AuthState.SIGNED_IN) return@launch
-                val userId = authRepository.currentUserId.value ?: return@launch
-                val firebaseUid = sdk.getUserById(userId)?.firebaseUid ?: return@launch
+                val firebaseUid = authRepository.currentFirebaseUid ?: return@launch
                 syncOwnedNonograms(firebaseUid)
             } finally {
                 withContext(Dispatchers.Main) { onComplete() }

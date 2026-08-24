@@ -67,18 +67,19 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   (androidMain, `Schema.synchronous()`), `WebDatabaseFactory` (webMain, OPFS worker driver + explicit
   `PRAGMA user_version` migration — see `docs/web-architecture.md`), `TestDatabaseFactory` (androidHostTest, in-memory
   JDBC).
-- **`auth/AuthRepository`** — manages auth state (`GUEST` / `SIGNED_IN`), local user ID, the **author key**, and the
-  onboarding flag via `multiplatform-settings`. Links guest accounts to Firebase UIDs on sign-in.
-  `initialize()`/`linkFirebaseUser()` are suspend (call the suspend `AppSDK`). `signOut()` doesn't delete the signed-in
-  user's local row — it creates a new guest `User` and repoints `current_user_id` at it, so re-linking the same Firebase
-  UID later restores the original row (progress and authored puzzles intact). Onboarding flag and per-UID sync cursors
-  are left untouched.
+- **`auth/AuthRepository`** — manages auth state (`GUEST` / `SIGNED_IN`), the **user key**, and the onboarding flag via
+  `multiplatform-settings`. `initialize()`/`linkFirebaseUser()`/`signOut()` are suspend (they call the suspend `AppSDK`).
+  Onboarding flag and per-UID sync cursors survive sign-out untouched.
 
-  **The author key** (`currentAuthorUid: StateFlow<String?>`) is what `Nonogram.authorUid` stores: the Firebase uid once
-  signed in, `"local:<userId>"` while a guest — the generator is open to guests, so their puzzles need an identity too.
-  Guests never push, so a local key cannot reach Firestore. `linkFirebaseUser` runs `AppSDK.reassignAuthor(local key →
-  uid)` so puzzles drawn as a guest follow the account in; a key that is already a real uid is never reassigned, so
-  signing into a second account cannot steal the first one's puzzles.
+  **The user key** (`currentUserUid: StateFlow<String?>`, persisted as `current_user_uid`) is the app's *only* identity:
+  the Firebase uid once signed in, `"local:<random>"` while a guest. It keys both `Nonogram.authorUid` and
+  `UserProgress.userUid`, so the local tables mirror Firestore's own `users/{uid}/progress/{nonogramId}` layout — see
+  `docs/identity.md`. `currentFirebaseUid` is the same value projected to null while a guest, for the calls that must
+  reach Firestore. The generator is open to guests, hence the local form; guests never push, so it cannot leak.
+  `linkFirebaseUser` migrates the guest's data onto the uid (`reassignAuthor` + `mergeProgressInto`, then drops the
+  emptied guest row); a key that is already a real uid is never migrated, so signing into a second account cannot take
+  the first one's data. `signOut()` mints a fresh guest key and leaves the signed-in row intact, so signing back in
+  restores that account's puzzles and progress.
 - **`settings/SettingsRepository`** — holds the app's persisted preferences via `multiplatform-settings`: the selected
   `ColorTheme` (key `color_theme`, stores the enum name) and `showNames` (key `show_all_nonogram_names`, default
   `true` — the Settings screen's "Always show names" switch, read by `MenuViewModel`). Same shape as `AuthRepository`:
@@ -98,7 +99,7 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
 - **`filter/`** — the menu's combined filter/sorter: a pure `FilterSortState` model plus the
   `FilterMenuButton` dropdown hosted in the `TopAppBar`'s `navigationContent` slot. Rows are data —
   a sortable `FilterAttribute` with checkable values, or a standalone `FilterToggle` (the "Personal"
-  own-puzzles switch) — so adding one is a list entry in `NonogramFilters.forUser(userId)`, a
+  own-puzzles switch) — so adding one is a list entry in `NonogramFilters.forUser(authorUid)`, a
   function rather than a constant because ownership is user-scoped. A row's `label` is also its id.
   See `docs/menu-filtering.md`.
 - **`classes/Solver`** — line-logic solver; run via `Nonogram.isValid` to check a puzzle is uniquely solvable (gates
@@ -170,7 +171,7 @@ dirty puzzle). Icons come from the hand-built `icons/` package of `ImageVector`s
 ### Data Model
 
 - **`Nonogram`** — `id`, `difficulty` (enum: EASY/MEDIUM/HARD/HARDCORE), `solution` (List<List<Int>> stored as JSON),
-  `name: String?`, `authorUid` (the author key — see `auth/AuthRepository`; the same string as the Firestore
+  `name: String?`, `authorUid` (the user key — see `auth/AuthRepository`; the same string as the Firestore
   `authorUid` field, so no local↔remote translation is needed), `updatedAt`, `publishState` (enum: NONE/PENDING/APPROVED/UNLISTED/DENIED, stored as its
   ordinal in the DB column `status`, as its name in the Firestore field `publishStatus`). Visibility is derived, not stored:
   `isPublic get() = publishState == APPROVED`, and the author's on/off switch moves an approved puzzle between
@@ -189,7 +190,7 @@ dropping and recreating the table — local puzzles are wiped and re-pulled, whi
 sync-cursor key prefixes to `_v2_`). Database name: `NonogramDb`, package:
 `com.trainpaths.nonogram.cache`
 
-Tables: `NonogramData`, `User`, `UserProgress` (composite PK: userId + nonogramId).
+Tables: `NonogramData`, `User` (`uid` TEXT PK → display name), `UserProgress` (composite PK: userUid + nonogramId).
 
 `generateAsync` is enabled, so all generated query/transaction code is `suspend`. Sync drivers (Android, JVM tests)
 adapt via `NonogramDb.Schema.synchronous()`; the web worker driver uses the async API directly. See
@@ -228,7 +229,7 @@ two platform entry points (`MainActivity.kt`, `webApp/main.kt`) therefore just c
 `if`/`else`, no `AppTheme` call of their own. `menuViewModelFactory`/`genViewModelFactory` are passed as
 `@Composable () -> VM` (matching the existing `gameViewModelFactory` idiom), **not** resolved instances — this is
 deliberate, not simplifiable: it keeps `MenuViewModel`/`GenViewModel` construction inside the non-`INITIALIZING`
-branch, since `MenuViewModel.init { loadAll() }` needs `AuthRepository.currentUserId` to already be set.
+branch, since `MenuViewModel.init { loadAll() }` needs `AuthRepository.currentUserUid` to already be set.
 
 Use `MaterialTheme.colorScheme.*`, never hardcode hex — outside `AppTheme.kt` itself, where each theme's palette is
 defined.

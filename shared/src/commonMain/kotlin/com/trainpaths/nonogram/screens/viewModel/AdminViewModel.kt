@@ -5,9 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
-import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.CancellationException
@@ -18,7 +16,6 @@ import kotlinx.coroutines.withContext
 private const val REVIEW_BATCH_SIZE = 20
 
 class AdminViewModel(
-    private val sdk: AppSDK,
     private val authRepository: AuthRepository,
     private val syncService: SyncService,
 ) : ViewModel() {
@@ -67,7 +64,7 @@ class AdminViewModel(
         error = null
         viewModelScope.launch {
             try {
-                val firebaseUid = withContext(Dispatchers.Default) { firebaseUid() }
+                val firebaseUid = authRepository.currentFirebaseUid
                 if (firebaseUid == null) {
                     error = "Sign in again to review requests."
                     return@launch
@@ -93,13 +90,7 @@ class AdminViewModel(
     }
 
     private suspend fun fetch(): List<Nonogram> {
-        val firebaseUid = firebaseUid() ?: return emptyList()
+        val firebaseUid = authRepository.currentFirebaseUid ?: return emptyList()
         return syncService.pullPendingReviews(firebaseUid, REVIEW_BATCH_SIZE)
-    }
-
-    private suspend fun firebaseUid(): String? {
-        if (authRepository.authState.value != AuthState.SIGNED_IN) return null
-        val userId = authRepository.currentUserId.value ?: return null
-        return sdk.getUserById(userId)?.firebaseUid
     }
 }

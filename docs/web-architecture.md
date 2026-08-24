@@ -27,7 +27,7 @@ Web needs explicit version tracking because OPFS storage persists across page lo
 sql.js in-memory setups, a returning user's on-disk schema may be older than the current `NonogramDb.Schema.version`.
 
 Because `AuthRepository.initialize()` is now async, `MenuViewModel`'s `init { loadAll() }` could otherwise read
-`currentUserId` before it's set. Both `MainActivity` (Android) and `main.kt` (web) gate the app behind
+`currentUserUid` before it's set. Both `MainActivity` (Android) and `main.kt` (web) gate the app behind
 `LoadingScreen()` until `AuthViewModel.authState != INITIALIZING`, so ViewModels are only constructed once
 auth has resolved.
 

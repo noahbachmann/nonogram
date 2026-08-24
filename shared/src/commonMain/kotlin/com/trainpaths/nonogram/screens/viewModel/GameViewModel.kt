@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
-import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.BoardHistory
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.Tile
@@ -46,10 +45,10 @@ class GameViewModel(
                 sdk.getNonogramById(id)
             }
             if (loaded != null) {
-                val userId = authRepository.currentUserId.value
-                val existingProgress: List<List<Int>>? = if (userId != null) {
+                val userUid = authRepository.currentUserUid.value
+                val existingProgress: List<List<Int>>? = if (userUid != null) {
                     withContext(Dispatchers.Default) {
-                        sdk.getSingleProgress(userId, id)
+                        sdk.getSingleProgress(userUid, id)
                             ?.boardState
                             ?.let { Json.decodeFromString<List<List<Int>>>(it) }
                     }
@@ -72,22 +71,19 @@ class GameViewModel(
     }
 
     fun saveCurrentProgress(win: Boolean = false) {
-        val userId = authRepository.currentUserId.value ?: return
+        val userUid = authRepository.currentUserUid.value ?: return
         val nonogramId = nonogram?.id ?: return
         val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
         viewModelScope.launch(Dispatchers.Default) {
             if (win) {
-                sdk.saveProgressAfterWin(userId, nonogramId)
+                sdk.saveProgressAfterWin(userUid, nonogramId)
             } else {
-                sdk.saveProgress(userId, nonogramId, board)
+                sdk.saveProgress(userUid, nonogramId, board)
             }
 
-            if (authRepository.authState.value == AuthState.SIGNED_IN) {
-                val user = sdk.getUserById(userId)
-                val firebaseUid = user?.firebaseUid ?: return@launch
-                val progress = sdk.getSingleProgress(userId, nonogramId) ?: return@launch
-                syncService.pushProgress(firebaseUid, nonogramId, progress.boardState, progress.updatedAt)
-            }
+            val firebaseUid = authRepository.currentFirebaseUid ?: return@launch
+            val progress = sdk.getSingleProgress(userUid, nonogramId) ?: return@launch
+            syncService.pushProgress(firebaseUid, nonogramId, progress.boardState, progress.updatedAt)
         }
     }
 

@@ -4,6 +4,7 @@ import com.trainpaths.nonogram.cache.Database
 import com.trainpaths.nonogram.cache.DatabaseFactory
 import com.trainpaths.nonogram.cache.NonogramProgress
 import com.trainpaths.nonogram.cache.ProgressWithTimestamp
+import com.trainpaths.nonogram.cache.User
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
 import kotlinx.coroutines.sync.Mutex
@@ -105,36 +106,34 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
     suspend fun reassignAuthor(fromUid: String, toUid: String) =
         db().reassignAuthor(fromUid, toUid)
 
-    suspend fun addUser(name: String): Long =
-        db().addUser(name)
+    suspend fun upsertUser(uid: String, name: String) =
+        db().upsertUser(uid, name)
 
-    suspend fun getUserById(id: Long) =
-        db().getUserById(id)
+    suspend fun getUser(uid: String): User? =
+        db().getUser(uid)
 
-    suspend fun getUserByFirebaseUid(uid: String) =
-        db().getUserByFirebaseUid(uid)
+    suspend fun deleteUser(uid: String) =
+        db().deleteUser(uid)
 
-    suspend fun updateUserFirebaseUid(userId: Long, firebaseUid: String, name: String) =
-        db().updateUserFirebaseUid(userId, firebaseUid, name)
+    /** Moves every progress row from one user key to another, newest row winning. */
+    suspend fun mergeProgressInto(fromUid: String, toUid: String) =
+        db().mergeProgressInto(fromUid, toUid)
 
-    suspend fun saveProgress(userId: Long, nonogramId: Long, board: List<List<Int>>?) =
-        db().saveProgress(userId, nonogramId, board)
+    suspend fun saveProgress(userUid: String, nonogramId: Long, board: List<List<Int>>?) =
+        db().saveProgress(userUid, nonogramId, board)
 
-    suspend fun incrementBeat(userId: Long, nonogramId: Long) =
-        db().incrementBeat(userId, nonogramId)
+    suspend fun saveProgressAfterWin(userUid: String, nonogramId: Long) =
+        db().saveProgressAfterWin(userUid, nonogramId)
 
-    suspend fun saveProgressAfterWin(userId: Long, nonogramId: Long) =
-        db().saveProgressAfterWin(userId, nonogramId)
+    suspend fun getProgressForUser(userUid: String): List<NonogramProgress> =
+        db().getProgressForUser(userUid)
 
-    suspend fun getProgressForUser(userId: Long): List<NonogramProgress> =
-        db().getProgressForUser(userId)
+    suspend fun getProgressForUserWithTimestamp(userUid: String): List<ProgressWithTimestamp> =
+        db().getProgressForUserWithTimestamp(userUid)
 
-    suspend fun getProgressForUserWithTimestamp(userId: Long): List<ProgressWithTimestamp> =
-        db().getProgressForUserWithTimestamp(userId)
+    suspend fun getSingleProgress(userUid: String, nonogramId: Long): ProgressWithTimestamp? =
+        db().getSingleProgress(userUid, nonogramId)
 
-    suspend fun getSingleProgress(userId: Long, nonogramId: Long): ProgressWithTimestamp? =
-        db().getSingleProgress(userId, nonogramId)
-
-    suspend fun saveProgressWithTimestamp(userId: Long, nonogramId: Long, boardState: String?, updatedAt: Long) =
-        db().saveProgressWithTimestamp(userId, nonogramId, boardState, updatedAt)
+    suspend fun saveProgressWithTimestamp(userUid: String, nonogramId: Long, boardState: String?, updatedAt: Long) =
+        db().saveProgressWithTimestamp(userUid, nonogramId, boardState, updatedAt)
 }

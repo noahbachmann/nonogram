@@ -6,11 +6,8 @@ import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
-import com.trainpaths.nonogram.firebase.ExistsDocSnapshot
 import com.trainpaths.nonogram.firebase.FirebaseWeb
 import com.trainpaths.nonogram.firebase.NonogramQuerySnapshot
-import com.trainpaths.nonogram.firebase.ProgressQuerySnapshot
-import com.trainpaths.nonogram.firebase.UserGateDocSnapshot
 import com.trainpaths.nonogram.firebase.collection
 import com.trainpaths.nonogram.firebase.doc
 import com.trainpaths.nonogram.firebase.getExistsDoc
@@ -50,7 +47,7 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
     private suspend fun fetchAll(firebaseUid: String): List<Remote> {
         val snapshot =
             getProgressDocs(collection(FirebaseWeb.requireFirestore(), "users/$firebaseUid/progress"))
-                .await<ProgressQuerySnapshot>()
+                .await()
         val result = mutableListOf<Remote>()
         snapshot.forEach { docSnapshot ->
             val nonogramId = docSnapshot.id.toLongOrNull()
@@ -82,39 +79,39 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
         }
     }
 
-    override suspend fun uploadAllLocalProgress(firebaseUid: String, localUserId: Long) {
+    override suspend fun uploadAllLocalProgress(firebaseUid: String) {
         try {
             if (!sessionMatches(firebaseUid)) return
-            val allProgress = sdk.getProgressForUserWithTimestamp(localUserId)
-            for (progress in allProgress) {
-                pushProgress(firebaseUid, progress.nonogramId, progress.boardState, progress.updatedAt)
+            val allProgress = sdk.getProgressForUserWithTimestamp(firebaseUid)
+            for ((nonogramId, boardState, updatedAt) in allProgress) {
+                pushProgress(firebaseUid, nonogramId, boardState, updatedAt)
             }
         } catch (e: Throwable) {
             println("FirestoreSync(web): upload all failed: ${e.message}")
         }
     }
 
-    override suspend fun pullAllProgress(firebaseUid: String, localUserId: Long) {
+    override suspend fun pullAllProgress(firebaseUid: String) {
         try {
             if (!sessionMatches(firebaseUid)) return
-            for (remote in fetchAll(firebaseUid)) {
-                sdk.saveProgressWithTimestamp(localUserId, remote.nonogramId, remote.boardState, remote.updatedAt)
+            for ((nonogramId, boardState, updatedAt) in fetchAll(firebaseUid)) {
+                sdk.saveProgressWithTimestamp(firebaseUid, nonogramId, boardState, updatedAt)
             }
         } catch (e: Throwable) {
             println("FirestoreSync(web): pull all failed: ${e.message}")
         }
     }
 
-    override suspend fun pullAndMergeAllProgress(firebaseUid: String, localUserId: Long) {
+    override suspend fun pullAndMergeAllProgress(firebaseUid: String) {
         try {
             if (!sessionMatches(firebaseUid)) return
-            for (remote in fetchAll(firebaseUid)) {
-                val local = sdk.getSingleProgress(localUserId, remote.nonogramId)
+            for ((nonogramId, boardState, updatedAt) in fetchAll(firebaseUid)) {
+                val local = sdk.getSingleProgress(firebaseUid, nonogramId)
 
-                if (local == null || local.updatedAt < remote.updatedAt) {
-                    sdk.saveProgressWithTimestamp(localUserId, remote.nonogramId, remote.boardState, remote.updatedAt)
-                } else if (local.updatedAt > remote.updatedAt) {
-                    pushProgress(firebaseUid, remote.nonogramId, local.boardState, local.updatedAt)
+                if (local == null || local.updatedAt < updatedAt) {
+                    sdk.saveProgressWithTimestamp(firebaseUid, nonogramId, boardState, updatedAt)
+                } else if (local.updatedAt > updatedAt) {
+                    pushProgress(firebaseUid, nonogramId, local.boardState, local.updatedAt)
                 }
             }
         } catch (e: Throwable) {
@@ -225,7 +222,7 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
 
     private suspend fun readModerationGate(uid: String): ModerationGate {
         val snapshot = getUserGateDoc(doc(FirebaseWeb.requireFirestore(), "users/$uid"))
-            .await<UserGateDocSnapshot>()
+            .await()
         if (!snapshot.exists()) return ModerationGate()
         val data = snapshot.data() ?: return ModerationGate()
         val streak = data.denialStreak?.toInt() ?: 0
@@ -237,7 +234,7 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
             false
         } else {
             getExistsDoc(doc(FirebaseWeb.requireFirestore(), "admins/$firebaseUid"))
-                .await<ExistsDocSnapshot>()
+                .await()
                 .exists()
         }
     } catch (e: Throwable) {
@@ -257,7 +254,7 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
                         orderBy("updatedAt"),
                         limitTo(limit),
                     )
-                ).await<NonogramQuerySnapshot>()
+                ).await()
             )
         }
     } catch (e: Throwable) {
