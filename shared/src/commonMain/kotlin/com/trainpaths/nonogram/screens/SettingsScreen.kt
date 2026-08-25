@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.BUTTON_SHAPE
 import com.trainpaths.nonogram.ColorTheme
 import com.trainpaths.nonogram.switchColors
 import com.trainpaths.nonogram.darken
@@ -115,6 +116,7 @@ fun SettingsScreen(
                         containerColor = MaterialTheme.colorScheme.onPrimary,
                         contentColor = MaterialTheme.colorScheme.primary,
                     ),
+                    shape = BUTTON_SHAPE,
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                 ) {
                     Text("Admin panel")
@@ -127,6 +129,7 @@ fun SettingsScreen(
                         containerColor = MaterialTheme.colorScheme.onPrimary,
                         contentColor = MaterialTheme.colorScheme.primary,
                     ),
+                    shape = BUTTON_SHAPE,
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                 ) {
                     Text("Sign In with Google")
@@ -138,6 +141,7 @@ fun SettingsScreen(
                         containerColor = MaterialTheme.colorScheme.onPrimary,
                         contentColor = MaterialTheme.colorScheme.primary,
                     ),
+                    shape = BUTTON_SHAPE,
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                 ) {
                     Text("Log Out")

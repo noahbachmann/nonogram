@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.BUTTON_SHAPE
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 
 @Composable
@@ -76,6 +77,7 @@ fun LoginScreen(
                         authViewModel.completeOnboarding()
                         onContinueAsGuest()
                     },
+                    shape = BUTTON_SHAPE,
                     modifier = Modifier.fillMaxWidth().height(44.dp),
                 ) {
                     Text("Continue as Guest")

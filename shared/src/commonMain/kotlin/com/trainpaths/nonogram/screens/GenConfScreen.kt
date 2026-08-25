@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.BUTTON_SHAPE
 import com.trainpaths.nonogram.switchColors
 import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.MAX_NONOGRAM_NAME_LENGTH
@@ -236,6 +237,7 @@ fun GenConfScreen(
                             onClick = { genViewModel.requestPublish() },
                             enabled = status == PublishStatus.NONE && canRequest &&
                                     !genViewModel.isRequestingPublish,
+                            shape = BUTTON_SHAPE,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.onPrimary,
                                 contentColor = MaterialTheme.colorScheme.primary,
@@ -313,6 +315,7 @@ fun GenConfScreen(
                     }
                 },
                 enabled = !genViewModel.isSaving,
+                shape = BUTTON_SHAPE,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 32.dp)

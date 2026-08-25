@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
 import com.mmk.kmpauth.google.GoogleButtonUiContainer
 import com.mmk.kmpauth.uihelper.google.GoogleSignInButton
+import com.trainpaths.nonogram.BUTTON_SHAPE
 import com.trainpaths.nonogram.firebase.FirebaseWeb
 import kotlinx.coroutines.launch
 
@@ -35,6 +36,7 @@ actual fun GoogleSignInSection(
     }) {
         GoogleSignInButton(
             modifier = modifier,
+            shape = BUTTON_SHAPE,
             fontSize = 19.sp,
             text = "Sign in with Google"
         ) { this.onClick() }
