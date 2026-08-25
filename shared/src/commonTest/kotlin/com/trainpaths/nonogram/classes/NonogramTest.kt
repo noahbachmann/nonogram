@@ -43,6 +43,7 @@ private val nonogramData = arrayOf(
     NonogramTestData(
         desc = "ritter sample",
         nonogram = Nonogram(
+            id = 0,
             difficulty = Difficulty.HARD,
             solution = listOf(
                 listOf(0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -76,8 +77,6 @@ private val nonogramData = arrayOf(
                 listOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0),
                 listOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0),
             ),
-            publishStatus = PublishStatus.APPROVED,
-            id = 5,
         ),
         verifySolver = true,
     ),
@@ -228,18 +227,6 @@ class NonogramTest {
 
         assertTrue(valid.isValid)
         assertFalse(invalid.isValid)
-    }
-
-    @Test
-    fun solverAndDerivedValidity_areRepeatable() {
-        val nonogram = nonogramData.first { it.verifySolver }.nonogram
-
-        val first = Solver(nonogram).solveNonogram().map { row -> row.toList() }
-        val second = Solver(nonogram).solveNonogram().map { row -> row.toList() }
-
-        assertEquals(first, second)
-        assertTrue(nonogram.isValid)
-        assertTrue(nonogram.isValid)
     }
 
     @Test

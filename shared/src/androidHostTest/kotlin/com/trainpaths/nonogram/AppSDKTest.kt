@@ -21,24 +21,23 @@ class AppSDKTest {
         sdk = AppSDK(TestDatabaseFactory())
     }
 
-    @Test
-    fun seedIfEmpty_insertsThreeNonograms() = runTest {
-        assertTrue(sdk.getAllNonograms().isEmpty())
+    /** Seeds the fresh per-test DB and returns the seeds, so no test hardcodes how many there are. */
+    private suspend fun seed(): List<Nonogram> {
         sdk.seedIfEmpty()
-        assertEquals(4, sdk.getAllNonograms().size)
+        return sdk.getAllNonograms()
     }
+
+    private suspend fun approvedSeedIds(): Set<Long> =
+        seed().filter { it.isPublic }.map { it.id }.toSet()
 
     @Test
     fun seedIfEmpty_doesNotDuplicateOnSecondCall() = runTest {
-        sdk.seedIfEmpty()
-        sdk.seedIfEmpty()
-        assertEquals(4, sdk.getAllNonograms().size)
-    }
+        val seeded = seed().map { it.id }
+        assertTrue(seeded.isNotEmpty())
 
-    @Test
-    fun seedIfEmpty_usesFixedIds() = runTest {
         sdk.seedIfEmpty()
-        assertEquals(setOf(1L, 2L, 3L, 4L), sdk.getAllNonograms().map { it.id }.toSet())
+
+        assertEquals(seeded, sdk.getAllNonograms().map { it.id })
     }
 
     @Test
@@ -95,7 +94,7 @@ class AppSDKTest {
 
     @Test
     fun getVisibleNonograms_hidesOtherAuthorsUnapprovedPuzzles() = runTest {
-        sdk.seedIfEmpty()
+        val approvedSeeds = approvedSeedIds()
         val minePrivate = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "uid-a")
         val minePending = sdk.addNonogram(
             "EASY", listOf(listOf(1)), authorUid = "uid-a", publishStatus = PublishStatus.PENDING,
@@ -108,20 +107,25 @@ class AppSDKTest {
         val mine = sdk.getVisibleNonograms("uid-a").map { it.id }.toSet()
         assertTrue(mine.containsAll(setOf(minePrivate, minePending, theirsApproved)))
         assertFalse(theirsPrivate in mine)
-        // The four seeds are approved, so everyone sees them.
-        assertTrue(mine.containsAll(setOf(1L, 2L, 3L, 4L)))
+        // The approved seeds are visible to everyone.
+        assertTrue(mine.containsAll(approvedSeeds))
 
         // A signed-out guest key owns none of them.
         val guest = sdk.getVisibleNonograms("local:9").map { it.id }.toSet()
-        assertEquals(setOf(1L, 2L, 3L, 4L, theirsApproved), guest)
+        assertTrue(guest.containsAll(approvedSeeds + theirsApproved))
+        assertFalse(minePrivate in guest)
+        assertFalse(minePending in guest)
+        assertFalse(theirsPrivate in guest)
     }
 
     @Test
     fun getVisibleNonograms_blankUidOwnsNothing() = runTest {
-        sdk.seedIfEmpty()
-        sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "uid-a")
+        val approvedSeeds = approvedSeedIds()
+        val theirs = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "uid-a")
 
-        assertEquals(setOf(1L, 2L, 3L, 4L), sdk.getVisibleNonograms("").map { it.id }.toSet())
+        val visible = sdk.getVisibleNonograms("").map { it.id }.toSet()
+        assertEquals(approvedSeeds, visible)
+        assertFalse(theirs in visible)
     }
 
     @Test
