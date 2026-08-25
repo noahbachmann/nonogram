@@ -28,6 +28,7 @@ import com.trainpaths.nonogram.classes.NonogramCard
 import com.trainpaths.nonogram.classes.NonogramGrid
 import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.TopAppBar
+import com.trainpaths.nonogram.BUTTON_SHAPE
 import com.trainpaths.nonogram.MAX_CONTENT_WIDTH
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.GeneratorSyncState
@@ -54,6 +55,7 @@ fun GenListScreen(
         Column(modifier = Modifier.widthIn(max = MAX_CONTENT_WIDTH).fillMaxSize()) {
             Button(
                 onClick = onNewClick,
+                shape = BUTTON_SHAPE,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -90,7 +92,7 @@ fun GenListScreen(
                                 modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
-                            OutlinedButton(onClick = onRetrySync) {
+                            OutlinedButton(onClick = onRetrySync, shape = BUTTON_SHAPE) {
                                 Text("Retry")
                             }
                         }

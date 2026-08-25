@@ -1,5 +1,6 @@
 package com.trainpaths.nonogram
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwitchColors
@@ -16,6 +17,11 @@ import androidx.compose.ui.unit.dp
  * and center from the parent Column's `horizontalAlignment`.
  */
 val MAX_CONTENT_WIDTH = 1000.dp
+
+/**
+ * Corner rounding for the app's buttons — card-like. Pass as `shape = BUTTON_SHAPE`.
+ */
+val BUTTON_SHAPE = RoundedCornerShape(12.dp)
 
 private fun colorScheme(
     primary: Color,

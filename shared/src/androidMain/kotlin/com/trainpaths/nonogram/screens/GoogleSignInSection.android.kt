@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
 import com.mmk.kmpauth.firebase.google.GoogleButtonUiContainerFirebase
 import com.mmk.kmpauth.uihelper.google.GoogleSignInButton
+import com.trainpaths.nonogram.BUTTON_SHAPE
 import dev.gitlive.firebase.auth.FirebaseUser
 
 @Composable
@@ -26,6 +27,7 @@ actual fun GoogleSignInSection(
     GoogleButtonUiContainerFirebase(onResult = onFirebaseResult, linkAccount = false) {
         GoogleSignInButton(
             modifier = modifier,
+            shape = BUTTON_SHAPE,
             fontSize = 19.sp,
             text = "Sign in with Google"
         ) { this.onClick() }

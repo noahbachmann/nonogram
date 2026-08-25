@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.BUTTON_SHAPE
 import com.trainpaths.nonogram.classes.DrawNonogram
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.UNNAMED_NONOGRAM_TITLE
@@ -123,6 +124,7 @@ private fun ReviewCard(
             Button(
                 onClick = onDeny,
                 enabled = !isDeciding,
+                shape = BUTTON_SHAPE,
                 modifier = Modifier.weight(1f).height(48.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.tertiaryFixed,
@@ -134,6 +136,7 @@ private fun ReviewCard(
             Button(
                 onClick = onAccept,
                 enabled = !isDeciding,
+                shape = BUTTON_SHAPE,
                 modifier = Modifier.weight(1f).height(48.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.onTertiary,
