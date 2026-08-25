@@ -203,7 +203,7 @@ class NonogramTest {
     fun solveNonogram_returnsExpectedSolutions() {
         nonogramData.filter { it.verifySolver }.forEach { data ->
             val solver = Solver(data.nonogram)
-            val actualSolution = solver.solveNonogram().map { row -> row.toList() }
+            val actualSolution = solver.solveNonogram()
 
             assertEquals(
                 expected = data.nonogram.solution,

@@ -75,7 +75,7 @@ class Solver(val ng: Nonogram) {
         }
     }
 
-    fun solveNonogram(): Array<Array<Int>> {
+    fun solveNonogram(): List<List<Int>> {
         // first time ROWS
         firstRun()
         firstRun(false)
@@ -377,9 +377,9 @@ class Solver(val ng: Nonogram) {
         trackingCols.add(col)
     }
 
-    private fun Array<Array<Cell>>.toSolution(): Array<Array<Int>> {
-        return Array(size) { row ->
-            Array(this[row].size) { col ->
+    private fun Array<Array<Cell>>.toSolution(): List<List<Int>> {
+        return List(size) { row ->
+            List(this[row].size) { col ->
                 val state = this[row][col].state
                 if (state > 1) 0 else state
             }
