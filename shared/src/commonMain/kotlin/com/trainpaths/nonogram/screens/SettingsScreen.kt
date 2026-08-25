@@ -69,7 +69,7 @@ fun SettingsScreen(
             backArrow = true,
         )
         Column(
-            modifier = Modifier.fillMaxHeight().width(320.dp).padding(10.dp),
+            modifier = Modifier.fillMaxHeight().width(310.dp).padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(40.dp, Alignment.CenterVertically),
         ) {
             Column(
@@ -82,7 +82,7 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     ColorTheme.entries.forEach { entry ->
                         ThemeSwatch(
                             theme = entry,
