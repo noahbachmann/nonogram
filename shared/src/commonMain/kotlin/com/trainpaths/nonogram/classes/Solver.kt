@@ -21,20 +21,23 @@ class Solver(val ng: Nonogram) {
     private val solvedColClues: List<MutableSet<Int>> =
         List(ng.width) { mutableSetOf() }
 
-    fun solveNonogram(): Array<Array<Int>> {
-        // first time ROWS
-        for (row in 0 until ng.height) {
-            val clues: List<Int> = ng.rowClues[row]
+    fun firstRun(isRow: Boolean = true) {
+        val height = if (isRow) ng.height else ng.width
+        val width = if (isRow) ng.width else ng.height
+
+        for (row in 0 until height) {
+            val clues: List<Int> = if (isRow) ng.rowClues[row] else ng.colClues[row]
 
             if (clues.isEmpty()) {
-                for (col in 0 until ng.width) {
-                    drawCross(row, col)
+                for (col in 0 until width) {
+                    if (isRow) drawCross(row, col)
+                    else drawCross(col, row)
                 }
                 continue
             }
 
             val max = clues.sum() + clues.size - 1
-            val emptyCells = ng.width - max
+            val emptyCells = width - max
 
             if (emptyCells == 0) {
                 var l = 0
@@ -42,15 +45,17 @@ class Solver(val ng: Nonogram) {
                     val r = l + clue
 
                     for (col in l until r) {
-                        drawTile(row, col, index, isClear = true)
+                        drawTile(row, col, index, isRow = isRow, isClear = true)
                     }
 
-                    if (r >= ng.width) continue
+                    if (r >= width) continue
 
-                    drawCross(row, r)
+                    if (isRow) drawCross(row, r)
+                    else drawCross(r, row)
                     l = r + 1
                 }
-                trackingRows.remove(row)
+                if (isRow) trackingRows.remove(row)
+                else trackingCols.remove(row)
             } else if (max > emptyCells && clues.max() > emptyCells) {
                 var l = 0
                 var r = emptyCells
@@ -58,61 +63,22 @@ class Solver(val ng: Nonogram) {
                     l += clue
                     if (l > r && l - r < clue) {
                         for (col in r until l) {
-                            drawTile(row, col, index, isClear = true)
+                            drawTile(row, col, index, isRow = isRow, isClear = true)
                         }
                     }
                     r += clue + 1
                     l++
                 }
             }
-            computePosCellClues(clues, emptyCells, { col -> solving[row][col] })
+            if (isRow) computePosCellClues(clues, emptyCells, { col -> solving[row][col] })
+            else computePosCellClues(clues, emptyCells, { col -> solving[col][row] }, isRow = false)
         }
+    }
 
-        // first time COLS
-        for (col in 0 until ng.width) {
-            val clues: List<Int> = ng.colClues[col]
-
-            if (clues.isEmpty()) {
-                for (row in 0 until ng.height) {
-                    drawCross(row, col)
-                }
-                continue
-            }
-
-            val max = clues.sum() + clues.size - 1
-            val emptyCells = ng.height - max
-
-            if (emptyCells == 0) {
-                var l = 0
-                for ((index, clue) in clues.withIndex()) {
-                    val r = l + clue
-
-                    for (row in l until r) {
-                        drawTile(col, row, index, false, isClear = true)
-                    }
-
-                    if (r >= ng.height) continue
-
-                    drawCross(r, col)
-                    l = r + 1
-                }
-                trackingCols.remove(col)
-            } else if (max > emptyCells && clues.max() > emptyCells) {
-                var l = 0
-                var r = emptyCells
-                for ((index, clue) in clues.withIndex()) {
-                    l += clue
-                    if (l > r && l - r < clue) {
-                        for (row in r until l) {
-                            drawTile(col, row, index, false, isClear = true)
-                        }
-                    }
-                    r += clue + 1
-                    l++
-                }
-            }
-            computePosCellClues(clues, emptyCells, { row -> solving[row][col] }, false)
-        }
+    fun solveNonogram(): Array<Array<Int>> {
+        // first time ROWS
+        firstRun()
+        firstRun(false)
 
         while (trackingRows.isNotEmpty() || trackingCols.isNotEmpty()) {
 
