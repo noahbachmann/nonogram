@@ -12,8 +12,10 @@ import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
 import com.trainpaths.nonogram.screens.viewModel.SettingsViewModel
+import com.trainpaths.nonogram.tutorial.TutorialRepository
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.startKoin
 import org.koin.mp.KoinPlatform
@@ -39,6 +41,7 @@ fun main() {
             authViewModel = koinViewModel<AuthViewModel>(),
             genViewModelFactory = { koinViewModel<GenViewModel>() },
             settingsViewModel = koinViewModel<SettingsViewModel>(),
+            tutorialRepository = koinInject<TutorialRepository>(),
             gameViewModelFactory = { _ -> koinViewModel<GameViewModel>() },
             adminViewModelFactory = { koinViewModel<AdminViewModel>() },
         )

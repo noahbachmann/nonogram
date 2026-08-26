@@ -46,6 +46,8 @@ import com.trainpaths.nonogram.icons.build
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.ValidationState
+import com.trainpaths.nonogram.tutorial.TutorialStep
+import com.trainpaths.nonogram.tutorial.tutorialAnchor
 
 @Composable
 fun GenConfScreen(
@@ -113,7 +115,10 @@ fun GenConfScreen(
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+                    .tutorialAnchor(TutorialStep.GENCONF_SIZE),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedTextField(
@@ -158,7 +163,10 @@ fun GenConfScreen(
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 28.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 28.dp)
+                        .tutorialAnchor(TutorialStep.GENCONF_VALIDITY),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
@@ -198,7 +206,10 @@ fun GenConfScreen(
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 20.dp)
+                        .tutorialAnchor(TutorialStep.GENCONF_PUBLISH),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
@@ -319,7 +330,8 @@ fun GenConfScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 32.dp)
-                    .height(48.dp),
+                    .height(48.dp)
+                    .tutorialAnchor(TutorialStep.GENCONF_DONE),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.onPrimary,
                     contentColor = MaterialTheme.colorScheme.primary,

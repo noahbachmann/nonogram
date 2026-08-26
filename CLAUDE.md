@@ -106,6 +106,13 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   own-puzzles switch) — so adding one is a list entry in `NonogramFilters.forUser(authorUid)`, a
   function rather than a constant because ownership is user-scoped. A row's `label` is also its id.
   See `docs/menu-filtering.md`.
+- **`tutorial/`** — the first-run hint overlay: `TutorialStep` (an enum whose declaration order is
+  priority order, carrying the copy), `TutorialRepository` (one `tutorial_seen_<STEP>` boolean per
+  step, device-wide so it survives sign-out), `TutorialController` + `Modifier.tutorialAnchor(step)`
+  (an anchor registry, since screens own their own app bars), and `TutorialHost`, a `Box` wrapped
+  around the `NavHost` in `App.kt` that draws the scrim, the spotlight hole and the blob. Nothing is
+  ever placed over the highlighted control — Compose hit-testing stops at the topmost sibling, so the
+  anchor itself listens on `PointerEventPass.Initial` without consuming. See `docs/tutorial-overlay.md`.
 - **`classes/Solver`** — line-logic solver; run via `Nonogram.isValid` to check a puzzle is uniquely solvable (gates
   publishing). **User-owned and actively changing — do not document its internals or modify it.**
 - **`network/NonogramApi`** — an unused stub (bare Ktor `HttpClient`, no callers). Not a live data path.

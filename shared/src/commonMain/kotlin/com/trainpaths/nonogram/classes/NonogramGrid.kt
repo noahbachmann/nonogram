@@ -56,6 +56,7 @@ fun NonogramGrid(
 @Composable
 fun NonogramCard(
     nonogram: Nonogram,
+    modifier: Modifier = Modifier,
     progress: List<List<Int>> = emptyList(),
     beatCount: Long = -1,
     isOwn: Boolean = false,
@@ -70,7 +71,7 @@ fun NonogramCard(
     }
     val shape = RoundedCornerShape(6.dp)
 
-    Box(modifier = Modifier.fillMaxWidth().height(220.dp)) {
+    Box(modifier = modifier.fillMaxWidth().height(220.dp)) {
         Box(
             modifier = Modifier
                 .matchParentSize()

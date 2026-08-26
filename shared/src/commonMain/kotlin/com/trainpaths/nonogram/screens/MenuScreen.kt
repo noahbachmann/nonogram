@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,6 +24,8 @@ import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
 import com.trainpaths.nonogram.classes.NonogramCard
 import com.trainpaths.nonogram.classes.NonogramGrid
 import com.trainpaths.nonogram.filter.FilterMenuButton
+import com.trainpaths.nonogram.tutorial.TutorialStep
+import com.trainpaths.nonogram.tutorial.tutorialAnchor
 
 @Composable
 fun MenuScreen(
@@ -40,12 +42,15 @@ fun MenuScreen(
             showSettings = true,
             mode = AppBarMode.PUZZLE,
             onSwapMode = { onGenClick() },
+            swapTutorialStep = TutorialStep.MENU_SWAP_TO_GENERATOR,
             navigationContent = {
-                FilterMenuButton(
-                    entries = viewModel.filterEntries,
-                    state = viewModel.filterSort,
-                    onApply = viewModel::applyFilterSort,
-                )
+                Box(modifier = Modifier.tutorialAnchor(TutorialStep.MENU_FILTER)) {
+                    FilterMenuButton(
+                        entries = viewModel.filterEntries,
+                        state = viewModel.filterSort,
+                        onApply = viewModel::applyFilterSort,
+                    )
+                }
             },
         )
 
@@ -73,9 +78,12 @@ fun MenuScreen(
                 val visible = viewModel.visibleNonograms
                 val showAllNames by viewModel.showNames.collectAsState()
                 NonogramGrid {
-                    items(visible) { nonogram ->
+                    itemsIndexed(visible) { index, nonogram ->
                         NonogramCard(
                             nonogram = nonogram,
+                            modifier = Modifier.tutorialAnchor(
+                                TutorialStep.MENU_PLAY.takeIf { index == 0 }
+                            ),
                             progress = viewModel.getProgress(nonogram.id, nonogram.height, nonogram.width),
                             beatCount = viewModel.getBeatCount(nonogram.id),
                             isOwn = nonogram.isOwned(viewModel.authorUid),

@@ -20,6 +20,8 @@ import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.classes.BoardTransformState
 import com.trainpaths.nonogram.classes.DrawMode
 import com.trainpaths.nonogram.classes.Game
+import com.trainpaths.nonogram.tutorial.TutorialStep
+import com.trainpaths.nonogram.tutorial.tutorialAnchor
 
 @Composable
 fun GameScreen(
@@ -42,7 +44,13 @@ fun GameScreen(
             onSwapMode = onSwapMode,
         )
 
-        Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .tutorialAnchor(TutorialStep.BOARD_AREA),
+            contentAlignment = Alignment.Center,
+        ) {
             if (nonogram == null) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
             } else {

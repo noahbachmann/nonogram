@@ -36,6 +36,8 @@ import com.trainpaths.nonogram.icons.tileCross
 import com.trainpaths.nonogram.icons.tileErase
 import com.trainpaths.nonogram.icons.tileFill
 import com.trainpaths.nonogram.icons.undo
+import com.trainpaths.nonogram.tutorial.TutorialStep
+import com.trainpaths.nonogram.tutorial.tutorialAnchor
 
 @Composable
 fun BottomToolBar(
@@ -63,6 +65,7 @@ fun BottomToolBar(
                 imageVector = if (isLocked) lockClosed else lockOpen,
                 contentDescription = if (isLocked) "Locked" else "Unlocked",
                 onClick = onLockToggle,
+                tutorialStep = TutorialStep.BOARD_LOCK,
             )
 
             val drawModeLabel = when (drawMode) {
@@ -81,6 +84,7 @@ fun BottomToolBar(
                 },
                 contentDescription = "Draw mode: $drawModeLabel",
                 onClick = onDrawModeToggle,
+                tutorialStep = TutorialStep.BOARD_DRAW_MODE,
             )
 
             if (resetZoom != null) {
@@ -89,6 +93,7 @@ fun BottomToolBar(
                     imageVector = expand_content,
                     contentDescription = "Zoom out to fit",
                     onClick = resetZoom,
+                    tutorialStep = TutorialStep.BOARD_ZOOM,
                 )
             }
 
@@ -99,6 +104,7 @@ fun BottomToolBar(
                     contentDescription = "Undo",
                     onClick = { history.undo() },
                     enabled = history.canUndo,
+                    tutorialStep = TutorialStep.BOARD_UNDO,
                 )
                 BottomBarItem(
                     label = "Redo",
@@ -118,6 +124,7 @@ fun BottomToolBar(
                     contentDescription = "Save nonogram",
                     onClick = onSave,
                     enabled = saveEnabled,
+                    tutorialStep = TutorialStep.GEN_SAVE,
                 )
             }
         }
@@ -131,6 +138,7 @@ private fun BottomBarItem(
     contentDescription: String,
     onClick: () -> Unit,
     enabled: Boolean = true,
+    tutorialStep: TutorialStep? = null,
 ) {
     val contentColor = when {
         !enabled -> MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.50f)
@@ -141,6 +149,7 @@ private fun BottomBarItem(
         modifier = Modifier
             .width(64.dp)
             .fillMaxHeight()
+            .tutorialAnchor(tutorialStep)
             .clickable(enabled = enabled, onClick = onClick)
             .semantics(mergeDescendants = true) {
                 this.contentDescription = contentDescription

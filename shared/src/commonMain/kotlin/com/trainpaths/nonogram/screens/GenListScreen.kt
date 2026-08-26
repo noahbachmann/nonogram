@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -32,6 +32,8 @@ import com.trainpaths.nonogram.BUTTON_SHAPE
 import com.trainpaths.nonogram.MAX_CONTENT_WIDTH
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.GeneratorSyncState
+import com.trainpaths.nonogram.tutorial.TutorialStep
+import com.trainpaths.nonogram.tutorial.tutorialAnchor
 
 @Composable
 fun GenListScreen(
@@ -50,6 +52,7 @@ fun GenListScreen(
             showSettings = true,
             mode = AppBarMode.GENERATOR,
             onSwapMode = { onSwap() },
+            swapTutorialStep = TutorialStep.GENLIST_SWAP_TO_PUZZLES,
         )
 
         Column(modifier = Modifier.widthIn(max = MAX_CONTENT_WIDTH).fillMaxSize()) {
@@ -59,7 +62,8 @@ fun GenListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .height(48.dp),
+                    .height(48.dp)
+                    .tutorialAnchor(TutorialStep.GENLIST_NEW),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.onPrimary,
                     contentColor = MaterialTheme.colorScheme.primary,
@@ -114,9 +118,12 @@ fun GenListScreen(
                 }
             } else {
                 NonogramGrid {
-                    items(genViewModel.myNonograms) { nonogram ->
+                    itemsIndexed(genViewModel.myNonograms) { index, nonogram ->
                         NonogramCard(
                             nonogram = nonogram,
+                            modifier = Modifier.tutorialAnchor(
+                                TutorialStep.GENLIST_EDIT.takeIf { index == 0 }
+                            ),
                             onClick = { onEditClick(nonogram) },
                         )
                     }
