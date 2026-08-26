@@ -1,10 +1,10 @@
 package com.trainpaths.nonogram.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,8 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -77,7 +77,7 @@ fun SettingsScreen(
         )
         Column(
             modifier = Modifier.fillMaxHeight().width(310.dp).padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(40.dp, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(30.dp, Alignment.CenterVertically),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().tutorialAnchor(TutorialStep.SETTINGS_THEME),
@@ -99,6 +99,7 @@ fun SettingsScreen(
                     }
                 }
             }
+            SettingsDivider()
             Row(
                 modifier = Modifier.fillMaxWidth().tutorialAnchor(TutorialStep.SETTINGS_SHOW_NAMES),
                 verticalAlignment = Alignment.CenterVertically,
@@ -115,13 +116,14 @@ fun SettingsScreen(
                     colors = switchColors(),
                 )
             }
-            OutlinedButton(
+            SettingsDivider()
+            Button(
                 onClick = { tutorialRepository.resetAll() },
-                shape = BUTTON_SHAPE,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onPrimary,
+                    contentColor = MaterialTheme.colorScheme.primary,
                 ),
+                shape = BUTTON_SHAPE,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -143,10 +145,11 @@ fun SettingsScreen(
                 }
             }
             if (authState == AuthState.GUEST) {
+                SettingsDivider()
                 Button(
                     onClick = onSignIn,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = MaterialTheme.colorScheme.onSecondary,
                         contentColor = MaterialTheme.colorScheme.primary,
                     ),
                     shape = BUTTON_SHAPE,
@@ -155,10 +158,11 @@ fun SettingsScreen(
                     Text("Sign In with Google")
                 }
             } else if (authState == AuthState.SIGNED_IN) {
+                SettingsDivider()
                 Button(
                     onClick = { showSignOutDialog = true },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = MaterialTheme.colorScheme.onSecondary,
                         contentColor = MaterialTheme.colorScheme.primary,
                     ),
                     shape = BUTTON_SHAPE,
@@ -179,6 +183,15 @@ fun SettingsScreen(
             onCancel = { showSignOutDialog = false },
         )
     }
+}
+
+@Composable
+private fun ColumnScope.SettingsDivider() {
+    HorizontalDivider(
+        modifier = Modifier.fillMaxWidth(0.8f).align(Alignment.CenterHorizontally),
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.onPrimary,
+    )
 }
 
 @Composable

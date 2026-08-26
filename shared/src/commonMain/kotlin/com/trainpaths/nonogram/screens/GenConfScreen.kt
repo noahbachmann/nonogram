@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -262,40 +263,49 @@ fun GenConfScreen(
                     }
                 }
 
-                hint?.let {
-                    Text(
-                        text = it,
-                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
+                // Reserved so a hint or error drops into the gap instead of pushing Save down.
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp)
+                        .heightIn(min = 36.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    hint?.let {
+                        Text(
+                            text = it,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
 
-                genViewModel.publishError?.let { error ->
-                    Text(
-                        text = error,
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+                    genViewModel.publishError?.let { error ->
+                        Text(
+                            text = error,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
 
-                genViewModel.validationError?.let { error ->
-                    Text(
-                        text = error,
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+                    genViewModel.validationError?.let { error ->
+                        Text(
+                            text = error,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
 
-                genViewModel.saveError?.let { error ->
-                    Text(
-                        text = "Save failed: $error",
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                    genViewModel.saveError?.let { error ->
+                        Text(
+                            text = "Save failed: $error",
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             }
 
@@ -329,7 +339,7 @@ fun GenConfScreen(
                 shape = BUTTON_SHAPE,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 32.dp)
+                    .padding(top = if (editing) 12.dp else 32.dp)
                     .height(48.dp)
                     .tutorialAnchor(TutorialStep.GENCONF_DONE),
                 colors = ButtonDefaults.buttonColors(
