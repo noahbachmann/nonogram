@@ -1,5 +1,6 @@
 package com.trainpaths.nonogram.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -78,6 +80,10 @@ fun LoginScreen(
                         onContinueAsGuest()
                     },
                     shape = BUTTON_SHAPE,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary),
                     modifier = Modifier.fillMaxWidth().height(44.dp),
                 ) {
                     Text("Continue as Guest")
