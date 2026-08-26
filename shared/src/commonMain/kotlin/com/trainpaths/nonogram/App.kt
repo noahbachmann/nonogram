@@ -282,7 +282,9 @@ private fun AppContent(
                         tutorialRepository = tutorialRepository,
                         onBack = { navController.popBackStack() },
                         onAdminPanel = { navController.navigate(AdminRoute) },
-                        onSignIn = { navController.navigate(LoginRoute) },
+                        onSignedIn = {
+                            authViewModel.syncAll { menuViewModel.reload() }
+                        },
                         onSignOut = {
                             authViewModel.signOut {
                                 menuViewModel.reload(true)
