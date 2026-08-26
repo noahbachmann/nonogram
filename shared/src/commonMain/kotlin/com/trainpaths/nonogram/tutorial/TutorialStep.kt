@@ -41,7 +41,7 @@ enum class TutorialStep(val title: String, val text: String) {
     ),
     BOARD_LOCK(
         title = "Lock the board",
-        text = "Locked: dragging draws on the board. Unlocked: Drag pans the board.",
+        text = "Locked: dragging draws on the board. Unlocked: dragging pans the board.",
     ),
     BOARD_DRAW_MODE(
         title = "Draw mode",
@@ -53,7 +53,7 @@ enum class TutorialStep(val title: String, val text: String) {
     ),
     BOARD_UNDO(
         title = "Undo and redo",
-        text = "Step back through your strokes — a whole drag undoes in one go.",
+        text = "Step back through your strokes. Saves up to 10 steps.",
     ),
     GENLIST_NEW(
         title = "Create a nonogram",
@@ -65,7 +65,7 @@ enum class TutorialStep(val title: String, val text: String) {
     ),
     GENLIST_SWAP_TO_PUZZLES(
         title = "Back to puzzles",
-        text = "The same button in reverse — it takes you back to the puzzle list.",
+        text = "Same button in reverse: takes you back to the puzzle list.",
     ),
 
     GENCONF_SIZE(
@@ -74,7 +74,7 @@ enum class TutorialStep(val title: String, val text: String) {
     ),
     GENCONF_DONE(
         title = "Off you go",
-        text = "This takes you to the drawing board — or saves your changes when editing.",
+        text = "This takes you to the drawing board and saves your changes when editing.",
     ),
     GENCONF_VALIDITY(
         title = "Validity",
