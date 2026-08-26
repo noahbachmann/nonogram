@@ -1,5 +1,6 @@
 package com.trainpaths.nonogram.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,12 +45,16 @@ import com.trainpaths.nonogram.icons.settings
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.SettingsViewModel
+import com.trainpaths.nonogram.tutorial.TutorialRepository
+import com.trainpaths.nonogram.tutorial.TutorialStep
+import com.trainpaths.nonogram.tutorial.tutorialAnchor
 import com.trainpaths.nonogram.auth.AuthState
 
 @Composable
 fun SettingsScreen(
     authViewModel: AuthViewModel,
     settingsViewModel: SettingsViewModel,
+    tutorialRepository: TutorialRepository,
     onBack: () -> Unit,
     onAdminPanel: () -> Unit,
     onSignIn: () -> Unit,
@@ -74,7 +80,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(40.dp, Alignment.CenterVertically),
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().tutorialAnchor(TutorialStep.SETTINGS_THEME),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -94,7 +100,7 @@ fun SettingsScreen(
                 }
             }
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().tutorialAnchor(TutorialStep.SETTINGS_SHOW_NAMES),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -108,6 +114,20 @@ fun SettingsScreen(
                     onCheckedChange = { settingsViewModel.setShowAllNames(it) },
                     colors = switchColors(),
                 )
+            }
+            OutlinedButton(
+                onClick = { tutorialRepository.resetAll() },
+                shape = BUTTON_SHAPE,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .tutorialAnchor(TutorialStep.SETTINGS_REPLAY),
+            ) {
+                Text("Show tips again")
             }
             if (isAdmin) {
                 Button(

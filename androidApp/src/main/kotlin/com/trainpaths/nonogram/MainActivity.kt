@@ -10,7 +10,9 @@ import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
 import com.trainpaths.nonogram.screens.viewModel.SettingsViewModel
+import com.trainpaths.nonogram.tutorial.TutorialRepository
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,6 +27,7 @@ class MainActivity : ComponentActivity() {
                 authViewModel = koinViewModel<AuthViewModel>(),
                 genViewModelFactory = { koinViewModel<GenViewModel>() },
                 settingsViewModel = koinViewModel<SettingsViewModel>(),
+                tutorialRepository = koinInject<TutorialRepository>(),
                 gameViewModelFactory = { _ -> koinViewModel<GameViewModel>() },
                 adminViewModelFactory = { koinViewModel<AdminViewModel>() },
             )

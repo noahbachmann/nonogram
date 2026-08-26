@@ -26,6 +26,8 @@ import com.trainpaths.nonogram.icons.build
 import com.trainpaths.nonogram.icons.edit_square
 import com.trainpaths.nonogram.icons.indeterminate_question_box
 import com.trainpaths.nonogram.icons.settings
+import com.trainpaths.nonogram.tutorial.TutorialStep
+import com.trainpaths.nonogram.tutorial.tutorialAnchor
 
 val LocalNavController = staticCompositionLocalOf<NavController> {
     error("No NavController provided")
@@ -42,6 +44,7 @@ fun TopAppBar(
     mode: AppBarMode? = null,
     onSwapMode: (() -> Unit)? = null,
     backArrow: Boolean = false,
+    swapTutorialStep: TutorialStep? = null,
     navigationContent: (@Composable () -> Unit)? = null,
 ) {
     val navController = if (showSettings) LocalNavController.current else null
@@ -53,7 +56,10 @@ fun TopAppBar(
             modifier = Modifier.widthIn(max = MAX_CONTENT_WIDTH),
             title = {
                 if (mode != null && onSwapMode != null) {
-                    IconButton(onClick = onSwapMode) {
+                    IconButton(
+                        onClick = onSwapMode,
+                        modifier = Modifier.tutorialAnchor(swapTutorialStep),
+                    ) {
                         Icon(
                             imageVector = if (mode == AppBarMode.PUZZLE) indeterminate_question_box else edit_square,
                             contentDescription = if (mode == AppBarMode.PUZZLE) "Switch to Generator" else "Switch to Puzzles",
@@ -74,9 +80,15 @@ fun TopAppBar(
                 if (navigationContent != null) {
                     navigationContent()
                 } else if (onBack != null) {
-                    IconButton(onClick = onBack) {
+                    val isWrench = !backArrow && mode != AppBarMode.PUZZLE
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.tutorialAnchor(
+                            TutorialStep.GEN_WRENCH.takeIf { isWrench && mode == AppBarMode.GENERATOR }
+                        ),
+                    ) {
                         Icon(
-                            imageVector = if (backArrow || mode == AppBarMode.PUZZLE) arrowBack else build,
+                            imageVector = if (isWrench) build else arrowBack,
                             contentDescription = "Back",
                             modifier = Modifier.size(32.dp),
                         )
@@ -85,7 +97,10 @@ fun TopAppBar(
             },
             actions = {
                 if (showSettings) {
-                    IconButton(onClick = { navController?.navigate(SettingsRoute) }) {
+                    IconButton(
+                        onClick = { navController?.navigate(SettingsRoute) },
+                        modifier = Modifier.tutorialAnchor(TutorialStep.MENU_SETTINGS),
+                    ) {
                         Icon(
                             settings,
                             contentDescription = "Settings",
