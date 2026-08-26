@@ -17,6 +17,7 @@ import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.BottomToolBar
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.classes.Board
+import com.trainpaths.nonogram.classes.BoardTransformState
 import com.trainpaths.nonogram.classes.DrawMode
 import com.trainpaths.nonogram.dialogs.GenSaveConfirmDialog
 import com.trainpaths.nonogram.dialogs.PublicEditConfirmDialog
@@ -32,6 +33,7 @@ fun GenScreen(
     var pendingPublicSave by remember { mutableStateOf<(() -> Unit)?>(null) }
     var isLocked by remember { mutableStateOf(true) }
     var drawMode by remember { mutableStateOf(DrawMode.TOGGLE) }
+    val boardState = remember(genViewModel.nonogram.width, genViewModel.nonogram.height) { BoardTransformState() }
 
     fun requestSave(save: () -> Unit) {
         if (genViewModel.needsPublicEditConfirmation()) {
@@ -67,6 +69,7 @@ fun GenScreen(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 isEditable = !genViewModel.isSaving,
                 drawMode = drawMode,
+                state = boardState,
                 onTilesChanged = { genViewModel.updateNonogram() },
                 onEdits = genViewModel.history::record,
             )
@@ -82,6 +85,7 @@ fun GenScreen(
             onDrawModeToggle = { drawMode = drawMode.next() },
             history = genViewModel.history,
             showSave = true,
+            resetZoom = { boardState.reset() },
             saveEnabled = genViewModel.canSave,
             onSave = { requestSave { genViewModel.onSave() } },
         )
