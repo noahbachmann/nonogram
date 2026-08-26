@@ -19,11 +19,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,14 +59,24 @@ fun SettingsScreen(
     tutorialRepository: TutorialRepository,
     onBack: () -> Unit,
     onAdminPanel: () -> Unit,
-    onSignIn: () -> Unit,
+    onSignedIn: () -> Unit,
     onSignOut: () -> Unit,
 ) {
     val authState by authViewModel.authState.collectAsState()
     val theme by settingsViewModel.theme.collectAsState()
     val showAllNames by settingsViewModel.showAllNames.collectAsState()
     val isAdmin by authViewModel.isAdmin.collectAsState()
+    val signInComplete by authViewModel.signInComplete.collectAsState()
+
     var showSignOutDialog by remember { mutableStateOf(false) }
+    var isSigningIn by remember { mutableStateOf(false) }
+
+    LaunchedEffect(signInComplete) {
+        if (signInComplete && isSigningIn) {
+            isSigningIn = false
+            onSignedIn()
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -144,19 +156,32 @@ fun SettingsScreen(
                     Text("Admin panel")
                 }
             }
-            if (authState == AuthState.GUEST) {
+            if (isSigningIn) {
                 SettingsDivider()
-                Button(
-                    onClick = onSignIn,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onSecondary,
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    ),
-                    shape = BUTTON_SHAPE,
+                Row(
                     modifier = Modifier.fillMaxWidth().height(48.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                 ) {
-                    Text("Sign In with Google")
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp,
+                    )
+                    Text(
+                        "Syncing progress...",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
                 }
+            } else if (authState == AuthState.GUEST) {
+                SettingsDivider()
+                GoogleSignInSection(
+                    onSignedIn = { uid, displayName ->
+                        isSigningIn = true
+                        authViewModel.onFirebaseSignInSuccess(uid, displayName)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                )
             } else if (authState == AuthState.SIGNED_IN) {
                 SettingsDivider()
                 Button(
