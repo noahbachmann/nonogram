@@ -128,6 +128,19 @@ class Solver(val ng: Nonogram) {
         val solvedClues = if (isRow) solvedRowClues[rowIndex] else solvedColClues[rowIndex]
         val emptyCells = rowSize - (clues.sum() + clues.size - 1)
 
+        fun getLeftOffset(cellIndex: Int, clueIndex: Int): Int {
+            var leftOffset = 0
+            for (i in cellIndex - 1 downTo 0) {
+                val x = cellAt(i)
+                if (x.state == 2) break
+
+                val clueX = if (isRow) x.posRowClues else x.posColClues
+                if (clueX.contains(clueIndex)) leftOffset++
+                else break
+            }
+            return leftOffset
+        }
+
         fun recursive(startIndex: Int, offset: Int = 0, goesBack: Boolean = true): Int {
             val currIndex = if (goesBack) startIndex - offset else startIndex + offset
             val currCell = cellAt(currIndex)
@@ -184,6 +197,8 @@ class Solver(val ng: Nonogram) {
                         count = 0
                     }
                 }
+                if (range.isEmpty())
+                    return
                 val min = range.min()
                 val max = range.max() + 1
 
@@ -208,7 +223,6 @@ class Solver(val ng: Nonogram) {
 
         constraintDraw()
 
-        var leftOffset = 0
         var index = 0
 
         while (index < rowSize) {
@@ -219,11 +233,41 @@ class Solver(val ng: Nonogram) {
                 while (index + count < rowSize && cellAt(index + count).state == 1) {
                     count++
                 }
+                val posClues = if (isRow) cell.posRowClues else cell.posColClues
 
+                if (posClues.count() > 1) {
+                    val iterator = posClues.iterator()
+
+                    while (iterator.hasNext()) {
+                        val posIndex = iterator.next()
+                        if (solvedClues.contains(posIndex)) {
+                            iterator.remove()
+                            continue
+                        }
+                        val clue = clues[posIndex]
+                        if (count > clue) {
+                            iterator.remove()
+                            continue
+                        }
+                        var counter = count
+
+                        val leftOffset = getLeftOffset(index, posIndex)
+
+                        while (counter + leftOffset < clue && index + counter < rowSize) {
+                            if (cellAt(index + counter).state == 2) {
+                                iterator.remove()
+                                break
+                            }
+                            counter++
+                        }
+                    }
+                }
                 val clueIndex: Int = if (isRow) cell.rowClue else cell.colClue
 
                 if (clueIndex > -1) {
+                    var leftOffset = getLeftOffset(index, clueIndex)
                     val clue = clues[clueIndex]
+
                     while (leftOffset > 0 && count + leftOffset > clue) {
                         val checkCellClues =
                             if (isRow) cellAt(index - leftOffset).posRowClues else cellAt(index - leftOffset).posColClues
@@ -284,47 +328,26 @@ class Solver(val ng: Nonogram) {
                         }
                     }
                 } else {
-                    val posClues = if (isRow) cell.posRowClues else cell.posColClues
-
-                    val iterator = posClues.iterator()
-
-                    while (iterator.hasNext()) {
-                        val posIndex = iterator.next()
-                        val clue = clues[posIndex]
-                        if (count > clue) {
-                            iterator.remove()
-                            continue
-                        }
-                        var counter = count
-                        while (counter + leftOffset < clue && index + counter < rowSize) {
-                            if (cellAt(index + counter).state == 2) {
-                                iterator.remove()
-                                break
-                            }
-                            counter++
-                        }
-                    }
-
-
                     val filteredClues = posClues.map { index ->
                         clues[index]
-                    }
+                    }.toSet()
 
-                    if (filteredClues.toSet().size == 1 && filteredClues.first() == count) {
-                        if (posClues.size == 1) {
-                            solvedClues.add(posClues.first())
-                        }
-                        if (index + count < rowSize) {
-                            if (isRow) drawCross(rowIndex, index + count)
-                            else drawCross(index + count, rowIndex)
-                        }
-                        if (index > 0) {
-                            if (isRow) drawCross(rowIndex, index - 1)
-                            else drawCross(index - 1, rowIndex)
+                    if (filteredClues.size == 1) {
+                        if (filteredClues.first() == count) {
+                            if (posClues.size == 1) {
+                                solvedClues.add(posClues.first())
+                            }
+                            if (index + count < rowSize) {
+                                if (isRow) drawCross(rowIndex, index + count)
+                                else drawCross(index + count, rowIndex)
+                            }
+                            if (index > 0) {
+                                if (isRow) drawCross(rowIndex, index - 1)
+                                else drawCross(index - 1, rowIndex)
+                            }
                         }
                     }
                 }
-                leftOffset = 0
                 index += ++count
                 continue
             } else if (cell.state == 0) {
@@ -332,7 +355,6 @@ class Solver(val ng: Nonogram) {
                     if (isRow) drawCross(rowIndex, index)
                     else drawCross(index, rowIndex)
                 }
-                leftOffset++
                 index++
             } else if (cell.state == 2) {
                 val l = index - 1
