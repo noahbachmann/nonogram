@@ -116,9 +116,12 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
 - **`classes/Solver`** — line-logic solver; run via `Nonogram.isValid` to check a puzzle is uniquely solvable (gates
   publishing). **User-owned and actively changing — do not document its internals or modify it.**
 - **`network/NonogramApi`** — an unused stub (bare Ktor `HttpClient`, no callers). Not a live data path.
-- **`screens/GoogleSignInSection`** — `expect`/`actual` composable for the Google sign-in button; Android wires
-  `kmpauth-firebase`, web wires kmpauth's `GoogleButtonUiContainer` + `FirebaseWeb.signInWithGoogle` (note: the web flow
-  yields an access token, not an ID token — see `docs/web-architecture.md`).
+- **`screens/GoogleSignInSection`** — `expect`/`actual` composable for the Google sign-in button, both actuals built on
+  kmpauth's `GoogleSignInButton` + a `SignInState`. Android uses `rememberGoogleAuthState`, which exchanges the
+  credential for a Firebase session through kmpauth's own Firebase backend (auto-registered from `kmpauth-firebase`) and
+  hands back a `KMPAuthUser`. Web uses `rememberGoogleSignInState` — credential only — and does the exchange itself via
+  `FirebaseWeb.signInWithGoogle`, because the web sync gate reads the Firebase JS SDK's auth state (see
+  `docs/web-architecture.md`). Both skip `KMPAuthUserCancelledException` rather than logging a dismissed prompt.
 - **ViewModels** (`screens/viewModel/`) — Compose state holders using `mutableStateOf`. `GameViewModel` manages the tile
   board and save/sync. `GenViewModel` drives the generator (draw/resize/save + validation). `MenuViewModel` holds the
   nonogram list and progress preview map; it loads via `AppSDK.getVisibleNonograms(uid)` — approved puzzles plus
@@ -252,11 +255,12 @@ defined.
 
 ### Firebase / Auth
 
-- Google sign-in via `kmpauth` (`io.github.mirzemehdi:kmpauth-google/firebase`) — `kmpauth-firebase` is Android-only (no
-  web target published), so it's an androidMain-only dependency; `kmpauth-google`/`kmpauth-uihelper` are commonMain
-  (both publish js+wasmJs).
-- `AppInitializer.onApplicationStart()` sets up `GoogleAuthProvider` with a web client ID. Android passes
-  `R.string.default_web_client_id` (generated from `androidApp/google-services.json`); web passes
+- Google sign-in via `kmpauth` (`io.github.mirzemehdi:kmpauth-google/firebase`) — `kmpauth-firebase` stays an
+  androidMain-only dependency: its wasmJs actual cannot do browser-flow sign-in (gitlive has no wasm target), and
+  `webMain` is shared by js+wasmJs, so web exchanges the credential itself. `kmpauth-google`/`kmpauth-uihelper` are
+  commonMain (both publish js+wasmJs).
+- `AppInitializer.onApplicationStart()` calls `KMPAuth.initialize { google(serverId = …) }` with a web client ID.
+  Android passes `R.string.default_web_client_id` (generated from `androidApp/google-services.json`); web passes
   `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID` (committed constants in `webApp` — Firebase web config is public-by-design).
 - Firestore paths: `users/{firebaseUid}/progress/{nonogramId}` (progress), `nonograms/{id}` (puzzles — own + public
   per their `publishStatus` field), `users/{firebaseUid}` (`denialStreak` /
@@ -293,4 +297,4 @@ hardcoded to `EASY` in `GenViewModel` (no selector yet).
 
 Web (js + wasmJs) has persistent OPFS storage plus Google sign-in and Firestore sync via hand-written Firebase JS SDK
 externals in `shared/src/webMain` (no gitlive — it doesn't publish wasmJs; see `docs/web-architecture.md` for the
-externals pattern, the kmpauth access-token caveat, and the auth-session restore gate).
+externals pattern, the kmpauth One Tap / token-client caveat, and the auth-session restore gate).

@@ -1,12 +1,14 @@
 package com.trainpaths.nonogram
 
-import com.mmk.kmpauth.google.GoogleAuthCredentials
-import com.mmk.kmpauth.google.GoogleAuthProvider
+import com.mmk.kmpauth.core.KMPAuth
+import com.mmk.kmpauth.google.google
 import com.trainpaths.nonogram.auth.AuthRepository
 
 object AppInitializer {
     fun onApplicationStart(googleWebClientId: String) {
-        GoogleAuthProvider.create(credentials = GoogleAuthCredentials(serverId = googleWebClientId))
+        KMPAuth.initialize {
+            google(serverId = googleWebClientId)
+        }
     }
 
     suspend fun initializeAuth(authRepository: AuthRepository) {
