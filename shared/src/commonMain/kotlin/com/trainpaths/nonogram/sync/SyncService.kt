@@ -1,6 +1,7 @@
 package com.trainpaths.nonogram.sync
 
 import com.trainpaths.nonogram.AppSDK
+import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.classes.Nonogram
 
 interface SyncService {
@@ -63,4 +64,20 @@ internal suspend fun SyncService.mergeRemoteNonograms(
         }
     }
     return newestReceivedAt
+}
+
+/**
+ * Pulls the approved puzzles changed since this device's last public pull and advances the cursor.
+ * False when the pull failed, leaving the cursor untouched so the next attempt retries the range.
+ */
+internal suspend fun SyncService.syncPublicNonograms(
+    authRepository: AuthRepository,
+    firebaseUid: String?,
+): Boolean {
+    val lastSyncedAt = authRepository.getLastPublicNonogramSyncTimestamp()
+    val newestReceivedAt = pullPublicNonogramsSince(firebaseUid, lastSyncedAt) ?: return false
+    if (newestReceivedAt != lastSyncedAt) {
+        authRepository.setLastPublicNonogramSyncTimestamp(newestReceivedAt)
+    }
+    return true
 }

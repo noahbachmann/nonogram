@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.auth.firebaseSignOut
 import com.trainpaths.nonogram.sync.SyncService
+import com.trainpaths.nonogram.sync.syncPublicNonograms
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,7 +54,7 @@ class AuthViewModel(
     fun syncAll(onComplete: () -> Unit = {}) {
         viewModelScope.launch(Dispatchers.Default) {
             try {
-                syncPublicNonograms(authRepository.currentFirebaseUid)
+                syncService.syncPublicNonograms(authRepository, authRepository.currentFirebaseUid)
 
                 val firebaseUid = authRepository.currentFirebaseUid ?: return@launch
                 syncService.pullAndMergeAllProgress(firebaseUid)
@@ -84,14 +85,6 @@ class AuthViewModel(
         val gate = syncService.fetchModerationGate(firebaseUid) ?: return
         authRepository.setModerationGate(firebaseUid, gate.denialStreak, gate.banned)
         _publishBanned.value = gate.banned
-    }
-
-    private suspend fun syncPublicNonograms(firebaseUid: String?) {
-        val lastSyncedAt = authRepository.getLastPublicNonogramSyncTimestamp()
-        val newestReceivedAt = syncService.pullPublicNonogramsSince(firebaseUid, lastSyncedAt)
-        if (newestReceivedAt != null && newestReceivedAt != lastSyncedAt) {
-            authRepository.setLastPublicNonogramSyncTimestamp(newestReceivedAt)
-        }
     }
 
     private suspend fun syncOwnedNonograms(firebaseUid: String) {

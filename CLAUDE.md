@@ -291,8 +291,13 @@ runs `Nonogram.isValid` (the `Solver`) to check the puzzle is uniquely solvable 
 still saves if it fails or the check throws) and only gates whether the author may *request* publication. Publishing
 itself is admin-moderated: the generator's config screen offers a "Request publish" button, an admin accepts or denies
 in `AdminScreen` (reachable from Settings), and five denials in a row ban a user from requesting. Editing a puzzle
-that is currently public un-publishes it, so every save path first confirms via `PublicEditConfirmDialog`. See
-`docs/publish-moderation.md`. Difficulty is still
+that is currently public un-publishes it, so every save path first confirms via `PublicEditConfirmDialog`. A request
+is also refused when the grid is already spoken for — `AppSDK.hasPublishConflict` (the `selectPublishConflictId`
+query) matches the saved `solution` against any `APPROVED` puzzle and against the author's own `UNLISTED`/`PENDING`
+copies, and `requestPublish` reports it through `publishError` before anything reaches Firestore. It first runs
+`SyncService.syncPublicNonograms` (the cursor-advancing public pull, shared with `AuthViewModel.syncAll`) so a puzzle
+approved on another device is in the local DB before the comparison; a failed pull still checks what is already
+local. The match is exact — mirrored, rotated or padded grids are different puzzles. See `docs/publish-moderation.md`. Difficulty is still
 hardcoded to `EASY` in `GenViewModel` (no selector yet).
 
 Web (js + wasmJs) has persistent OPFS storage plus Google sign-in and Firestore sync via hand-written Firebase JS SDK

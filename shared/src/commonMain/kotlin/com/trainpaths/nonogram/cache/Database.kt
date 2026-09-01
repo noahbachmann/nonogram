@@ -37,6 +37,25 @@ internal class Database(driver: SqlDriver) {
     internal suspend fun getNonogramById(id: Long): Nonogram? =
         dbQuery.selectNonogramById(id, ::mapNonogram).awaitAsOneOrNull()
 
+    /**
+     * Whether another puzzle already has this grid spoken for: an approved puzzle from anyone, or
+     * [authorUid]'s own unlisted or pending copy. Encodes [solution] the same way the rows were
+     * written, so this is an exact grid match, dimensions included.
+     */
+    internal suspend fun hasPublishConflict(
+        solution: List<List<Int>>,
+        excludeId: Long,
+        authorUid: String,
+    ): Boolean =
+        dbQuery.selectPublishConflictId(
+            solution = json.encodeToString(solution),
+            excludeId = excludeId,
+            approvedStatus = PublishStatus.APPROVED.toLong(),
+            authorUid = authorUid,
+            unlistedStatus = PublishStatus.UNLISTED.toLong(),
+            pendingStatus = PublishStatus.PENDING.toLong(),
+        ).awaitAsOneOrNull() != null
+
     internal suspend fun getRandomNonogram(difficulty: String? = null): Nonogram? =
         if (difficulty == null) {
             dbQuery.selectRandomNonogram(::mapNonogram).awaitAsOneOrNull()

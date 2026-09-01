@@ -52,6 +52,16 @@ selectVisibleNonograms:
 SELECT NonogramData.* FROM NonogramData
 WHERE status = :approvedStatus OR authorUid = :authorUid;
 
+selectPublishConflictId:
+SELECT id FROM NonogramData
+WHERE solution = :solution
+  AND id != :excludeId
+  AND (
+      status = :approvedStatus
+      OR (authorUid = :authorUid AND (status = :unlistedStatus OR status = :pendingStatus))
+  )
+LIMIT 1;
+
 reassignAuthor:
 UPDATE NonogramData SET authorUid = :toUid WHERE authorUid = :fromUid;
 
