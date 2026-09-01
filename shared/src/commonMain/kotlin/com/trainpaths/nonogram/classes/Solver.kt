@@ -173,32 +173,60 @@ class Solver(val ng: Nonogram) {
             var left = 0
 
             for ((index, clue) in clues.withIndex()) {
+                val currLeft = left
+                left += clue + 1
+                if (solvedClues.contains(index)) continue
+
                 val range: MutableSet<Int> = mutableSetOf()
                 var count = 0
-                for (i in left until left + clue + emptyCells) {
+
+                for (i in currLeft until currLeft + clue + emptyCells) {
                     val cell = cellAt(i)
                     val posClues = if (isRow) cell.posRowClues else cell.posColClues
 
                     if (cell.state != 2 && posClues.contains(index)) {
+                        if (cell.state == 1) {
+                            if (range.isEmpty() && (i == 0 || cellAt(i - 1).state == 2) && posClues.min() == index) {
+                                val endIndex = i + clue
+                                for (j in i until endIndex) {
+                                    drawTile(rowIndex, j, index, isRow, true)
+                                }
+                                if (endIndex < rowSize) {
+                                    if (isRow) drawCross(rowIndex, endIndex)
+                                    else drawCross(endIndex, rowIndex)
+                                }
+                                if (i > 0) {
+                                    if (isRow) drawCross(rowIndex, i - 1)
+                                    else drawCross(i - 1, rowIndex)
+                                }
+                                solvedClues.add(index)
+                                break
+                            }
+                        }
                         range.add(i)
                         count++
                     } else {
                         if (count < clue) {
-                            for (j in i - 1 downTo i - count) {
-                                val currClues = if (isRow) cellAt(j).posRowClues else cellAt(j).posColClues
+                            for (j in i downTo i - count) {
+                                range.remove(j)
+
+                                val currCell = cellAt(j)
+                                if (currCell.state == 2) continue
+
+                                val currClues = if (isRow) currCell.posRowClues else currCell.posColClues
                                 currClues.remove(index)
+
                                 if (currClues.isEmpty()) {
                                     if (isRow) drawCross(rowIndex, j)
                                     else drawCross(j, rowIndex)
                                 }
-                                range.remove(j)
                             }
                         }
                         count = 0
                     }
                 }
                 if (range.isEmpty())
-                    return
+                    continue
                 val min = range.min()
                 val max = range.max() + 1
 
@@ -216,8 +244,6 @@ class Solver(val ng: Nonogram) {
                         drawTile(rowIndex, i, index, isRow, isClear = true)
                     }
                 }
-
-                left += clue + 1
             }
         }
 
@@ -334,9 +360,6 @@ class Solver(val ng: Nonogram) {
 
                     if (filteredClues.size == 1) {
                         if (filteredClues.first() == count) {
-                            if (posClues.size == 1) {
-                                solvedClues.add(posClues.first())
-                            }
                             if (index + count < rowSize) {
                                 if (isRow) drawCross(rowIndex, index + count)
                                 else drawCross(index + count, rowIndex)
