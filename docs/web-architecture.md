@@ -59,9 +59,11 @@ without gitlive: `kmpauth-google` (publishes js+wasmJs, commonMain dep) obtains 
   `FirebaseAndroidSyncService` method-for-method against the same Firestore shape, so Android and web sync interoperate.
   Two collections: progress (`users/{uid}/progress/{nonogramId}`, fields `boardState: String?` +
   `updatedAt: number`) and the shared `nonograms/{id}` puzzle collection (own + public).
-- **`screens/GoogleSignInSection`** — the web actual renders kmpauth's `GoogleButtonUiContainer` +
+- **`screens/GoogleSignInSection`** — the web actual drives kmpauth's `rememberGoogleSignInState` from a
   `GoogleSignInButton`, exchanges the Google token via `FirebaseWeb.signInWithGoogle`, and feeds the resulting Firebase
-  `uid`/`displayName` into the unchanged common login flow.
+  `uid`/`displayName` into the unchanged common login flow. Deliberately the *credential-only* state, not
+  `rememberGoogleAuthState`: kmpauth's own web backend is a Firebase Auth REST engine, which would never populate the
+  JS SDK's auth state that the session gate below reads.
 
 ### The externals pattern (first in this repo)
 
@@ -86,10 +88,12 @@ touching callers.
 
 ### Auth/session details
 
-- **kmpauth token caveat:** kmpauth-google's web implementation uses the GIS *token client* (implicit flow), so
-  `GoogleUser.idToken` is usually empty in the browser and `accessToken` is populated. The sign-in actual passes both
-  (blank-filtered) to `GoogleAuthProvider.credential(idToken?, accessToken?)` — Firebase accepts either. kmpauth injects
-  the GIS script itself; `index.html` needs no change.
+- **kmpauth token caveat:** GIS splits the two tokens across two flows. kmpauth-google (since 3.0) runs *One Tap*
+  first, which yields a real `GoogleUser.idToken` and no `accessToken`; only if that is suppressed or dismissed does it
+  fall back to the OAuth *token client*, which yields an `accessToken` and possibly no ID token. So either field can
+  come back empty and the sign-in actual passes both (blank-filtered) to
+  `GoogleAuthProvider.credential(idToken?, accessToken?)` — Firebase accepts either. kmpauth injects the GIS script
+  itself; `index.html` needs no change.
 - **Session restore gate:** on page reload the app trusts the local SQL `User.firebaseUid`, but the Firebase JS session
   restores asynchronously from indexedDB. Every Firestore op in `FirebaseWebSyncService` first awaits
   `auth.authStateReady()` and verifies the live uid matches — otherwise it logs and no-ops instead of hitting a
