@@ -45,7 +45,7 @@ class Solver(val ng: Nonogram) {
                     val r = l + clue
 
                     for (col in l until r) {
-                        drawTile(row, col, index, isRow = isRow, isClear = true)
+                        drawTile(row, col, index, isRow)
                     }
 
                     if (r >= width) continue
@@ -63,7 +63,7 @@ class Solver(val ng: Nonogram) {
                     l += clue
                     if (l > r && l - r < clue) {
                         for (col in r until l) {
-                            drawTile(row, col, index, isRow = isRow, isClear = true)
+                            drawTile(row, col, index, isRow)
                         }
                     }
                     r += clue + 1
@@ -189,7 +189,7 @@ class Solver(val ng: Nonogram) {
                             if (range.isEmpty() && (i == 0 || cellAt(i - 1).state == 2) && posClues.min() == index) {
                                 val endIndex = i + clue
                                 for (j in i until endIndex) {
-                                    drawTile(rowIndex, j, index, isRow, true)
+                                    drawTile(rowIndex, j, index, isRow)
                                 }
                                 if (endIndex < rowSize) {
                                     if (isRow) drawCross(rowIndex, endIndex)
@@ -241,7 +241,7 @@ class Solver(val ng: Nonogram) {
                     val l = max - clue
 
                     for (i in l until r) {
-                        drawTile(rowIndex, i, index, isRow, isClear = true)
+                        drawTile(rowIndex, i, index, isRow)
                     }
                 }
             }
@@ -308,7 +308,7 @@ class Solver(val ng: Nonogram) {
                     while (count + leftOffset < clue && index + count < rowSize) {
                         val checkCell = cellAt(index + count)
                         if (checkCell.state == 0) {
-                            drawTile(rowIndex, index + count, clueIndex, isClear = true, isRow = isRow)
+                            drawTile(rowIndex, index + count, clueIndex, isRow)
                         }
                         count++
                     }
@@ -333,7 +333,7 @@ class Solver(val ng: Nonogram) {
 
                             if (checkCellClue == clueIndex && checkCell.state == 1) {
                                 for (j in i - 1 downTo 0) {
-                                    drawTile(rowIndex, index + count + j, checkCellClue, isClear = true, isRow = isRow)
+                                    drawTile(rowIndex, index + count + j, checkCellClue, isRow)
                                 }
                                 count += i + 1
                                 missingAmount -= i + 1
@@ -395,13 +395,13 @@ class Solver(val ng: Nonogram) {
 
     }
 
-    private fun drawTile(row: Int, col: Int, index: Int?, isRow: Boolean = true, isClear: Boolean = false) {
+    private fun drawTile(row: Int, col: Int, index: Int?, isRow: Boolean = true) {
         val cell = if (isRow) solving[row][col] else solving[col][row]
         val posClues = if (isRow) cell.posRowClues else cell.posColClues
 
         if (index != null) {
             posClues.add(index)
-            if (isClear) posClues.clear()
+            posClues.clear()
             posClues.add(index)
             if (cell.state == 1) return
 
