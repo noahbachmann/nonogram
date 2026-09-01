@@ -34,6 +34,8 @@ kotlin {
                 }
             }
         }
+        // Compose MP 1.12+ requires an executable binary so browser tests bundle the Skiko runtime (CMP-4906)
+        binaries.executable()
         // Firebase externals are @JsModule-only, which UMD can't link
         useEsModules()
     }
@@ -46,6 +48,7 @@ kotlin {
                 }
             }
         }
+        binaries.executable()
     }
 
     android {
