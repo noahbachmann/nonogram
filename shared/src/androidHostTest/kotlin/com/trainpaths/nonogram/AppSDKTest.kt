@@ -128,6 +128,73 @@ class AppSDKTest {
         assertFalse(theirs in visible)
     }
 
+    /** The grid every duplicate test shares. */
+    private val grid = listOf(listOf(1, 0), listOf(0, 1))
+
+    @Test
+    fun hasPublishConflict_seesAnotherAuthorsApprovedPuzzle() = runTest {
+        sdk.addNonogram("EASY", grid, authorUid = "uid-b", publishStatus = PublishStatus.APPROVED)
+        val mine = sdk.addNonogram("EASY", grid, authorUid = "uid-a")
+
+        assertTrue(sdk.hasPublishConflict(grid, mine, "uid-a"))
+    }
+
+    @Test
+    fun hasPublishConflict_ignoresUnpublishedAndOtherAuthorsPrivateCopies() = runTest {
+        sdk.addNonogram("EASY", grid, authorUid = "uid-b")
+        sdk.addNonogram("EASY", grid, authorUid = "uid-b", publishStatus = PublishStatus.DENIED)
+        // Another author's request in flight is invisible to us, as it is in Firestore.
+        sdk.addNonogram("EASY", grid, authorUid = "uid-b", publishStatus = PublishStatus.PENDING)
+        sdk.addNonogram("EASY", grid, authorUid = "uid-b", publishStatus = PublishStatus.UNLISTED)
+        sdk.addNonogram("EASY", grid, authorUid = "uid-a", publishStatus = PublishStatus.DENIED)
+        val mine = sdk.addNonogram("EASY", grid, authorUid = "uid-a")
+
+        assertFalse(sdk.hasPublishConflict(grid, mine, "uid-a"))
+    }
+
+    @Test
+    fun hasPublishConflict_seesMyOwnPendingThenUnlistedCopy() = runTest {
+        val other = sdk.addNonogram(
+            "EASY", grid, authorUid = "uid-a", publishStatus = PublishStatus.PENDING,
+        )
+        val mine = sdk.addNonogram("EASY", grid, authorUid = "uid-a")
+        assertTrue(sdk.hasPublishConflict(grid, mine, "uid-a"))
+
+        val pending = assertNotNull(sdk.getNonogramById(other))
+        sdk.updateNonogram(other, pending.copy(publishStatus = PublishStatus.UNLISTED))
+        assertTrue(sdk.hasPublishConflict(grid, mine, "uid-a"))
+    }
+
+    @Test
+    fun hasPublishConflict_excludesThePuzzleItself() = runTest {
+        val mine = sdk.addNonogram(
+            "EASY", grid, authorUid = "uid-a", publishStatus = PublishStatus.APPROVED,
+        )
+
+        assertFalse(sdk.hasPublishConflict(grid, mine, "uid-a"))
+    }
+
+    @Test
+    fun hasPublishConflict_matchesTheGridExactly() = runTest {
+        sdk.addNonogram("EASY", grid, authorUid = "uid-b", publishStatus = PublishStatus.APPROVED)
+        val mine = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "uid-a")
+
+        assertFalse(sdk.hasPublishConflict(listOf(listOf(0, 1), listOf(1, 0)), mine, "uid-a"))
+        // The same pattern padded into a larger grid is a different puzzle.
+        val padded = listOf(listOf(1, 0, 0), listOf(0, 1, 0), listOf(0, 0, 0))
+        assertFalse(sdk.hasPublishConflict(padded, mine, "uid-a"))
+
+        assertTrue(sdk.hasPublishConflict(grid, mine, "uid-a"))
+    }
+
+    @Test
+    fun hasPublishConflict_countsTheApprovedSeeds() = runTest {
+        val seeded = seed().first { it.isPublic }
+        val copy = sdk.addNonogram("EASY", seeded.solution, authorUid = "uid-a")
+
+        assertTrue(sdk.hasPublishConflict(seeded.solution, copy, "uid-a"))
+    }
+
     @Test
     fun addNonogram_and_getAllNonograms_roundTrip() = runTest {
         val solution = listOf(listOf(1, 0), listOf(0, 1))

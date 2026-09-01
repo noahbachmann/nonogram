@@ -14,6 +14,7 @@ import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileState
 import com.trainpaths.nonogram.sync.SyncService
+import com.trainpaths.nonogram.sync.syncPublicNonograms
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -277,8 +278,10 @@ class GenViewModel(
     }
 
     /**
-     * Files a publish request for the saved puzzle. The local row moves to `PENDING` first so the
-     * button responds immediately; a rejection by the Firestore rules (a banned author) rolls it back.
+     * Files a publish request for the saved puzzle. A grid another puzzle already publishes is
+     * refused outright, so the duplicate never reaches Firestore; otherwise the local row moves to
+     * `PENDING` first so the button responds immediately, and a rejection by the Firestore rules
+     * (a banned author) rolls it back.
      */
     fun requestPublish() {
         if (isSaving || isRequestingPublish) return
@@ -289,9 +292,23 @@ class GenViewModel(
         publishError = null
         viewModelScope.launch {
             try {
-                val requested = nonogram.copy(publishStatus = PublishStatus.PENDING)
+                val saved = withContext(Dispatchers.Default) {
+                    syncService.syncPublicNonograms(authRepository, firebaseUid)
+                    sdk.getNonogramById(nonogramId)
+                }
+                if (saved == null) {
+                    publishError = "Could not send this publish request."
+                    return@launch
+                }
+                val conflict = withContext(Dispatchers.Default) {
+                    sdk.hasPublishConflict(saved.solution, nonogramId, firebaseUid)
+                }
+                if (conflict) {
+                    publishError = "This puzzle already exists."
+                    return@launch
+                }
                 val result = withContext(Dispatchers.Default) {
-                    sdk.updateNonogram(nonogramId, requested)
+                    sdk.updateNonogram(nonogramId, saved.copy(publishStatus = PublishStatus.PENDING))
                     val persisted = sdk.getNonogramById(nonogramId)
                     val accepted = persisted != null &&
                             syncService.requestPublish(firebaseUid, persisted)

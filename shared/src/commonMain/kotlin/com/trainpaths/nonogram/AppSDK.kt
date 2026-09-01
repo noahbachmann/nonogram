@@ -121,6 +121,13 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
     suspend fun getNonogramById(id: Long): Nonogram? =
         db().getNonogramById(id)
 
+    /** Whether another puzzle already claims this grid for publication. */
+    suspend fun hasPublishConflict(
+        solution: List<List<Int>>,
+        excludeId: Long,
+        authorUid: String,
+    ): Boolean = db().hasPublishConflict(solution, excludeId, authorUid)
+
     suspend fun getRandomNonogram(difficulty: String? = null): Nonogram? =
         db().getRandomNonogram(difficulty)
 
