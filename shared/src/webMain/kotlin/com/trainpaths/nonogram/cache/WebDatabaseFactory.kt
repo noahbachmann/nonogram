@@ -16,6 +16,8 @@ class WebDatabaseFactory : DatabaseFactory {
         when {
             current == 0L -> NonogramDb.Schema.awaitCreate(driver)
             current < target -> NonogramDb.Schema.awaitMigrate(driver, current, target)
+            current == target -> Unit
+            else -> error("OPFS database is at schema version $current, newer than this build's $target")
         }
         if (current != target) {
             driver.execute(null, "PRAGMA user_version = $target;", 0).await()

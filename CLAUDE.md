@@ -68,13 +68,13 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   `PRAGMA user_version` migration — see `docs/web-architecture.md`), `TestDatabaseFactory` (androidHostTest, in-memory
   JDBC).
 - **`auth/AuthRepository`** — manages auth state (`GUEST` / `SIGNED_IN`), the **user key**, and the onboarding flag via
-  `multiplatform-settings`. `initialize()`/`linkFirebaseUser()`/`signOut()` are suspend (they call the suspend `AppSDK`).
-  Onboarding flag and per-UID sync cursors survive sign-out untouched.
+  `multiplatform-settings`. `initialize()`/`linkFirebaseUser()`/`signOut()` are suspend (they call the suspend
+  `AppSDK`). Onboarding flag and per-UID sync cursors survive sign-out untouched.
 
   **The user key** (`currentUserUid: StateFlow<String?>`, persisted as `current_user_uid`) is the app's *only* identity:
   the Firebase uid once signed in, `"local:<random>"` while a guest. It keys both `Nonogram.authorUid` and
-  `UserProgress.userUid`, so the local tables mirror Firestore's own `users/{uid}/progress/{nonogramId}` layout — see
-  `docs/identity.md`. `currentFirebaseUid` is the same value projected to null while a guest, for the calls that must
+  `UserProgress.userUid`, so the local tables mirror Firestore's own `users/{uid}/progress/{nonogramId}` layout.
+  `currentFirebaseUid` is the same value projected to null while a guest, for the calls that must
   reach Firestore. The generator is open to guests, hence the local form; guests never push, so it cannot leak.
   `linkFirebaseUser` migrates the guest's data onto the uid (`reassignAuthor` + `mergeProgressInto`, then drops the
   emptied guest row); a key that is already a real uid is never migrated, so signing into a second account cannot take
@@ -87,9 +87,9 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   through on set. See **AppTheme** below.
 - **`sync/SyncService`** — interface for syncing *both* progress and the shared `nonograms` collection (push/pull/merge;
   `mergeRemoteNonograms` is the shared merge policy), plus the publish-review calls (`requestPublish`,
-  `fetchModerationGate`, `isAdmin`, `pullPendingReviews`, `decideReview` — see `docs/publish-moderation.md`.
-  The review queue is a plain `List<Nonogram>`: the author rides along in `authorUid`, so there is no wrapper type;
-  pure streak/ban helpers live in `sync/Moderation.kt`). `sync/FirebaseAndroidSyncService` (androidMain)
+  `fetchModerationGate`, `isAdmin`, `pullPendingReviews`, `decideReview`. The review queue is a plain `List<Nonogram>`:
+  the author rides along in `authorUid`, so there is no wrapper type; pure streak/ban helpers live in
+  `sync/Moderation.kt`). `sync/FirebaseAndroidSyncService` (androidMain)
   implements it with `dev.gitlive:firebase-firestore`; web binds `sync/FirebaseWebSyncService` (webMain), built on
   hand-written Kotlin externals to the Firebase JS SDK in `firebase/` (see `docs/web-architecture.md` for the externals
   pattern and the auth-session gate). Same Firestore shape on both platforms, so data interoperates.
@@ -99,23 +99,21 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
 - **Desktop widths** — `MAX_CONTENT_WIDTH = 1000.dp` lives in `AppTheme.kt` alongside the palettes, applied as
   `Modifier.widthIn(max = …)` ahead of any `fillMax*` and centred by the screen root's `horizontalAlignment`. App bars
   stay full-bleed with capped content, the Board is deliberately exempt, and `NonogramGrid` picks its column count from
-  the available width — see `docs/responsive-layout.md`.
+  the available width.
 - **`filter/`** — the menu's combined filter/sorter: a pure `FilterSortState` model plus the
-  `FilterMenuButton` dropdown hosted in the `TopAppBar`'s `navigationContent` slot. Rows are data —
-  a sortable `FilterAttribute` with checkable values, or a standalone `FilterToggle` (the "Personal"
-  own-puzzles switch) — so adding one is a list entry in `NonogramFilters.forUser(authorUid)`, a
-  function rather than a constant because ownership is user-scoped. A row's `label` is also its id.
-  See `docs/menu-filtering.md`.
-- **`tutorial/`** — the first-run hint overlay: `TutorialStep` (an enum whose declaration order is
-  priority order, carrying the copy), `TutorialRepository` (one `tutorial_seen_<STEP>` boolean per
-  step, device-wide so it survives sign-out), `TutorialController` + `Modifier.tutorialAnchor(step)`
-  (an anchor registry, since screens own their own app bars), and `TutorialHost`, a `Box` wrapped
-  around the `NavHost` in `App.kt` that draws the scrim, the spotlight hole and the blob. Nothing is
-  ever placed over the highlighted control — Compose hit-testing stops at the topmost sibling, so the
-  anchor itself listens on `PointerEventPass.Initial` without consuming. See `docs/tutorial-overlay.md`.
+  `FilterMenuButton` dropdown hosted in the `TopAppBar`'s `navigationContent` slot. Rows are data — a sortable
+  `FilterAttribute` with checkable values, or a standalone `FilterToggle` (the "Personal"
+  own-puzzles switch) — so adding one is a list entry in `NonogramFilters.forUser(authorUid)`, a function rather than a
+  constant because ownership is user-scoped. A row's `label` is also its id.
+- **`tutorial/`** — the first-run hint overlay: `TutorialStep` (an enum whose declaration order is priority order,
+  carrying the copy), `TutorialRepository` (one `tutorial_seen_<STEP>` boolean per step, device-wide so it survives
+  sign-out), `TutorialController` + `Modifier.tutorialAnchor(step)`
+  (an anchor registry, since screens own their own app bars), and `TutorialHost`, a `Box` wrapped around the `NavHost`
+  in `App.kt` that draws the scrim, the spotlight hole and the blob. Nothing is ever placed over the highlighted
+  control — Compose hit-testing stops at the topmost sibling, so the anchor itself listens on `PointerEventPass.Initial`
+  without consuming.
 - **`classes/Solver`** — line-logic solver; run via `Nonogram.isValid` to check a puzzle is uniquely solvable (gates
   publishing). **User-owned and actively changing — do not document its internals or modify it.**
-- **`network/NonogramApi`** — an unused stub (bare Ktor `HttpClient`, no callers). Not a live data path.
 - **`screens/GoogleSignInSection`** — `expect`/`actual` composable for the Google sign-in button, both actuals built on
   kmpauth's `GoogleSignInButton` + a `SignInState`. Android uses `rememberGoogleAuthState`, which exchanges the
   credential for a Firebase session through kmpauth's own Firebase backend (auto-registered from `kmpauth-firebase`) and
@@ -125,28 +123,33 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
 - **ViewModels** (`screens/viewModel/`) — Compose state holders using `mutableStateOf`. `GameViewModel` manages the tile
   board and save/sync. `GenViewModel` drives the generator (draw/resize/save + validation). `MenuViewModel` holds the
   nonogram list and progress preview map; it loads via `AppSDK.getVisibleNonograms(uid)` — approved puzzles plus
-  whatever the current user key owns — so a signed-out user stops seeing the previous account's puzzles (the rows
-  stay in the DB, they are just filtered out). `AuthViewModel` orchestrates login flow and **all remote sync** —
+  whatever the current user key owns — so a signed-out user stops seeing the previous account's puzzles (the rows stay
+  in the DB, they are just filtered out). `AuthViewModel` orchestrates login flow and **all remote sync** —
   `syncAll` pulls progress + public + owned nonograms in one pass (separate public/owned cursors read via
   `AuthRepository`) and then refreshes the admin flag and publish ban (`isAdmin` / `publishBanned` StateFlows),
-  `retryOwnNonograms` re-runs just the owned stream for the generator's retry button. The **public** stream runs
-  first, before the `currentFirebaseUid ?: return@launch` gate, so guests pull public puzzles too — approved
-  puzzles are readable unauthenticated (see `firestore.rules`), while progress, owned puzzles and the
-  admin/moderation reads all need a session and stay behind the gate. `AdminViewModel` drives the
-  admin review queue (one pending request at a time, buffered a batch at a time).
-  All depend on the suspend `AppSDK`/`SyncService` from inside `viewModelScope.launch`.
+  `retryOwnNonograms` re-runs just the owned stream for the generator's retry button. The **public** stream runs first,
+  before the `currentFirebaseUid ?: return@launch` gate, so guests pull public puzzles too — approved puzzles are
+  readable unauthenticated (see `firestore.rules`), while progress, owned puzzles and the admin/moderation reads all
+  need a session and stay behind the gate. `AdminViewModel` drives the admin review queue (one pending request at a
+  time, buffered a batch at a time). All depend on the suspend `AppSDK`/`SyncService` from inside
+  `viewModelScope.launch` — but always via `launchGuarded` (`screens/viewModel/LaunchGuarded.kt`), never
+  `viewModelScope.launch` directly: an uncaught throwable in a plain launch reaches the default handler and kills the
+  process on Android. It rethrows `CancellationException` and routes everything else to `onError`; UI flags that gate a
+  screen (`isLoading`, `_signInComplete`) are released in a `finally` inside the block, so a failed read can never
+  leave a spinner up forever.
 
-  **When sync runs.** `syncAll` fires once from `AppContent`'s app-start `LaunchedEffect`, and after that
-  only when the user pull-to-refreshes the menu (`MenuScreen`'s
+  **When sync runs.** `syncAll` fires once from `AppContent`'s app-start `LaunchedEffect`, and after that only when the
+  user pull-to-refreshes the menu (`MenuScreen`'s
   `PullToRefreshBox` → `MenuViewModel.refresh`). Entering `MenuRoute` does **not** sync — it calls
-  `MenuViewModel.reload()`, a silent local-DB re-read with no spinner, so puzzles just authored in the
-  generator still appear. `MenuViewModel` therefore has two flags: `isLoading` (full-screen spinner, cold
-  start and sign-in/sign-out only, via `loadAll()`) and `isRefreshing` (the pull-to-refresh indicator).
+  `MenuViewModel.reload()`, a silent local-DB re-read with no spinner, so puzzles just authored in the generator still
+  appear. `MenuViewModel` therefore has two flags: `isLoading` (full-screen spinner, cold start and sign-in/sign-out
+  only, via `loadAll()`) and `isRefreshing` (the pull-to-refresh indicator).
 
 ### Navigation
 
 Type-safe navigation via `navigation-compose` with `@Serializable` route objects in `navigation/Routes.kt`. Routes:
-`LoginRoute`, `MenuRoute`, `GameRoute(nonogramId)`, `SettingsRoute`, `AdminRoute`, plus the generator routes `GenListRoute`,
+`LoginRoute`, `MenuRoute`, `GameRoute(nonogramId)`, `SettingsRoute`, `AdminRoute`, plus the generator routes
+`GenListRoute`,
 `GenConfRoute(editing)`, `GeneratorRoute` (the board editor), plus dialog routes (`PlayDialogRoute`, `WinDialogRoute`,
 `LeaveDialogRoute`).
 
@@ -180,8 +183,8 @@ dirty puzzle). Icons come from the hand-built `icons/` package of `ImageVector`s
 
 ### DI (Koin)
 
-- `di/AppModule.kt` — common singletons: `AppSDK`, `Settings`, `AuthRepository`, `SettingsRepository`, plus all ViewModel
-  registrations via `viewModelOf` (koin-core-viewmodel, shared across platforms).
+- `di/AppModule.kt` — common singletons: `AppSDK`, `Settings`, `AuthRepository`, `SettingsRepository`, plus all
+  ViewModel registrations via `viewModelOf` (koin-core-viewmodel, shared across platforms).
 - `di/AndroidModule.kt` — platform bindings: `DatabaseFactory` → `AndroidDatabaseFactory`, `SyncService` →
   `FirebaseAndroidSyncService`.
 - `di/WebModule.kt` (webMain) — platform bindings: `DatabaseFactory` → `WebDatabaseFactory`, `SyncService` →
@@ -191,22 +194,28 @@ dirty puzzle). Icons come from the hand-built `icons/` package of `ImageVector`s
 
 - **`Nonogram`** — `id`, `difficulty` (enum: EASY/MEDIUM/HARD/HARDCORE), `solution` (List<List<Int>> stored as JSON),
   `name: String?`, `authorUid` (the user key — see `auth/AuthRepository`; the same string as the Firestore
-  `authorUid` field, so no local↔remote translation is needed), `updatedAt`, `publishState` (enum: NONE/PENDING/APPROVED/UNLISTED/DENIED, stored as its
-  ordinal in the DB column `status`, as its name in the Firestore field `publishStatus`). Visibility is derived, not stored:
-  `isPublic get() = publishState == APPROVED`, and the author's on/off switch moves an approved puzzle between
-  APPROVED and UNLISTED. Computes `rowClues`/`colClues` on the fly, and `isValid` lazily via the `Solver`.
-  Name helpers live alongside: `MAX_NONOGRAM_NAME_LENGTH` (30), `normalizeNonogramName()`, `UNNAMED_NONOGRAM_TITLE`.
-  Ownership is `isOwned(uid)`, which never matches the blank `authorUid` seeded puzzles carry.
+  `authorUid` field, so no local↔remote translation is needed), `updatedAt`, `publishState` (enum:
+  NONE/PENDING/APPROVED/UNLISTED/DENIED, stored as its ordinal in the DB column `status`, as its name in the Firestore
+  field `publishStatus`). Visibility is derived, not stored:
+  `isPublic get() = publishState == APPROVED`, and the author's on/off switch moves an approved puzzle between APPROVED
+  and UNLISTED. Computes `rowClues`/`colClues` on the fly, and `isValid` lazily via the `Solver`. Name helpers live
+  alongside: `MAX_NONOGRAM_NAME_LENGTH` (30), `normalizeNonogramName()`, `UNNAMED_NONOGRAM_TITLE`. Ownership is
+  `isOwned(uid)`, which never matches the blank `authorUid` seeded puzzles carry. Grid shape lives here too:
+  `MIN_NONOGRAM_SIDE` (5) / `MAX_NONOGRAM_SIDE` (50), clamped in `GenViewModel.setNonogram`/`resizeNonogram` and shown
+  in `GenConfScreen`'s size fields, plus `isRectangularGrid()` / `isWellFormedGrid()`. Both sync services reject a
+  grid failing `isWellFormedGrid()` in `parseNonograms` (ragged grids crash `colClues`), and the DB mapper falls back
+  to an empty solution for one already stored — keep `MAX_NONOGRAM_SIDE` in step with the 20 000-character cap
+  `firestore.rules` puts on the encoded `solution`.
 - **`Tile`** — mutable Compose state. Cycles: NONE → FILLED → CROSSED → NONE.
 - Board state is serialized as `List<List<Int>>` (0/1) for persistence and sync.
 
 ### SQLDelight
 
 Schema: `shared/src/commonMain/sqldelight/com/trainpaths/nonogram/cache/database.sq`
-Migrations: numbered `.sqm` files in the same dir — currently `1.sqm`–`5.sqm` (UserProgress.beat;
-NonogramData.authorId + status; NonogramData.updatedAt; NonogramData.name; NonogramData.authorId → authorUid, done by
-dropping and recreating the table — local puzzles are wiped and re-pulled, which is also why `AuthRepository` bumped its
-sync-cursor key prefixes to `_v2_`). Database name: `NonogramDb`, package:
+Migrations: none. The pre-release history (`1.sqm`–`3.sqm`) was collapsed before v1 — it had drifted from
+`database.sq` (`2.sqm` added `authorId INTEGER`, the schema declares `authorUid TEXT`), and with no install base the
+honest fix was to delete it. `database.sq` is therefore schema version 1 and every install is a fresh `create()`. Any
+schema change from here on needs a numbered `.sqm` beside it. Database name: `NonogramDb`, package:
 `com.trainpaths.nonogram.cache`
 
 Tables: `NonogramData`, `User` (`uid` TEXT PK → display name), `UserProgress` (composite PK: userUid + nonogramId).
@@ -237,14 +246,14 @@ Frozen roles (identical across every theme — difficulty semantics, always draw
 - `tertiaryFixed` `#CE0C0C` red — HARD difficulty
 
 `surface` and `error` are never overridden (M3 light defaults) — don't put per-theme content on `surface`, use
-`outline` instead. `AppTheme(theme: ColorTheme, content: ...)` requires the theme explicitly (no default), so every
-call site must supply one. The active theme lives in `settings/SettingsRepository`/`SettingsViewModel` and is
-threaded as a required `App(..., settingsViewModel)` param.
+`outline` instead. `AppTheme(theme: ColorTheme, content: ...)` requires the theme explicitly (no default), so every call
+site must supply one. The active theme lives in `settings/SettingsRepository`/`SettingsViewModel` and is threaded as a
+required `App(..., settingsViewModel)` param.
 
 `App()` itself owns the single `AppTheme` call site and the auth-init gate: it reads `settingsViewModel.theme` and
 `authViewModel.authState`, wraps everything in `AppTheme(theme)`, and renders `LoadingScreen()` while
-`authState == INITIALIZING` instead of the real content (`AppContent`, a private composable with the NavHost). The
-two platform entry points (`MainActivity.kt`, `webApp/main.kt`) therefore just call `App(...)` unconditionally — no
+`authState == INITIALIZING` instead of the real content (`AppContent`, a private composable with the NavHost). The two
+platform entry points (`MainActivity.kt`, `webApp/main.kt`) therefore just call `App(...)` unconditionally — no
 `if`/`else`, no `AppTheme` call of their own. `menuViewModelFactory`/`genViewModelFactory` are passed as
 `@Composable () -> VM` (matching the existing `gameViewModelFactory` idiom), **not** resolved instances — this is
 deliberate, not simplifiable: it keeps `MenuViewModel`/`GenViewModel` construction inside the non-`INITIALIZING`
@@ -262,20 +271,21 @@ defined.
 - `AppInitializer.onApplicationStart()` calls `KMPAuth.initialize { google(serverId = …) }` with a web client ID.
   Android passes `R.string.default_web_client_id` (generated from `androidApp/google-services.json`); web passes
   `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID` (committed constants in `webApp` — Firebase web config is public-by-design).
-- Firestore paths: `users/{firebaseUid}/progress/{nonogramId}` (progress), `nonograms/{id}` (puzzles — own + public
-  per their `publishStatus` field), `users/{firebaseUid}` (`denialStreak` /
-  `publishBanned`) and `admins/{firebaseUid}` (admin roster). Puzzles are pulled incrementally by `AuthViewModel.syncAll` in **two independent
-  streams** — public and owned — each with its own `updatedAt` cursor persisted via `AuthRepository`
-  (`getLast{Public,Owned}NonogramSyncTimestamp`). The owned cursor is per-uid; the **public** cursor is
-  device-wide (no uid suffix), since every user on the device — guests included — sees the same approved set.
+- Firestore paths: `users/{firebaseUid}/progress/{nonogramId}` (progress), `nonograms/{id}` (puzzles — own + public per
+  their `publishStatus` field), `users/{firebaseUid}` (`denialStreak` /
+  `publishBanned`) and `admins/{firebaseUid}` (admin roster). Puzzles are pulled incrementally by
+  `AuthViewModel.syncAll` in **two independent streams** — public and owned — each with its own `updatedAt` cursor
+  persisted via `AuthRepository`
+  (`getLast{Public,Owned}NonogramSyncTimestamp`). The owned cursor is per-uid; the **public** cursor is device-wide (no
+  uid suffix), since every user on the device — guests included — sees the same approved set.
   `pullPublicNonogramsSince` therefore takes a nullable uid: null is a guest's unauthenticated pull, and
-  `mergeRemoteNonograms` (`sync/SyncService.kt`) then merges without ever pushing back. Merge policy is remote
-  newer → upsert; local newer & locally authored → push back. On both platforms — Android via
+  `mergeRemoteNonograms` (`sync/SyncService.kt`) then merges without ever pushing back. Merge policy is remote newer →
+  upsert; local newer & locally authored → push back. On both platforms — Android via
   `dev.gitlive:firebase-firestore` (androidMain), web via hand-written Firebase JS SDK externals (webMain), both
-  isolated behind `sync/SyncService`; the web impl gates every call on `sessionMatches` *except* the public pull,
-  which must work signed out. Security rules are checked in at `firestore.rules` — they are what actually enforces
-  publish moderation, and the `nonograms` read rule deliberately allows unauthenticated reads of `APPROVED` docs.
-  Two composite indexes are needed on `nonograms` — `(publishStatus, updatedAt)` (public pull + review queue) and
+  isolated behind `sync/SyncService`; the web impl gates every call on `sessionMatches` *except* the public pull, which
+  must work signed out. Security rules are checked in at `firestore.rules` — they are what actually enforces publish
+  moderation, and the `nonograms` read rule deliberately allows unauthenticated reads of `APPROVED` docs. Two composite
+  indexes are needed on `nonograms` — `(publishStatus, updatedAt)` (public pull + review queue) and
   `(authorUid, updatedAt)` (owned pull) — but they are configured in the Firebase console, not checked in.
 - `auth/PlatformAuth.kt` declares `expect suspend fun firebaseSignOut()`, ending the platform Firebase session —
   `dev.gitlive.firebase.auth.auth.signOut()` on Android, `FirebaseWeb.signOut()` (a new `firebase/auth` `signOut`
@@ -290,15 +300,15 @@ and edit existing ones (with non-destructive resize). See **Navigation → Gener
 runs `Nonogram.isValid` (the `Solver`) to check the puzzle is uniquely solvable — validation is *advisory* (the puzzle
 still saves if it fails or the check throws) and only gates whether the author may *request* publication. Publishing
 itself is admin-moderated: the generator's config screen offers a "Request publish" button, an admin accepts or denies
-in `AdminScreen` (reachable from Settings), and five denials in a row ban a user from requesting. Editing a puzzle
-that is currently public un-publishes it, so every save path first confirms via `PublicEditConfirmDialog`. A request
-is also refused when the grid is already spoken for — `AppSDK.hasPublishConflict` (the `selectPublishConflictId`
+in `AdminScreen` (reachable from Settings), and five denials in a row ban a user from requesting. Editing a puzzle that
+is currently public un-publishes it, so every save path first confirms via `PublicEditConfirmDialog`. A request is also
+refused when the grid is already spoken for — `AppSDK.hasPublishConflict` (the `selectPublishConflictId`
 query) matches the saved `solution` against any `APPROVED` puzzle and against the author's own `UNLISTED`/`PENDING`
 copies, and `requestPublish` reports it through `publishError` before anything reaches Firestore. It first runs
 `SyncService.syncPublicNonograms` (the cursor-advancing public pull, shared with `AuthViewModel.syncAll`) so a puzzle
-approved on another device is in the local DB before the comparison; a failed pull still checks what is already
-local. The match is exact — mirrored, rotated or padded grids are different puzzles. See `docs/publish-moderation.md`. Difficulty is still
-hardcoded to `EASY` in `GenViewModel` (no selector yet).
+approved on another device is in the local DB before the comparison; a failed pull still checks what is already local.
+The match is exact — mirrored, rotated or padded grids are different puzzles. Difficulty is still hardcoded to `EASY` in
+`GenViewModel` (no selector yet).
 
 Web (js + wasmJs) has persistent OPFS storage plus Google sign-in and Firestore sync via hand-written Firebase JS SDK
 externals in `shared/src/webMain` (no gitlive — it doesn't publish wasmJs; see `docs/web-architecture.md` for the

@@ -62,8 +62,8 @@ without gitlive: `kmpauth-google` (publishes js+wasmJs, commonMain dep) obtains 
 - **`screens/GoogleSignInSection`** — the web actual drives kmpauth's `rememberGoogleSignInState` from a
   `GoogleSignInButton`, exchanges the Google token via `FirebaseWeb.signInWithGoogle`, and feeds the resulting Firebase
   `uid`/`displayName` into the unchanged common login flow. Deliberately the *credential-only* state, not
-  `rememberGoogleAuthState`: kmpauth's own web backend is a Firebase Auth REST engine, which would never populate the
-  JS SDK's auth state that the session gate below reads.
+  `rememberGoogleAuthState`: kmpauth's own web backend is a Firebase Auth REST engine, which would never populate the JS
+  SDK's auth state that the session gate below reads.
 
 ### The externals pattern (first in this repo)
 
@@ -103,8 +103,3 @@ touching callers.
   OAuth **Authorized JavaScript origins** allowlist (each dev/prod origin must be listed there; note js and wasmJs dev
   servers on different ports are different origins with separate indexedDB sessions).
   `main.kt` calls `FirebaseWeb.initialize(...)` and `AppInitializer.onApplicationStart(clientId)` before Koin.
-
-## Dead code note
-
-`network/NonogramApi.kt` is never instantiated anywhere in the app — no web Ktor engine (`ktor-client-js`) was added
-because there's currently nothing that needs it.
