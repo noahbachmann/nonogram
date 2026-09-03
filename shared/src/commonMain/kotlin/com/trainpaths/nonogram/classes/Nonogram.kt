@@ -92,10 +92,12 @@ private fun computeLineClues(line: List<Int>): List<Int> {
     return clues
 }
 
-fun normalizeNonogramName(value: String): String? =
+fun sanitizeNameInput(value: String): String =
     value
         .replace('\n', ' ')
         .replace('\r', ' ')
-        .trim()
         .take(MAX_NONOGRAM_NAME_LENGTH)
-        .takeIf { it.isNotEmpty() }
+
+/** The stored form: [sanitizeNameInput] plus a trim, with a name left blank stored as null. */
+fun normalizeNonogramName(value: String): String? =
+    sanitizeNameInput(value.trim()).takeIf { it.isNotEmpty() }

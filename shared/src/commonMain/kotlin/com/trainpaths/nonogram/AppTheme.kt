@@ -1,10 +1,13 @@
 package com.trainpaths.nonogram
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -22,6 +25,13 @@ val MAX_CONTENT_WIDTH = 1000.dp
  * Corner rounding for the app's buttons — card-like. Pass as `shape = BUTTON_SHAPE`.
  */
 val BUTTON_SHAPE = RoundedCornerShape(12.dp)
+
+/**
+ * The playing field's frame — the divider between the clue gutters and the grid, and the grid's own
+ * right and bottom edges. The board is deliberately outside the palettes (a nonogram reads as black
+ * on white under every theme), but the one colour it does pick still belongs beside them.
+ */
+val BOARD_SEPARATOR_COLOR = Color.DarkGray
 
 private fun colorScheme(
     primary: Color,
@@ -140,4 +150,29 @@ fun switchColors(): SwitchColors = SwitchDefaults.colors(
     uncheckedIconColor = MaterialTheme.colorScheme.primary,
     disabledCheckedIconColor = MaterialTheme.colorScheme.primary,
     disabledUncheckedIconColor = MaterialTheme.colorScheme.primary,
+)
+
+/** The app's `OutlinedTextField` palette: focused reads against `onSecondary`, unfocused `onPrimary`. */
+@Composable
+fun outlinedFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = MaterialTheme.colorScheme.onSecondary,
+    unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+
+    focusedBorderColor = MaterialTheme.colorScheme.onSecondary,
+    unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+
+    focusedLabelColor = MaterialTheme.colorScheme.onSecondary,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+
+    focusedPlaceholderColor = MaterialTheme.colorScheme.onSecondary,
+    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary,
+
+    focusedSupportingTextColor = MaterialTheme.colorScheme.onSecondary,
+    unfocusedSupportingTextColor = MaterialTheme.colorScheme.onPrimary,
+
+    cursorColor = MaterialTheme.colorScheme.onBackground,
+    selectionColors = TextSelectionColors(
+        handleColor = MaterialTheme.colorScheme.onBackground,
+        backgroundColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
+    ),
 )

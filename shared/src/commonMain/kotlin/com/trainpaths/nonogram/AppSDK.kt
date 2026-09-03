@@ -4,6 +4,7 @@ import com.trainpaths.nonogram.cache.Database
 import com.trainpaths.nonogram.cache.DatabaseFactory
 import com.trainpaths.nonogram.cache.NonogramProgress
 import com.trainpaths.nonogram.cache.ProgressWithTimestamp
+import com.trainpaths.nonogram.cache.SEED_PUZZLES
 import com.trainpaths.nonogram.cache.User
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
@@ -21,88 +22,14 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
 
     suspend fun seedIfEmpty() {
         if (getAllNonograms().isNotEmpty()) return
-        // Fixed ids: seeds must be identical on every device so progress sync lines up.
-        addNonogram(
-            "EASY",
-            listOf(
-                listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0), listOf(1, 1, 1, 1, 1),
-                listOf(0, 0, 1, 0, 0), listOf(0, 0, 1, 0, 0)
-            ),
-            publishStatus = PublishStatus.APPROVED,
-            id = 1,
-        )
-        addNonogram(
-            "MEDIUM",
-            listOf(
-                listOf(1, 1, 1, 1, 1), listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 0, 0),
-                listOf(1, 0, 0, 0, 0), listOf(1, 1, 1, 1, 1)
-            ),
-            publishStatus = PublishStatus.APPROVED,
-            id = 2,
-        )
-        addNonogram(
-            "HARD",
-            listOf(
-                listOf(1, 1, 0, 0, 0), listOf(0, 1, 1, 0, 0), listOf(0, 0, 1, 1, 0),
-                listOf(0, 0, 0, 1, 1), listOf(0, 0, 0, 0, 1)
-            ),
-            publishStatus = PublishStatus.APPROVED,
-            id = 3,
-        )
-        addNonogram(
-            "HARD",
-            listOf(
-                listOf(0, 1, 1, 1, 0, 0, 0, 1, 1, 1),
-                listOf(1, 1, 0, 0, 1, 1, 1, 1, 1, 1),
-                listOf(1, 1, 1, 1, 1, 0, 0, 0, 1, 1),
-                listOf(1, 1, 1, 0, 0, 0, 1, 1, 1, 1),
-                listOf(0, 0, 0, 0, 0, 1, 1, 1, 0, 0),
-                listOf(0, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-                listOf(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
-                listOf(0, 0, 1, 0, 0, 0, 0, 0, 0, 0),
-                listOf(0, 0, 1, 1, 1, 1, 0, 1, 0, 1),
-                listOf(0, 0, 0, 0, 1, 1, 1, 0, 0, 1),
-            ),
-            publishStatus = PublishStatus.APPROVED,
-            id = 4,
-        )
-        addNonogram(
-            difficulty = "HARD",
-            solution = listOf(
-                listOf(0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                listOf(0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                listOf(0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                listOf(0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0),
-                listOf(0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0),
-                listOf(0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0),
-                listOf(0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0),
-                listOf(0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0),
-                listOf(1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0),
-                listOf(1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0),
-                listOf(1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0),
-                listOf(0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0),
-                listOf(0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0),
-                listOf(0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0),
-                listOf(0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0),
-                listOf(0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0),
-                listOf(0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1),
-                listOf(0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1),
-                listOf(0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1),
-                listOf(0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0),
-                listOf(0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0),
-                listOf(0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0),
-                listOf(0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
-                listOf(0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0),
-                listOf(0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0),
-                listOf(0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0),
-                listOf(0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0),
-                listOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0),
-                listOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0),
-                listOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0),
-            ),
-            publishStatus = PublishStatus.APPROVED,
-            id = 5,
-        )
+        SEED_PUZZLES.forEach { seed ->
+            addNonogram(
+                difficulty = seed.difficulty,
+                solution = seed.solution,
+                publishStatus = PublishStatus.APPROVED,
+                id = seed.id,
+            )
+        }
     }
 
     suspend fun getAllNonograms(): List<Nonogram> =

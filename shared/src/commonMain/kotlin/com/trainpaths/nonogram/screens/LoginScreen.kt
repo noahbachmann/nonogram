@@ -3,7 +3,6 @@ package com.trainpaths.nonogram.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -63,15 +62,15 @@ fun LoginScreen(
             Text("Syncing progress...", color = MaterialTheme.colorScheme.onPrimary)
         } else {
             Column(
-                modifier = Modifier.width(IntrinsicSize.Max),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.width(280.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 GoogleSignInSection(
                     onSignedIn = { uid, displayName ->
                         isSigningIn = true
                         authViewModel.onFirebaseSignInSuccess(uid, displayName)
                     },
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    modifier = Modifier.height(48.dp),
                 )
 
                 OutlinedButton(
@@ -80,11 +79,12 @@ fun LoginScreen(
                         onContinueAsGuest()
                     },
                     shape = BUTTON_SHAPE,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onSecondary,
+                        contentColor = MaterialTheme.colorScheme.primary,
                     ),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary),
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
                 ) {
                     Text("Continue as Guest")
                 }
