@@ -4,7 +4,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.classes.BoardHistory
@@ -14,7 +13,6 @@ import com.trainpaths.nonogram.classes.TileEdit
 import com.trainpaths.nonogram.classes.TileState
 import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
@@ -40,7 +38,7 @@ class GameViewModel(
     fun loadNonogram(id: Long) {
         nonogram = null
         tiles = emptyList()
-        viewModelScope.launch {
+        launchGuarded(onError = { println("Game: loading nonogram $id failed: ${it.message}") }) {
             val loaded: Nonogram? = withContext(Dispatchers.Default) {
                 sdk.getNonogramById(id)
             }
@@ -50,7 +48,8 @@ class GameViewModel(
                     withContext(Dispatchers.Default) {
                         sdk.getSingleProgress(userUid, id)
                             ?.boardState
-                            ?.let { Json.decodeFromString<List<List<Int>>>(it) }
+                            ?.let { runCatching { Json.decodeFromString<List<List<Int>>>(it) }.getOrNull() }
+                            ?.takeIf { it.size == loaded.height && it.all { row -> row.size == loaded.width } }
                     }
                 } else null
 
@@ -74,15 +73,18 @@ class GameViewModel(
         val userUid = authRepository.currentUserUid.value ?: return
         val nonogramId = nonogram?.id ?: return
         val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
-        viewModelScope.launch(Dispatchers.Default) {
+        launchGuarded(
+            Dispatchers.Default,
+            onError = { println("Game: saving progress for $nonogramId failed: ${it.message}") },
+        ) {
             if (win) {
                 sdk.saveProgressAfterWin(userUid, nonogramId)
             } else {
                 sdk.saveProgress(userUid, nonogramId, board)
             }
 
-            val firebaseUid = authRepository.currentFirebaseUid ?: return@launch
-            val progress = sdk.getSingleProgress(userUid, nonogramId) ?: return@launch
+            val firebaseUid = authRepository.currentFirebaseUid ?: return@launchGuarded
+            val progress = sdk.getSingleProgress(userUid, nonogramId) ?: return@launchGuarded
             syncService.pushProgress(firebaseUid, nonogramId, progress.boardState, progress.updatedAt)
         }
     }

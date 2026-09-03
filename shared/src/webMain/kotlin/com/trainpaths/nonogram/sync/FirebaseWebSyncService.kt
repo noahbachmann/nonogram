@@ -6,6 +6,7 @@ import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
+import com.trainpaths.nonogram.classes.isWellFormedGrid
 import com.trainpaths.nonogram.firebase.FirebaseWeb
 import com.trainpaths.nonogram.firebase.NonogramQuerySnapshot
 import com.trainpaths.nonogram.firebase.collection
@@ -152,7 +153,7 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
             println("FirestoreSync(web): upload all nonograms failed: ${e.message}")
         }
     }
-    
+
     override suspend fun pullPublicNonogramsSince(firebaseUid: String?, since: Long): Long? {
         if (firebaseUid != null) FirebaseWeb.awaitSignedInUid()
 
@@ -299,19 +300,16 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
             if (nonogramId != null) {
                 try {
                     val data = docSnapshot.data()
+                    val solution: List<List<Int>> = json.decodeFromString(data.solution)
+                    require(solution.isWellFormedGrid()) { "grid out of range or ragged" }
                     add(
                         Nonogram(
                             id = nonogramId,
                             difficulty = Difficulty.valueOf(data.difficulty),
-                            solution = json.decodeFromString(data.solution),
+                            solution = solution,
                             name = data.name,
                             authorUid = data.authorUid ?: "",
                             updatedAt = data.updatedAt.toLong(),
-                            // Docs written before review existed carry no `publishStatus`, only the
-                            // old numeric `status`. Drop this once those docs are backfilled.
-                            publishStatus = data.publishStatus?.toPublishStatus()
-                                ?: if (data.status == 1.0) PublishStatus.APPROVED
-                                else PublishStatus.NONE,
                         )
                     )
                 } catch (e: Throwable) {

@@ -1,15 +1,14 @@
 package com.trainpaths.nonogram.screens.viewModel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.auth.firebaseSignOut
 import com.trainpaths.nonogram.sync.SyncService
 import com.trainpaths.nonogram.sync.syncPublicNonograms
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 enum class GeneratorSyncState { IDLE, SYNCING, ERROR }
@@ -35,28 +34,44 @@ class AuthViewModel(
     private val _publishBanned = MutableStateFlow(false)
     val publishBanned = _publishBanned.asStateFlow()
 
+    init {
+        launchGuarded {
+            authRepository.currentUserUid.collect {
+                val firebaseUid = authRepository.currentFirebaseUid
+                _isAdmin.value = firebaseUid != null && authRepository.getIsAdmin(firebaseUid)
+                _publishBanned.value =
+                    firebaseUid != null && authRepository.getPublishBanned(firebaseUid)
+            }
+        }
+    }
+
     fun onFirebaseSignInSuccess(firebaseUid: String, displayName: String?) {
         _signInComplete.value = false
-        viewModelScope.launch(Dispatchers.Default) {
-            val hasRemote = syncService.hasRemoteProgress(firebaseUid)
-            authRepository.linkFirebaseUser(firebaseUid, displayName)
-            if (hasRemote) {
-                syncService.pullAllProgress(firebaseUid)
-            } else {
-                syncService.uploadAllLocalProgress(firebaseUid)
+        launchGuarded(
+            Dispatchers.Default,
+            onError = { println("SignIn: post-sign-in sync failed: ${it.message}") },
+        ) {
+            try {
+                authRepository.linkFirebaseUser(firebaseUid, displayName)
+                if (syncService.hasRemoteProgress(firebaseUid)) {
+                    syncService.pullAllProgress(firebaseUid)
+                } else {
+                    syncService.uploadAllLocalProgress(firebaseUid)
+                }
+                syncService.uploadAllLocalNonograms(firebaseUid)
+                refreshPublishState(firebaseUid)
+            } finally {
+                _signInComplete.value = true
             }
-            syncService.uploadAllLocalNonograms(firebaseUid)
-            refreshPublishState(firebaseUid)
-            _signInComplete.value = true
         }
     }
 
     fun syncAll(onComplete: () -> Unit = {}) {
-        viewModelScope.launch(Dispatchers.Default) {
+        launchGuarded(Dispatchers.Default) {
             try {
                 syncService.syncPublicNonograms(authRepository, authRepository.currentFirebaseUid)
 
-                val firebaseUid = authRepository.currentFirebaseUid ?: return@launch
+                val firebaseUid = authRepository.currentFirebaseUid ?: return@launchGuarded
                 syncService.pullAndMergeAllProgress(firebaseUid)
                 syncOwnedNonograms(firebaseUid)
                 refreshPublishState(firebaseUid)
@@ -67,9 +82,9 @@ class AuthViewModel(
     }
 
     fun retryOwnNonograms(onComplete: () -> Unit = {}) {
-        viewModelScope.launch(Dispatchers.Default) {
+        launchGuarded(Dispatchers.Default) {
             try {
-                val firebaseUid = authRepository.currentFirebaseUid ?: return@launch
+                val firebaseUid = authRepository.currentFirebaseUid ?: return@launchGuarded
                 syncOwnedNonograms(firebaseUid)
             } finally {
                 withContext(Dispatchers.Main) { onComplete() }
@@ -100,6 +115,8 @@ class AuthViewModel(
                 authRepository.setLastOwnedNonogramSyncTimestamp(firebaseUid, newestReceivedAt)
             }
             _generatorSyncState.value = GeneratorSyncState.IDLE
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Throwable) {
             println("FirestoreSync: owned nonogram sync for Generator failed: ${error.message}")
             _generatorSyncState.value = GeneratorSyncState.ERROR
@@ -111,7 +128,7 @@ class AuthViewModel(
     }
 
     fun signOut(onComplete: () -> Unit = {}) {
-        viewModelScope.launch(Dispatchers.Default) {
+        launchGuarded(Dispatchers.Default) {
             try {
                 runCatching { firebaseSignOut() }
                     .onFailure { println("SignOut: firebase sign-out failed: ${it.message}") }

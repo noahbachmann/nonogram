@@ -26,6 +26,24 @@ enum class PublishStatus {
 const val MAX_NONOGRAM_NAME_LENGTH = 30
 const val UNNAMED_NONOGRAM_TITLE = "???"
 
+const val MIN_NONOGRAM_SIDE = 5
+const val MAX_NONOGRAM_SIDE = 50
+
+/**
+ * Rectangular and non-empty — the shape every clue computation assumes. [Nonogram.colClues]
+ * indexes `solution[row][col]` across the *first* row's width, so a ragged grid throws there.
+ */
+fun List<List<Int>>.isRectangularGrid(): Boolean {
+    val width = firstOrNull()?.size ?: return false
+    return width > 0 && all { it.size == width }
+}
+
+/** [isRectangularGrid], with both sides inside [MIN_NONOGRAM_SIDE]..[MAX_NONOGRAM_SIDE]. */
+fun List<List<Int>>.isWellFormedGrid(): Boolean =
+    isRectangularGrid() &&
+            size in MIN_NONOGRAM_SIDE..MAX_NONOGRAM_SIDE &&
+            first().size in MIN_NONOGRAM_SIDE..MAX_NONOGRAM_SIDE
+
 @Serializable
 data class Nonogram(
     val id: Long,
