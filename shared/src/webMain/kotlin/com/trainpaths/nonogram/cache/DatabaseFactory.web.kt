@@ -1,12 +1,19 @@
 package com.trainpaths.nonogram.cache
 
-import app.cash.sqldelight.async.coroutines.await
 import app.cash.sqldelight.async.coroutines.awaitCreate
 import app.cash.sqldelight.async.coroutines.awaitMigrate
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 internal expect fun createDbWorkerDriver(): SqlDriver
+
+/**
+ * There is nowhere else to go: on js/wasmJs `Dispatchers.Default` *is* the main thread, and the OPFS
+ * worker driver is already async, so the database never blocks it.
+ */
+internal actual val dbDispatcher: CoroutineContext = EmptyCoroutineContext
 
 class WebDatabaseFactory : DatabaseFactory {
     override suspend fun createDriver(): SqlDriver {

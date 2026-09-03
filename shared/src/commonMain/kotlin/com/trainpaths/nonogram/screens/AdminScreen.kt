@@ -55,10 +55,15 @@ fun AdminScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
+                val failure = adminViewModel.error
                 Text(
-                    "No pending requests.",
+                    failure ?: "No pending requests.",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = if (failure != null) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onPrimary
+                    },
                 )
             }
 

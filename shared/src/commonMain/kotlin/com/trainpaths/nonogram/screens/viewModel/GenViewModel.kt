@@ -14,6 +14,7 @@ import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileState
+import com.trainpaths.nonogram.classes.toInts
 import com.trainpaths.nonogram.sync.SyncService
 import com.trainpaths.nonogram.sync.syncPublicNonograms
 import kotlinx.coroutines.Dispatchers
@@ -62,13 +63,11 @@ class GenViewModel(
         private const val DEFAULT_SIZE = 5
     }
 
-    var height: Int = 0
-        private set
-    var width: Int = 0
-        private set
-
     var tiles by mutableStateOf<List<List<Tile>>>(emptyList())
         private set
+
+    val height: Int get() = tiles.size
+    val width: Int get() = tiles.firstOrNull()?.size ?: 0
 
     val history = BoardHistory(onApply = { updateNonogram() })
 
@@ -139,12 +138,9 @@ class GenViewModel(
         isLoadingMine = true
         launchGuarded(onError = { println("Generator: loading own nonograms failed: ${it.message}") }) {
             try {
-                val authorUid = authRepository.currentUserUid.value
-                myNonograms = if (authorUid == null) {
-                    emptyList()
-                } else {
-                    withContext(Dispatchers.Default) { sdk.getNonogramsByAuthor(authorUid) }
-                }
+                val authorUid = authRepository.currentUserUid.value.orMissing()
+                myNonograms =
+                    if (authorUid == null) emptyList() else sdk.getNonogramsByAuthor(authorUid)
             } finally {
                 isLoadingMine = false
             }
@@ -158,10 +154,8 @@ class GenViewModel(
     private fun Int.clampToGridSide(): Int = coerceIn(MIN_NONOGRAM_SIDE, MAX_NONOGRAM_SIDE)
 
     fun setNonogram(h: Int, w: Int, name: String? = null) {
-        height = h.clampToGridSide()
-        width = w.clampToGridSide()
         nonogram = Nonogram(0, Difficulty.EASY, emptyList(), name = name)
-        tiles = List(height) { List(width) { Tile() } }
+        tiles = List(h.clampToGridSide()) { List(w.clampToGridSide()) { Tile() } }
         history.reset(tiles)
         updateNonogram()
         isDirty = false
@@ -191,16 +185,12 @@ class GenViewModel(
                 Tile().apply { if (previous != null) state = previous.state }
             }
         }
-        height = rows
-        width = cols
         history.reset(tiles)
         updateNonogram()
     }
 
     fun loadForEdit(existing: Nonogram) {
         nonogram = existing
-        height = existing.solution.size
-        width = existing.solution.firstOrNull()?.size ?: 0
         tiles = existing.solution.map { row ->
             row.map { cell -> Tile().apply { if (cell == 1) state = TileState.FILLED } }
         }
@@ -213,15 +203,7 @@ class GenViewModel(
     }
 
     fun updateNonogram() {
-        val solution = tiles.map { row ->
-            row.map { tile ->
-                when (tile.state) {
-                    TileState.FILLED -> 1
-                    else -> 0
-                }
-            }
-        }
-        nonogram = nonogram.copy(solution = solution)
+        nonogram = nonogram.copy(solution = tiles.toInts())
         isDirty = true
         validationState = ValidationState.UNCHECKED
         saveError = null
@@ -230,10 +212,10 @@ class GenViewModel(
 
     fun onSave(onDone: () -> Unit = {}) {
         if (isSaving) return
-        val authorUid = authRepository.currentUserUid.value ?: return
+        val authorUid = authRepository.currentUserUid.value
+            .orMissing { saveError = "Sign in again to continue." } ?: return
         val nonogramId = nonogram.id
-        val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
-        nonogram = nonogram.copy(solution = board)
+        nonogram = nonogram.copy(solution = tiles.toInts())
         // Any content change revokes approval, so the reviewer's verdict always matches the puzzle.
         val contentChanged = isDirty
         isSaving = true
@@ -274,22 +256,19 @@ class GenViewModel(
         if (isSaving || isRequestingPublish) return
         val nonogramId = nonogram.id
         if (nonogramId == 0L) return
-        val firebaseUid = authRepository.currentFirebaseUid ?: return
+        val firebaseUid = authRepository.currentFirebaseUid
+            .orMissing { publishError = "Sign in to publish." } ?: return
         isRequestingPublish = true
         publishError = null
         launchGuarded {
             try {
-                val saved = withContext(Dispatchers.Default) {
-                    syncService.syncPublicNonograms(authRepository, firebaseUid)
-                    sdk.getNonogramById(nonogramId)
-                }
+                syncService.syncPublicNonograms(authRepository, firebaseUid)
+                val saved = sdk.getNonogramById(nonogramId)
                 if (saved == null) {
                     publishError = "Could not send this publish request."
                     return@launchGuarded
                 }
-                val conflict = withContext(Dispatchers.Default) {
-                    sdk.hasPublishConflict(saved.solution, nonogramId, firebaseUid)
-                }
+                val conflict = sdk.hasPublishConflict(saved.solution, nonogramId, firebaseUid)
                 if (conflict) {
                     publishError = "This puzzle already exists."
                     return@launchGuarded
@@ -317,7 +296,7 @@ class GenViewModel(
         nonogramId: Long,
         authorUid: String,
         contentChanged: Boolean,
-    ): Nonogram? = withContext(Dispatchers.Default) {
+    ): Nonogram? {
         val savedId = if (nonogramId != 0L) {
             sdk.updateNonogram(nonogramId, nonogram)
         } else {
@@ -331,11 +310,11 @@ class GenViewModel(
         }
         // Re-fetch so the UI and pushed copy carry the freshly stamped updatedAt.
         val persisted = sdk.getNonogramById(savedId)
-        val firebaseUid = authRepository.currentFirebaseUid
+        val firebaseUid = authRepository.currentFirebaseUid.orMissing()
         if (persisted != null && firebaseUid != null) {
             syncService.pushNonogram(firebaseUid, persisted, contentChanged)
         }
-        persisted
+        return persisted
     }
 
     /**
@@ -347,11 +326,11 @@ class GenViewModel(
         nonogramId: Long,
         firebaseUid: String,
         saved: Nonogram,
-    ): Nonogram? = withContext(Dispatchers.Default) {
+    ): Nonogram? {
         sdk.updateNonogram(nonogramId, saved.copy(publishStatus = PublishStatus.PENDING))
-        val pending = sdk.getNonogramById(nonogramId) ?: return@withContext null
-        if (syncService.requestPublish(firebaseUid, pending)) return@withContext pending
+        val pending = sdk.getNonogramById(nonogramId) ?: return null
+        if (syncService.requestPublish(firebaseUid, pending)) return pending
         sdk.updateNonogram(nonogramId, pending.copy(publishStatus = PublishStatus.NONE))
-        sdk.getNonogramById(nonogramId)
+        return sdk.getNonogramById(nonogramId)
     }
 }

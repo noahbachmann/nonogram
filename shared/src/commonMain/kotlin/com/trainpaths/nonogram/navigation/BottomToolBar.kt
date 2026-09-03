@@ -48,9 +48,8 @@ fun BottomToolBar(
     onDrawModeToggle: () -> Unit,
     resetZoom: (() -> Unit)? = null,
     history: BoardHistory? = null,
-    showSave: Boolean = false,
-    saveEnabled: Boolean = false,
-    onSave: () -> Unit = {},
+    onSave: (() -> Unit)? = null,
+    saveEnabled: Boolean = true,
 ) {
     Box(
         modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.secondary),
@@ -124,7 +123,7 @@ fun BottomToolBar(
 
             Spacer(Modifier.weight(1f))
 
-            if (showSave) {
+            if (onSave != null) {
                 BottomBarItem(
                     label = "Save",
                     imageVector = save,

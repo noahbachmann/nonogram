@@ -84,7 +84,7 @@ fun MenuScreen(
                             modifier = Modifier.tutorialAnchor(
                                 TutorialStep.MENU_PLAY.takeIf { index == 0 }
                             ),
-                            progress = viewModel.getProgress(nonogram.id, nonogram.height, nonogram.width),
+                            progress = viewModel.getProgress(nonogram.id),
                             beatCount = viewModel.getBeatCount(nonogram.id),
                             isOwn = nonogram.isOwned(viewModel.authorUid),
                             alwaysShowName = showAllNames,

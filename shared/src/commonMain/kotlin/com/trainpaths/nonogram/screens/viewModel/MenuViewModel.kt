@@ -12,8 +12,6 @@ import com.trainpaths.nonogram.filter.FilterEntry
 import com.trainpaths.nonogram.filter.FilterSortState
 import com.trainpaths.nonogram.filter.NonogramFilters
 import com.trainpaths.nonogram.settings.SettingsRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class MenuViewModel(
     private val sdk: AppSDK,
@@ -51,14 +49,10 @@ class MenuViewModel(
             try {
                 val uid = authRepository.currentUserUid.value
                 authorUid = uid
-                nonograms = withContext(Dispatchers.Default) {
-                    sdk.seedIfEmpty()
-                    sdk.getVisibleNonograms(uid.orEmpty())
-                }
+                sdk.seedIfEmpty()
+                nonograms = sdk.getVisibleNonograms(uid.orEmpty())
                 if (uid != null) {
-                    val allProgress = withContext(Dispatchers.Default) {
-                        sdk.getProgressForUser(uid)
-                    }
+                    val allProgress = sdk.getProgressForUser(uid)
                     progressMap = allProgress
                         .filter { it.board != null }
                         .associate { it.nonogram.id to it.board!! }
@@ -81,7 +75,8 @@ class MenuViewModel(
     }
 
     /** Your puzzles first, but only unsorted: an explicit sort orders own and other puzzles together. */
-    private fun List<Nonogram>.ownFirst(): List<Nonogram> = sortedByDescending { it.isOwned(authorUid) }
+    private fun List<Nonogram>.ownFirst(): List<Nonogram> =
+        sortedByDescending { it.isOwned(authorUid) }
 
     fun updateSingleProgress(nonogramId: Long, board: List<List<Int>>) {
         progressMap = progressMap + (nonogramId to board)
@@ -91,9 +86,7 @@ class MenuViewModel(
         progressMap = progressMap - nonogramId
     }
 
-    fun getProgress(id: Long, height: Int, width: Int): List<List<Int>> {
-        return progressMap[id] ?: List(height) { List(width) { 0 } }
-    }
+    fun getProgress(id: Long): List<List<Int>> = progressMap[id].orEmpty()
 
     fun getBeatCount(id: Long): Long = beatMap[id] ?: 0
 

@@ -59,7 +59,11 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
 
 - **`AppSDK`** — facade over the database. All data access goes through here; every method is `suspend` (SQLDelight
   `generateAsync` is on so the web worker driver can be async). Builds its `Database` lazily behind a mutex on first use
-  so the constructor itself stays synchronous for DI.
+  so the constructor itself stays synchronous for DI. It also **owns the dispatcher**: every method hops once through
+  `dbDispatcher` (`cache/DatabaseFactory.kt`; `Dispatchers.IO` on Android where the driver blocks,
+  `EmptyCoroutineContext` on web where `Dispatchers.Default` *is* the main thread), driver creation included. Callers
+  just `suspend` — do not wrap an `AppSDK` call in a `withContext` of your own. The one thing in a ViewModel that still
+  earns its own `Dispatchers.Default` is `GenViewModel`'s Solver run.
 - **`cache/Database`** — internal class wrapping SQLDelight-generated `NonogramDb`. Maps DB rows to domain types. Not
   accessed directly outside `AppSDK`.
 - **`cache/DatabaseFactory`** — `suspend fun createDriver(): SqlDriver`, implemented per platform:
@@ -139,7 +143,7 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   `syncAll` pulls progress + public + owned nonograms in one pass (separate public/owned cursors read via
   `AuthRepository`) and then refreshes the admin flag and publish ban (`isAdmin` / `publishBanned` StateFlows),
   `retryOwnNonograms` re-runs just the owned stream for the generator's retry button. The **public** stream runs first,
-  before the `currentFirebaseUid ?: return@launch` gate, so guests pull public puzzles too — approved puzzles are
+  before the `currentFirebaseUid` gate, so guests pull public puzzles too — approved puzzles are
   readable unauthenticated (see `firestore.rules`), while progress, owned puzzles and the admin/moderation reads all
   need a session and stay behind the gate. `AdminViewModel` drives the admin review queue (one pending request at a
   time, buffered a batch at a time). All depend on the suspend `AppSDK`/`SyncService` from inside
@@ -148,6 +152,12 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   process on Android. It rethrows `CancellationException` and routes everything else to `onError`; UI flags that gate a
   screen (`isLoading`, `_signInComplete`) are released in a `finally` inside the block, so a failed read can never
   leave a spinner up forever.
+
+  **A missing uid** goes through `String?.orMissing` (`screens/viewModel/SignedIn.kt`) rather than a bare
+  `?: return`, so a guard is never silent. Its default handler just logs, which is what a background pass wants;
+  the four sites where the user is waiting on the result override it to set the screen's error state instead
+  (`saveError`, `publishError`, `AdminViewModel.error`). The two uid sources are not the same condition — a null
+  `currentUserUid` is an anomaly (auth not initialized), a null `currentFirebaseUid` is just a guest.
 
   **When sync runs.** `syncAll` fires once from `AppContent`'s app-start `LaunchedEffect`, and after that only when the
   user pull-to-refreshes the menu (`MenuScreen`'s

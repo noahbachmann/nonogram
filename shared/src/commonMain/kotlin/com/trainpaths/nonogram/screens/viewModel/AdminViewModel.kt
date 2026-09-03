@@ -4,16 +4,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 private const val REVIEW_BATCH_SIZE = 20
+private const val SIGN_IN_REQUIRED_TO_REVIEW = "Sign in again to review requests."
 
 class AdminViewModel(
     private val authRepository: AuthRepository,
@@ -40,9 +37,11 @@ class AdminViewModel(
     fun refresh() {
         isLoading = true
         error = null
-        viewModelScope.launch {
+        launchGuarded {
             try {
-                queue = withContext(Dispatchers.Default) { fetch() }
+                val firebaseUid = authRepository.currentFirebaseUid
+                    .orMissing { error = SIGN_IN_REQUIRED_TO_REVIEW } ?: return@launchGuarded
+                queue = syncService.pullPendingReviews(firebaseUid, REVIEW_BATCH_SIZE)
             } catch (failure: CancellationException) {
                 throw failure
             } catch (failure: Throwable) {
@@ -62,20 +61,15 @@ class AdminViewModel(
         val nonogram = current ?: return
         isDeciding = true
         error = null
-        viewModelScope.launch {
+        launchGuarded {
             try {
                 val firebaseUid = authRepository.currentFirebaseUid
-                if (firebaseUid == null) {
-                    error = "Sign in again to review requests."
-                    return@launch
-                }
-                
-                val decided = withContext(Dispatchers.Default) {
-                    syncService.decideReview(firebaseUid, nonogram, approve)
-                }
+                    .orMissing { error = SIGN_IN_REQUIRED_TO_REVIEW } ?: return@launchGuarded
+
+                val decided = syncService.decideReview(firebaseUid, nonogram, approve)
                 if (!decided) {
                     error = "The decision could not be saved."
-                    return@launch
+                    return@launchGuarded
                 }
                 queue = queue.drop(1)
                 if (queue.isEmpty()) refresh()
@@ -87,10 +81,5 @@ class AdminViewModel(
                 isDeciding = false
             }
         }
-    }
-
-    private suspend fun fetch(): List<Nonogram> {
-        val firebaseUid = authRepository.currentFirebaseUid ?: return emptyList()
-        return syncService.pullPendingReviews(firebaseUid, REVIEW_BATCH_SIZE)
     }
 }

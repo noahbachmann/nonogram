@@ -5,6 +5,7 @@ package com.trainpaths.nonogram.sync
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
+import com.trainpaths.nonogram.classes.toSolutionJson
 import com.trainpaths.nonogram.firebase.FirebaseWeb
 import com.trainpaths.nonogram.firebase.NonogramDocSnapshot
 import com.trainpaths.nonogram.firebase.NonogramQuerySnapshot
@@ -106,7 +107,7 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
                 reference,
                 FirebaseWeb.makeNonogramData(
                     difficulty = nonogram.difficulty.toString(),
-                    solutionJson = encodeSolution(nonogram.solution),
+                    solutionJson = nonogram.solution.toSolutionJson(),
                     name = nonogram.name,
                     authorUid = firebaseUid,
                     updatedAt = nonogram.updatedAt,

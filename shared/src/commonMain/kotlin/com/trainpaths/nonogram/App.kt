@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,7 +60,7 @@ fun App(
     genViewModelFactory: @Composable () -> GenViewModel,
     settingsViewModel: SettingsViewModel,
     tutorialRepository: TutorialRepository,
-    gameViewModelFactory: @Composable (Long) -> GameViewModel,
+    gameViewModelFactory: @Composable () -> GameViewModel,
     adminViewModelFactory: @Composable () -> AdminViewModel,
 ) {
     val theme by settingsViewModel.theme.collectAsState()
@@ -89,7 +90,7 @@ private fun AppContent(
     genViewModel: GenViewModel,
     settingsViewModel: SettingsViewModel,
     tutorialRepository: TutorialRepository,
-    gameViewModelFactory: @Composable (Long) -> GameViewModel,
+    gameViewModelFactory: @Composable () -> GameViewModel,
     adminViewModelFactory: @Composable () -> AdminViewModel,
 ) {
     val startDestination = if (authViewModel.hasCompletedOnboarding) MenuRoute else LoginRoute
@@ -100,7 +101,7 @@ private fun AppContent(
 
     val navController = rememberNavController()
     var onResetBoard by remember { mutableStateOf<(() -> Unit)?>(null) }
-    
+
     TutorialHost(
         tutorialRepository = tutorialRepository,
         paused = navController.currentBackStackEntryAsState().value?.destination is DialogNavigator.Destination,
@@ -229,8 +230,11 @@ private fun AppContent(
                 }
                 composable<GameRoute> { entry ->
                     val route: GameRoute = entry.toRoute()
-                    val viewModel = gameViewModelFactory(route.nonogramId)
-                    onResetBoard = { viewModel.resetBoard() }
+                    val viewModel = gameViewModelFactory()
+                    DisposableEffect(viewModel) {
+                        onResetBoard = viewModel::resetBoard
+                        onDispose { onResetBoard = null }
+                    }
                     LaunchedEffect(route.nonogramId) {
                         viewModel.loadNonogram(route.nonogramId)
                     }

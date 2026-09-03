@@ -44,3 +44,6 @@ class Tile {
         state = mode.apply(state)
     }
 }
+
+fun List<List<Tile>>.toInts(): List<List<Int>> =
+    map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
