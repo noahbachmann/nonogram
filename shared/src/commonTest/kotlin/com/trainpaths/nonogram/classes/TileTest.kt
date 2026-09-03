@@ -72,4 +72,26 @@ class TileTest {
         tile.click()
         assertEquals(TileState.NONE, tile.state)
     }
+
+    @Test
+    fun toInts_countsOnlyFilled() {
+        val tiles = listOf(
+            listOf(TileState.FILLED, TileState.CROSSED, TileState.NONE),
+            listOf(TileState.NONE, TileState.FILLED, TileState.CROSSED),
+        ).map { row -> row.map { Tile().apply { state = it } } }
+
+        assertEquals(
+            listOf(listOf(1, 0, 0), listOf(0, 1, 0)),
+            tiles.toInts(),
+        )
+    }
+
+    @Test
+    fun toInts_preservesShapeOfAnEmptyOrRaggedBoard() {
+        assertEquals(emptyList<List<Int>>(), emptyList<List<Tile>>().toInts())
+        assertEquals(
+            listOf(listOf(0, 0), listOf(0)),
+            listOf(List(2) { Tile() }, List(1) { Tile() }).toInts(),
+        )
+    }
 }

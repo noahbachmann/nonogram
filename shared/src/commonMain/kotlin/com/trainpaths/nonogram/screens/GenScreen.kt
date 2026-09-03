@@ -84,7 +84,6 @@ fun GenScreen(
             drawMode = drawMode,
             onDrawModeToggle = { drawMode = drawMode.next() },
             history = genViewModel.history,
-            showSave = true,
             resetZoom = { boardState.reset() },
             saveEnabled = genViewModel.canSave,
             onSave = { requestSave { genViewModel.onSave() } },

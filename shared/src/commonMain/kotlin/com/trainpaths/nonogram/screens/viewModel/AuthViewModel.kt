@@ -71,7 +71,7 @@ class AuthViewModel(
             try {
                 syncService.syncPublicNonograms(authRepository, authRepository.currentFirebaseUid)
 
-                val firebaseUid = authRepository.currentFirebaseUid ?: return@launchGuarded
+                val firebaseUid = authRepository.currentFirebaseUid.orMissing() ?: return@launchGuarded
                 syncService.pullAndMergeAllProgress(firebaseUid)
                 syncOwnedNonograms(firebaseUid)
                 refreshPublishState(firebaseUid)
@@ -84,7 +84,7 @@ class AuthViewModel(
     fun retryOwnNonograms(onComplete: () -> Unit = {}) {
         launchGuarded(Dispatchers.Default) {
             try {
-                val firebaseUid = authRepository.currentFirebaseUid ?: return@launchGuarded
+                val firebaseUid = authRepository.currentFirebaseUid.orMissing() ?: return@launchGuarded
                 syncOwnedNonograms(firebaseUid)
             } finally {
                 withContext(Dispatchers.Main) { onComplete() }
@@ -130,8 +130,13 @@ class AuthViewModel(
     fun signOut(onComplete: () -> Unit = {}) {
         launchGuarded(Dispatchers.Default) {
             try {
-                runCatching { firebaseSignOut() }
-                    .onFailure { println("SignOut: firebase sign-out failed: ${it.message}") }
+                try {
+                    firebaseSignOut()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Throwable) {
+                    println("SignOut: firebase sign-out failed: ${error.message}")
+                }
                 authRepository.signOut()
                 _signInComplete.value = false
                 _generatorSyncState.value = GeneratorSyncState.IDLE

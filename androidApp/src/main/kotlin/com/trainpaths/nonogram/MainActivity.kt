@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
                 genViewModelFactory = { koinViewModel<GenViewModel>() },
                 settingsViewModel = koinViewModel<SettingsViewModel>(),
                 tutorialRepository = koinInject<TutorialRepository>(),
-                gameViewModelFactory = { _ -> koinViewModel<GameViewModel>() },
+                gameViewModelFactory = { koinViewModel<GameViewModel>() },
                 adminViewModelFactory = { koinViewModel<AdminViewModel>() },
             )
         }

@@ -58,14 +58,17 @@ fun NonogramCard(
     nonogram: Nonogram,
     modifier: Modifier = Modifier,
     progress: List<List<Int>> = emptyList(),
-    beatCount: Long = -1,
+    beatCount: Long? = null,
     isOwn: Boolean = false,
     alwaysShowName: Boolean = true,
     onClick: () -> Unit
 ) {
-    val nameVisible = alwaysShowName || beatCount > 0 || isOwn
+    val isBeaten = (beatCount ?: 0L) > 0L
+    val showsSolution =
+        (beatCount == null || isBeaten) && progress.all { row -> row.all { it == 0 } }
+    val nameVisible = alwaysShowName || isBeaten || isOwn
     val accent = when {
-        beatCount > 0 -> MaterialTheme.colorScheme.tertiary
+        isBeaten -> MaterialTheme.colorScheme.tertiary
         isOwn -> MaterialTheme.colorScheme.onSecondary
         else -> MaterialTheme.colorScheme.onPrimary
     }
@@ -125,7 +128,7 @@ fun NonogramCard(
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
                 Row(Modifier.fillMaxSize()) {
-                    DrawNonogram(if (beatCount != 0L && progress.all { row -> row.all { it == 0 } }) nonogram.solution else progress)
+                    DrawNonogram(if (showsSolution) nonogram.solution else progress)
                 }
             }
         }

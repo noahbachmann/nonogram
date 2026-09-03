@@ -2,13 +2,9 @@ package com.trainpaths.nonogram.sync
 
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.isWellFormedGrid
+import com.trainpaths.nonogram.classes.toSolutionOrNull
 import com.trainpaths.nonogram.util.toDifficulty
 import com.trainpaths.nonogram.util.toPublishStatus
-import kotlinx.serialization.json.Json
-
-private val json = Json
-
-internal fun encodeSolution(solution: List<List<Int>>): String = json.encodeToString(solution)
 
 /**
  * A `nonograms/{id}` document exactly as it comes off the wire. Each platform's adapter does
@@ -32,11 +28,9 @@ internal fun NonogramDocument.toNonogram(onSkip: (String) -> Unit): Nonogram? {
     val nonogramId = id.toLongOrNull() ?: return skip(onSkip, "id is not a number")
     val encoded = solution ?: return skip(onSkip, "no ${Fields.SOLUTION}")
     val timestamp = updatedAt ?: return skip(onSkip, "no ${Fields.UPDATED_AT}")
-    val grid = try {
-        json.decodeFromString<List<List<Int>>>(encoded)
-    } catch (e: Exception) {
-        return skip(onSkip, "unreadable solution: ${e.message}")
-    }
+    var decodeError: String? = null
+    val grid = encoded.toSolutionOrNull { decodeError = it }
+        ?: return skip(onSkip, "unreadable solution: $decodeError")
     if (!grid.isWellFormedGrid()) return skip(onSkip, "grid out of range or ragged")
     return Nonogram(
         id = nonogramId,

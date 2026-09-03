@@ -7,17 +7,17 @@ import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.isRectangularGrid
 import com.trainpaths.nonogram.classes.normalizeNonogramName
+import com.trainpaths.nonogram.classes.toSolutionJson
+import com.trainpaths.nonogram.classes.toSolutionOrNull
 import com.trainpaths.nonogram.util.toDifficulty
 import com.trainpaths.nonogram.util.toLong
 import com.trainpaths.nonogram.util.toPublishStatus
-import kotlinx.serialization.json.Json
 import kotlin.random.Random
 import kotlin.time.Clock
 
 internal class Database(driver: SqlDriver) {
     private val database = NonogramDb(driver)
     private val dbQuery = database.databaseQueries
-    private val json = Json
 
     // ---------- Nonograms ----------
 
@@ -49,7 +49,7 @@ internal class Database(driver: SqlDriver) {
         authorUid: String,
     ): Boolean =
         dbQuery.selectPublishConflictId(
-            solution = json.encodeToString(solution),
+            solution = solution.toSolutionJson(),
             excludeId = excludeId,
             approvedStatus = PublishStatus.APPROVED.toLong(),
             authorUid = authorUid,
@@ -78,7 +78,7 @@ internal class Database(driver: SqlDriver) {
         dbQuery.upsertNonogram(
             nonogramId,
             difficulty,
-            json.encodeToString(solution),
+            solution.toSolutionJson(),
             authorUid,
             publishStatus.toLong(),
             Clock.System.now().toEpochMilliseconds(),
@@ -93,7 +93,7 @@ internal class Database(driver: SqlDriver) {
     ): Long {
         dbQuery.updateNonogram(
             nonogram.difficulty.toString(),
-            json.encodeToString(nonogram.solution),
+            nonogram.solution.toSolutionJson(),
             nonogram.authorUid,
             nonogram.publishStatus.toLong(),
             Clock.System.now().toEpochMilliseconds(),
@@ -111,7 +111,7 @@ internal class Database(driver: SqlDriver) {
         dbQuery.upsertNonogram(
             nonogram.id,
             nonogram.difficulty.toString(),
-            json.encodeToString(nonogram.solution),
+            nonogram.solution.toSolutionJson(),
             nonogram.authorUid,
             nonogram.publishStatus.toLong(),
             nonogram.updatedAt,
@@ -147,7 +147,7 @@ internal class Database(driver: SqlDriver) {
         dbQuery.upsertProgress(
             userUid = userUid,
             nonogramId = nonogramId,
-            boardState = board?.let { json.encodeToString(it) },
+            boardState = board?.toSolutionJson(),
             updatedAt = Clock.System.now().toEpochMilliseconds()
         )
     }
@@ -193,10 +193,7 @@ internal class Database(driver: SqlDriver) {
      * `colClues` indexes across the first row's width.
      */
     private fun decodeSolution(solution: String): List<List<Int>> =
-        runCatching { json.decodeFromString<List<List<Int>>>(solution) }
-            .getOrNull()
-            ?.takeIf { it.isRectangularGrid() }
-            ?: emptyList()
+        solution.toSolutionOrNull()?.takeIf { it.isRectangularGrid() } ?: emptyList()
 
     private fun mapNonogram(
         id: Long,
@@ -236,7 +233,7 @@ internal class Database(driver: SqlDriver) {
             updatedAt = updatedAt,
             publishStatus = status.toPublishStatus(),
         ),
-        board = boardState?.let { runCatching { json.decodeFromString<List<List<Int>>>(it) }.getOrNull() },
+        board = boardState?.toSolutionOrNull(),
         beat = beat
     )
 }

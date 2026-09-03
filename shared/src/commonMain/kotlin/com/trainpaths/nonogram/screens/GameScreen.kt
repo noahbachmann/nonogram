@@ -17,9 +17,10 @@ import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.BottomToolBar
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
+import com.trainpaths.nonogram.classes.Board
 import com.trainpaths.nonogram.classes.BoardTransformState
 import com.trainpaths.nonogram.classes.DrawMode
-import com.trainpaths.nonogram.classes.Game
+import com.trainpaths.nonogram.classes.toInts
 import com.trainpaths.nonogram.tutorial.TutorialStep
 import com.trainpaths.nonogram.tutorial.tutorialAnchor
 
@@ -34,6 +35,7 @@ fun GameScreen(
     var drawMode by remember { mutableStateOf(DrawMode.TOGGLE) }
 
     val nonogram = viewModel.nonogram
+    val tiles = viewModel.tiles
     val boardState = remember(nonogram?.width, nonogram?.height) { BoardTransformState() }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -54,13 +56,14 @@ fun GameScreen(
             if (nonogram == null) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
             } else {
-                Game(
+                Board(
                     nonogram = nonogram,
-                    tiles = viewModel.tiles,
+                    tiles = tiles,
                     isLocked = isLocked,
+                    modifier = Modifier.fillMaxSize(),
                     drawMode = drawMode,
                     state = boardState,
-                    onWin = onWin,
+                    onTilesChanged = { if (tiles.toInts() == nonogram.solution) onWin() },
                     onEdits = viewModel.history::record,
                 )
             }

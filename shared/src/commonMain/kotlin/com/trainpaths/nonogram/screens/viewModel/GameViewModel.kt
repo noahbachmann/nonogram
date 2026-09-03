@@ -11,10 +11,10 @@ import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileEdit
 import com.trainpaths.nonogram.classes.TileState
+import com.trainpaths.nonogram.classes.toInts
+import com.trainpaths.nonogram.classes.toSolutionOrNull
 import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 
 class GameViewModel(
     private val sdk: AppSDK,
@@ -33,24 +33,20 @@ class GameViewModel(
         get() = nonogram?.id
 
     val currentBoardAsInts: List<List<Int>>
-        get() = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
+        get() = tiles.toInts()
 
     fun loadNonogram(id: Long) {
         nonogram = null
         tiles = emptyList()
         launchGuarded(onError = { println("Game: loading nonogram $id failed: ${it.message}") }) {
-            val loaded: Nonogram? = withContext(Dispatchers.Default) {
-                sdk.getNonogramById(id)
-            }
+            val loaded: Nonogram? = sdk.getNonogramById(id)
             if (loaded != null) {
                 val userUid = authRepository.currentUserUid.value
                 val existingProgress: List<List<Int>>? = if (userUid != null) {
-                    withContext(Dispatchers.Default) {
-                        sdk.getSingleProgress(userUid, id)
-                            ?.boardState
-                            ?.let { runCatching { Json.decodeFromString<List<List<Int>>>(it) }.getOrNull() }
-                            ?.takeIf { it.size == loaded.height && it.all { row -> row.size == loaded.width } }
-                    }
+                    sdk.getSingleProgress(userUid, id)
+                        ?.boardState
+                        ?.toSolutionOrNull()
+                        ?.takeIf { it.size == loaded.height && it.all { row -> row.size == loaded.width } }
                 } else null
 
                 nonogram = loaded
@@ -70,9 +66,9 @@ class GameViewModel(
     }
 
     fun saveCurrentProgress(win: Boolean = false) {
-        val userUid = authRepository.currentUserUid.value ?: return
+        val userUid = authRepository.currentUserUid.value.orMissing() ?: return
         val nonogramId = nonogram?.id ?: return
-        val board = tiles.map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
+        val board = currentBoardAsInts
         launchGuarded(
             Dispatchers.Default,
             onError = { println("Game: saving progress for $nonogramId failed: ${it.message}") },
@@ -83,7 +79,7 @@ class GameViewModel(
                 sdk.saveProgress(userUid, nonogramId, board)
             }
 
-            val firebaseUid = authRepository.currentFirebaseUid ?: return@launchGuarded
+            val firebaseUid = authRepository.currentFirebaseUid.orMissing() ?: return@launchGuarded
             val progress = sdk.getSingleProgress(userUid, nonogramId) ?: return@launchGuarded
             syncService.pushProgress(firebaseUid, nonogramId, progress.boardState, progress.updatedAt)
         }

@@ -6,10 +6,12 @@ import com.trainpaths.nonogram.cache.NonogramProgress
 import com.trainpaths.nonogram.cache.ProgressWithTimestamp
 import com.trainpaths.nonogram.cache.SEED_PUZZLES
 import com.trainpaths.nonogram.cache.User
+import com.trainpaths.nonogram.cache.dbDispatcher
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 class AppSDK(private val databaseFactory: DatabaseFactory) {
     private val mutex = Mutex()
@@ -19,6 +21,9 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
         database ?: mutex.withLock {
             database ?: Database(databaseFactory.createDriver()).also { database = it }
         }
+
+    private suspend fun <T> onDb(block: suspend Database.() -> T): T =
+        withContext(dbDispatcher) { db().block() }
 
     suspend fun seedIfEmpty() {
         if (getAllNonograms().isNotEmpty()) return
@@ -33,30 +38,30 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
     }
 
     suspend fun getAllNonograms(): List<Nonogram> =
-        db().getAllNonograms()
+        onDb { getAllNonograms() }
 
     suspend fun getNonogramsByDifficulty(difficulty: String): List<Nonogram> =
-        db().getNonogramsByDifficulty(difficulty)
+        onDb { getNonogramsByDifficulty(difficulty) }
 
     suspend fun getNonogramsByAuthor(authorUid: String): List<Nonogram> =
-        db().getNonogramsByAuthor(authorUid)
+        onDb { getNonogramsByAuthor(authorUid) }
 
     /** Approved puzzles plus everything [authorUid] owns — what the menu may list. */
     suspend fun getVisibleNonograms(authorUid: String): List<Nonogram> =
-        db().getVisibleNonograms(authorUid)
+        onDb { getVisibleNonograms(authorUid) }
 
     suspend fun getNonogramById(id: Long): Nonogram? =
-        db().getNonogramById(id)
+        onDb { getNonogramById(id) }
 
     /** Whether another puzzle already claims this grid for publication. */
     suspend fun hasPublishConflict(
         solution: List<List<Int>>,
         excludeId: Long,
         authorUid: String,
-    ): Boolean = db().hasPublishConflict(solution, excludeId, authorUid)
+    ): Boolean = onDb { hasPublishConflict(solution, excludeId, authorUid) }
 
     suspend fun getRandomNonogram(difficulty: String? = null): Nonogram? =
-        db().getRandomNonogram(difficulty)
+        onDb { getRandomNonogram(difficulty) }
 
     suspend fun addNonogram(
         difficulty: String,
@@ -66,49 +71,54 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
         name: String? = null,
         publishStatus: PublishStatus = PublishStatus.NONE,
     ): Long =
-        db().addNonogram(difficulty, solution, authorUid, id, name, publishStatus)
+        onDb { addNonogram(difficulty, solution, authorUid, id, name, publishStatus) }
 
     suspend fun updateNonogram(
         id: Long,
         nonogram: Nonogram,
     ): Long =
-        db().updateNonogram(id, nonogram)
+        onDb { updateNonogram(id, nonogram) }
 
     suspend fun upsertNonogramFromRemote(nonogram: Nonogram) =
-        db().upsertNonogram(nonogram)
+        onDb { upsertNonogram(nonogram) }
 
     /** Moves every puzzle authored under one author key to another, as sign-in does. */
     suspend fun reassignAuthor(fromUid: String, toUid: String) =
-        db().reassignAuthor(fromUid, toUid)
+        onDb { reassignAuthor(fromUid, toUid) }
 
     suspend fun upsertUser(uid: String, name: String) =
-        db().upsertUser(uid, name)
+        onDb { upsertUser(uid, name) }
 
     suspend fun getUser(uid: String): User? =
-        db().getUser(uid)
+        onDb { getUser(uid) }
 
     suspend fun deleteUser(uid: String) =
-        db().deleteUser(uid)
+        onDb { deleteUser(uid) }
 
     /** Moves every progress row from one user key to another, newest row winning. */
     suspend fun mergeProgressInto(fromUid: String, toUid: String) =
-        db().mergeProgressInto(fromUid, toUid)
+        onDb { mergeProgressInto(fromUid, toUid) }
 
     suspend fun saveProgress(userUid: String, nonogramId: Long, board: List<List<Int>>?) =
-        db().saveProgress(userUid, nonogramId, board)
+        onDb { saveProgress(userUid, nonogramId, board) }
 
     suspend fun saveProgressAfterWin(userUid: String, nonogramId: Long) =
-        db().saveProgressAfterWin(userUid, nonogramId)
+        onDb { saveProgressAfterWin(userUid, nonogramId) }
 
     suspend fun getProgressForUser(userUid: String): List<NonogramProgress> =
-        db().getProgressForUser(userUid)
+        onDb { getProgressForUser(userUid) }
 
     suspend fun getProgressForUserWithTimestamp(userUid: String): List<ProgressWithTimestamp> =
-        db().getProgressForUserWithTimestamp(userUid)
+        onDb { getProgressForUserWithTimestamp(userUid) }
 
     suspend fun getSingleProgress(userUid: String, nonogramId: Long): ProgressWithTimestamp? =
-        db().getSingleProgress(userUid, nonogramId)
+        onDb { getSingleProgress(userUid, nonogramId) }
 
-    suspend fun saveProgressWithTimestamp(userUid: String, nonogramId: Long, boardState: String?, updatedAt: Long) =
-        db().saveProgressWithTimestamp(userUid, nonogramId, boardState, updatedAt)
+    suspend fun saveProgressWithTimestamp(
+        userUid: String,
+        nonogramId: Long,
+        boardState: String?,
+        updatedAt: Long
+    ) =
+        onDb { saveProgressWithTimestamp(userUid, nonogramId, boardState, updatedAt) }
 }

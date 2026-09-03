@@ -2,6 +2,7 @@ package com.trainpaths.nonogram.sync
 
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.PublishStatus
+import com.trainpaths.nonogram.classes.toSolutionJson
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -13,7 +14,7 @@ class NonogramDocumentTest {
     private val skipped = mutableListOf<String>()
 
     private val grid = List(5) { row -> List(5) { col -> if (row == col) 1 else 0 } }
-    private val gridJson = encodeSolution(grid)
+    private val gridJson = grid.toSolutionJson()
 
     private fun document(
         id: String = "42",
@@ -83,9 +84,9 @@ class NonogramDocumentTest {
     fun skipsGridsThatAreNotWellFormed() {
         val ragged = listOf(listOf(1, 0, 0, 0, 0)) + List(4) { listOf(0, 0, 0, 0) }
 
-        assertNull(document(solution = encodeSolution(ragged)).parse())
-        assertNull(document(solution = encodeSolution(List(4) { List(4) { 0 } })).parse())
-        assertNull(document(solution = encodeSolution(List(51) { List(51) { 0 } })).parse())
+        assertNull(document(solution = ragged.toSolutionJson()).parse())
+        assertNull(document(solution = List(4) { List(4) { 0 } }.toSolutionJson()).parse())
+        assertNull(document(solution = List(51) { List(51) { 0 } }.toSolutionJson()).parse())
 
         assertEquals(3, skipped.size)
     }

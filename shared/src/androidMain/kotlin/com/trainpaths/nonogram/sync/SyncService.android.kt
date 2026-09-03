@@ -3,6 +3,7 @@ package com.trainpaths.nonogram.sync
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
+import com.trainpaths.nonogram.classes.toSolutionJson
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.firestore
@@ -70,7 +71,7 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
         logged("push nonogram ${nonogram.id} failed", Unit) {
             val fields = buildMap<String, Any?> {
                 put(Fields.DIFFICULTY, nonogram.difficulty.toString())
-                put(Fields.SOLUTION, encodeSolution(nonogram.solution))
+                put(Fields.SOLUTION, nonogram.solution.toSolutionJson())
                 put(Fields.NAME, nonogram.name)
                 put(Fields.AUTHOR_UID, firebaseUid)
                 put(Fields.UPDATED_AT, nonogram.updatedAt)

@@ -86,9 +86,6 @@ private fun computeLineClues(line: List<Int>): List<Int> {
         }
     }
     if (run > 0) clues.add(run)
-
-    if (clues.isEmpty())
-        return emptyList()
     return clues
 }
 

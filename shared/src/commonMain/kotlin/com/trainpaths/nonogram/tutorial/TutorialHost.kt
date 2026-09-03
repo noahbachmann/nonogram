@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -74,8 +75,11 @@ fun TutorialHost(
 
     controller.syncPersistedSeen(seenSteps)
     controller.paused = paused
-    controller.onSeen = tutorialRepository::markSeen
-    controller.onSkipAll = tutorialRepository::markAllSeen
+
+    SideEffect {
+        controller.onSeen = tutorialRepository::markSeen
+        controller.onSkipAll = tutorialRepository::markAllSeen
+    }
 
     CompositionLocalProvider(LocalTutorialController provides controller) {
         Box(
@@ -151,7 +155,14 @@ private fun TutorialOverlay(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.outline),
             ) {
-                Column(modifier = Modifier.padding(start = 16.dp, top = 14.dp, end = 12.dp, bottom = 8.dp)) {
+                Column(
+                    modifier = Modifier.padding(
+                        start = 16.dp,
+                        top = 14.dp,
+                        end = 12.dp,
+                        bottom = 8.dp
+                    )
+                ) {
                     Text(
                         text = step.title,
                         style = MaterialTheme.typography.titleMedium,
