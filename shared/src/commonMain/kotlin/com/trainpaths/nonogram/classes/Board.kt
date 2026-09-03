@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.BOARD_SEPARATOR_COLOR
 import com.trainpaths.nonogram.icons.refresh
 import kotlin.math.max
 import kotlin.math.pow
@@ -89,7 +90,6 @@ fun Board(
     val gridW = CELL * nonogram.width
     val gridH = CELL * nonogram.height
     val background = MaterialTheme.colorScheme.background
-    val separatorColor = Color.DarkGray
 
     // safeContentPadding sits outside the clip, so the safe area is the viewport and the clip rect.
     BoxWithConstraints(modifier.safeContentPadding()) {
@@ -116,71 +116,15 @@ fun Board(
             modifier = Modifier
                 .fillMaxSize()
                 .clipToBounds()
-                // Order matters. Compose dispatches Main innermost-outward, and the last modifier
-                // is the innermost, so the transform detector sees each event first. Once it passes
-                // touch slop it consumes, and the tap detector cancels — that *is* the tap-vs-drag
-                // threshold.
-                .pointerInput(state) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Main)
-                            if (event.type != PointerEventType.Scroll) continue
-                            val change = event.changes.firstOrNull() ?: continue
-                            // Browsers report line/page deltas; clamp so one flick isn't a 100x zoom.
-                            val notches = change.scrollDelta.y.coerceIn(-3f, 3f)
-                            if (notches == 0f) continue
-                            state.zoomBy(SCROLL_ZOOM_PER_NOTCH.pow(-notches), change.position)
-                            change.consume()
-                        }
-                    }
-                }
-                .pointerInput(state) {
-                    detectBoardTaps(
-                        onTap = { position ->
-                            if (!currentIsEditable.value) return@detectBoardTaps
-                            val hit = state.hitTest(position) ?: return@detectBoardTaps
-                            val tile = currentTiles.value
-                                .getOrNull(hit.row)?.getOrNull(hit.col) ?: return@detectBoardTaps
-                            val before = tile.state
-                            tile.click(currentDrawMode.value)
-                            if (tile.state != before) {
-                                currentOnEdits.value(
-                                    listOf(TileEdit(hit.row, hit.col, before = before, after = tile.state)),
-                                )
-                            }
-                            currentOnTilesChanged.value()
-                        },
-                    )
-                }
-                // Final pass, after every other node has had its say: once no pointer is down the
-                // gesture is over, so the next drag re-picks whether it moves the board or a gutter.
-                .pointerInput(state) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Final)
-                            if (event.changes.none { it.pressed }) state.endGesture()
-                        }
-                    }
-                }
-                .pointerInput(state) {
-                    detectTransformGestures(panZoomLock = false) { centroid, pan, zoom, _ ->
-                        state.applyTransformGesture(centroid, pan, zoom)
-                    }
-                }
-                // Last means innermost on the Main pass. In locked mode this detector gets first
-                // refusal and consumes a committed one-pointer stroke before transform sees it.
-                .pointerInput(state, isLocked) {
-                    if (isLocked) {
-                        detectBoardDrawGestures(
-                            state = state,
-                            tiles = { currentTiles.value },
-                            isEditable = { currentIsEditable.value },
-                            drawMode = { currentDrawMode.value },
-                            onTilesChanged = { currentOnTilesChanged.value() },
-                            onEdits = { currentOnEdits.value(it) },
-                        )
-                    }
-                },
+                .boardGestures(
+                    state = state,
+                    isLocked = isLocked,
+                    tiles = { currentTiles.value },
+                    isEditable = { currentIsEditable.value },
+                    drawMode = { currentDrawMode.value },
+                    onTilesChanged = { currentOnTilesChanged.value() },
+                    onEdits = { currentOnEdits.value(it) },
+                ),
             contentAlignment = Alignment.TopStart,
         ) {
             // Each region is measured at its unscaled size (requiredSize beats the viewport
@@ -208,103 +152,23 @@ fun Board(
                     },
             )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .drawWithContent {
-                        val left = state.rowGutterTx
-                        clipRect(left = left, right = left + state.rowClueWindowW) {
-                            this@drawWithContent.drawContent()
-                        }
-                    },
-            ) {
-                Column(
-                    modifier = Modifier
-                        .oversized(gutterW, gridH)
-                        .graphicsLayer {
-                            transformOrigin = TransformOrigin(0f, 0f)
-                            scaleX = state.scale
-                            scaleY = state.scale
-                            translationX = state.rowGutterTx + state.clueScrollX
-                            translationY = state.gridTy
-                        },
-                ) {
-                    for (row in 0 until nonogram.height) {
-                        // One tile tall, so clue lines stay flush with the rows they label.
-                        RowClueLine(clues = rowClues[row], slots = maxRowClues, gutterW = gutterW)
-                    }
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .drawWithContent {
-                        val top = state.colHeaderTy
-                        clipRect(top = top, bottom = top + state.colClueWindowH) {
-                            this@drawWithContent.drawContent()
-                        }
-                    },
-            ) {
-                Row(
-                    modifier = Modifier
-                        .oversized(gridW, gutterH)
-                        .graphicsLayer {
-                            transformOrigin = TransformOrigin(0f, 0f)
-                            scaleX = state.scale
-                            scaleY = state.scale
-                            translationX = state.gridTx
-                            translationY = state.colHeaderTy + state.clueScrollY
-                        },
-                ) {
-                    for (column in 0 until nonogram.width) {
-                        // One tile wide, so clue lines stay flush with the columns they label.
-                        ColClueLine(clues = colClues[column], slots = maxColClues, gutterH = gutterH)
-                    }
-                }
-            }
-
-            // Drawn last, over everything. Two jobs:
-            //  1. Mask the corner. With both axes panned the row gutter slides under the column
-            //     header and would paint row clues into the corner, and vice versa.
-            //  2. Draw the left and top edges of the playing field's frame. These are pinned to the
-            //     gutters, so they live in viewport px — but their *width* still scales with the
-            //     board (state.separatorScreenPx), floored so they never thin away. The transform
-            //     reserves this width at the end of each gutter window (see rowClueWindowW), so the
-            //     frame abuts the clues instead of painting over them. drawTiles draws the matching
-            //     right and bottom edges; drawing all four here would double these two.
-            // Reads the transform in the draw phase, and contributes no pointer node.
-            Spacer(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .drawBehind {
-                        val s = state.scale
-                        val frame = state.separatorScreenPx
-                        val gridLeft = state.rowGutterTx + state.rowGutterWindowW
-                        val gridTop = state.colHeaderTy + state.colHeaderWindowH
-                        if (gridLeft > 0f && gridTop > 0f) {
-                            drawRect(background, Offset.Zero, Size(gridLeft, gridTop))
-                        }
-
-                        val gridRight = (state.gridTx + state.gridWpx * s).coerceAtMost(size.width)
-                        val gridBottom = (state.gridTy + state.gridHpx * s).coerceAtMost(size.height)
-
-                        if (gridBottom > gridTop) {
-                            drawRect(
-                                color = separatorColor,
-                                topLeft = Offset(gridLeft - frame, gridTop - frame),
-                                size = Size(frame, gridBottom - gridTop + frame),
-                            )
-                        }
-                        if (gridRight > gridLeft) {
-                            drawRect(
-                                color = separatorColor,
-                                topLeft = Offset(gridLeft - frame, gridTop - frame),
-                                size = Size(gridRight - gridLeft + frame, frame),
-                            )
-                        }
-                    },
+            RowClueGutter(
+                state = state,
+                clues = rowClues,
+                slots = maxRowClues,
+                gutterW = gutterW,
+                gridH = gridH,
             )
+
+            ColClueGutter(
+                state = state,
+                clues = colClues,
+                slots = maxColClues,
+                gridW = gridW,
+                gutterH = gutterH,
+            )
+
+            BoardFrame(state = state, background = background)
         }
 
         // A sibling of the gesture Box, not a child: Compose commits to the first hit path among
@@ -321,6 +185,85 @@ fun Board(
 }
 
 /**
+ * Every pointer node the board owns The callbacks are read through lambdas rather than captured: a
+ * `pointerInput` block outlives the composition that created it, the values have to be fetched
+ * when the gesture runs, not when the modifier was built.
+ */
+private fun Modifier.boardGestures(
+    state: BoardTransformState,
+    isLocked: Boolean,
+    tiles: () -> List<List<Tile>>,
+    isEditable: () -> Boolean,
+    drawMode: () -> DrawMode,
+    onTilesChanged: () -> Unit,
+    onEdits: (List<TileEdit>) -> Unit,
+): Modifier = this
+    // Order matters. Compose dispatches Main innermost-outward, and the last modifier
+    // is the innermost, the transform detector sees each event first. Once it passes
+    // touch slop it consumes, and the tap detector cancels
+    .pointerInput(state) {
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Main)
+                if (event.type != PointerEventType.Scroll) continue
+                val change = event.changes.firstOrNull() ?: continue
+                // Browsers report line/page deltas; clamp so one flick isn't a 100x zoom.
+                val notches = change.scrollDelta.y.coerceIn(-3f, 3f)
+                if (notches == 0f) continue
+                state.zoomBy(SCROLL_ZOOM_PER_NOTCH.pow(-notches), change.position)
+                change.consume()
+            }
+        }
+    }
+    .pointerInput(state) {
+        detectBoardTaps(
+            onTap = { position ->
+                if (!isEditable()) return@detectBoardTaps
+                val hit = state.hitTest(position) ?: return@detectBoardTaps
+                val tile = tiles()
+                    .getOrNull(hit.row)?.getOrNull(hit.col) ?: return@detectBoardTaps
+                val before = tile.state
+                tile.click(drawMode())
+                if (tile.state != before) {
+                    onEdits(
+                        listOf(TileEdit(hit.row, hit.col, before = before, after = tile.state)),
+                    )
+                }
+                onTilesChanged()
+            },
+        )
+    }
+    // Final pass, after every other node has had its say: once no pointer is down the
+    // gesture is over, so the next drag re-picks whether it moves the board or a gutter.
+    .pointerInput(state) {
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Final)
+                if (event.changes.none { it.pressed }) state.endGesture()
+            }
+        }
+    }
+    .pointerInput(state) {
+        detectTransformGestures(panZoomLock = false) { centroid, pan, zoom, _ ->
+            state.applyTransformGesture(centroid, pan, zoom)
+        }
+    }
+    // Last means innermost on the Main pass. In locked mode this detector gets first
+    // refusal and consumes a committed one-pointer stroke before transform sees it.
+    .pointerInput(state, isLocked) {
+        if (isLocked) {
+            detectBoardDrawGestures(
+                state = state,
+                tiles = tiles,
+                isEditable = isEditable,
+                drawMode = drawMode,
+                onTilesChanged = onTilesChanged,
+                onEdits = onEdits,
+            )
+        }
+    }
+
+/**
  * Lays the content out at its true [width] x [height] while reporting a size that fits the incoming
  * constraints.
  *
@@ -331,6 +274,85 @@ fun Board(
  */
 private fun Modifier.oversized(width: Dp, height: Dp): Modifier =
     this.wrapContentSize(Alignment.TopStart, unbounded = true).requiredSize(width, height)
+
+/**
+ * The row-clue gutter: a viewport-pinned window (the clip) onto a column of clue lines that scales
+ * and pans with the grid rows they label.
+ */
+@Composable
+private fun RowClueGutter(
+    state: BoardTransformState,
+    clues: List<List<Int>>,
+    slots: Int,
+    gutterW: Dp,
+    gridH: Dp,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .drawWithContent {
+                val left = state.rowGutterTx
+                clipRect(left = left, right = left + state.rowClueWindowW) {
+                    this@drawWithContent.drawContent()
+                }
+            },
+    ) {
+        Column(
+            modifier = Modifier
+                .oversized(gutterW, gridH)
+                .graphicsLayer {
+                    transformOrigin = TransformOrigin(0f, 0f)
+                    scaleX = state.scale
+                    scaleY = state.scale
+                    translationX = state.rowGutterTx + state.clueScrollX
+                    translationY = state.gridTy
+                },
+        ) {
+            // One tile tall, so clue lines stay flush with the rows they label.
+            for (line in clues) {
+                RowClueLine(clues = line, slots = slots, gutterW = gutterW)
+            }
+        }
+    }
+}
+
+/** [RowClueGutter] on the other axis. */
+@Composable
+private fun ColClueGutter(
+    state: BoardTransformState,
+    clues: List<List<Int>>,
+    slots: Int,
+    gridW: Dp,
+    gutterH: Dp,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .drawWithContent {
+                val top = state.colHeaderTy
+                clipRect(top = top, bottom = top + state.colClueWindowH) {
+                    this@drawWithContent.drawContent()
+                }
+            },
+    ) {
+        Row(
+            modifier = Modifier
+                .oversized(gridW, gutterH)
+                .graphicsLayer {
+                    transformOrigin = TransformOrigin(0f, 0f)
+                    scaleX = state.scale
+                    scaleY = state.scale
+                    translationX = state.gridTx
+                    translationY = state.colHeaderTy + state.clueScrollY
+                },
+        ) {
+            // One tile wide, so clue lines stay flush with the columns they label.
+            for (line in clues) {
+                ColClueLine(clues = line, slots = slots, gutterH = gutterH)
+            }
+        }
+    }
+}
 
 /**
  * One clue line — a single white block spanning the whole gutter, with the numbers spaced across it.
@@ -381,6 +403,51 @@ private fun ClueText(value: Int) {
         color = Color.Black,
         textAlign = TextAlign.Center,
         maxLines = 1,
+    )
+}
+
+/**
+ * Drawn last, over everything. Two jobs:
+ *  1. Mask the corner. With both axes panned the row gutter slides under the column header and
+ *     would paint row clues into the corner, and vice versa.
+ *  2. Draw the left and top edges of the playing field's frame. These are pinned to the gutters, so
+ *     they live in viewport px — but their *width* still scales with the board
+ *     ([BoardTransformState.separatorScreenPx]), floored so they never thin away.
+ *
+ * Reads the transform in the draw phase, and contributes no pointer node.
+ */
+@Composable
+private fun BoardFrame(state: BoardTransformState, background: Color) {
+    Spacer(
+        modifier = Modifier
+            .fillMaxSize()
+            .drawBehind {
+                val s = state.scale
+                val frame = state.separatorScreenPx
+                val gridLeft = state.rowGutterTx + state.rowGutterWindowW
+                val gridTop = state.colHeaderTy + state.colHeaderWindowH
+                if (gridLeft > 0f && gridTop > 0f) {
+                    drawRect(background, Offset.Zero, Size(gridLeft, gridTop))
+                }
+
+                val gridRight = (state.gridTx + state.gridWpx * s).coerceAtMost(size.width)
+                val gridBottom = (state.gridTy + state.gridHpx * s).coerceAtMost(size.height)
+
+                if (gridBottom > gridTop) {
+                    drawRect(
+                        color = BOARD_SEPARATOR_COLOR,
+                        topLeft = Offset(gridLeft - frame, gridTop - frame),
+                        size = Size(frame, gridBottom - gridTop + frame),
+                    )
+                }
+                if (gridRight > gridLeft) {
+                    drawRect(
+                        color = BOARD_SEPARATOR_COLOR,
+                        topLeft = Offset(gridLeft - frame, gridTop - frame),
+                        size = Size(gridRight - gridLeft + frame, frame),
+                    )
+                }
+            },
     )
 }
 
@@ -453,8 +520,8 @@ private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx
     }
 
     // The playing field's right and bottom edges
-    drawLine(Color.DarkGray, Offset(width, 0f), Offset(width, height), strokeWidth = frame)
-    drawLine(Color.DarkGray, Offset(0f, height), Offset(width, height), strokeWidth = frame)
+    drawLine(BOARD_SEPARATOR_COLOR, Offset(width, 0f), Offset(width, height), strokeWidth = frame)
+    drawLine(BOARD_SEPARATOR_COLOR, Offset(0f, height), Offset(width, height), strokeWidth = frame)
 }
 
 /**

@@ -250,28 +250,7 @@ class GenViewModel(
 
                 if (contentChanged) nonogram = nonogram.copy(publishStatus = PublishStatus.NONE)
 
-                val savedNonogram = withContext(Dispatchers.Default) {
-                    val savedId = if (nonogramId != 0L) {
-                        sdk.updateNonogram(nonogramId, nonogram)
-                    } else {
-                        sdk.addNonogram(
-                            difficulty = nonogram.difficulty.toString(),
-                            solution = nonogram.solution,
-                            authorUid = authorUid,
-                            name = nonogram.name,
-                            publishStatus = nonogram.publishStatus,
-                        )
-                    }
-                    // Re-fetch so the UI and pushed copy carry the freshly stamped updatedAt.
-                    val persistedNonogram = sdk.getNonogramById(savedId)
-                    if (persistedNonogram != null) {
-                        val firebaseUid = authRepository.currentFirebaseUid
-                        if (firebaseUid != null) {
-                            syncService.pushNonogram(firebaseUid, persistedNonogram, contentChanged)
-                        }
-                    }
-                    persistedNonogram
-                }
+                val savedNonogram = persistAndPush(nonogramId, authorUid, contentChanged)
                 if (savedNonogram != null) nonogram = savedNonogram
                 isDirty = false
                 onDone()
@@ -315,19 +294,7 @@ class GenViewModel(
                     publishError = "This puzzle already exists."
                     return@launchGuarded
                 }
-                val result = withContext(Dispatchers.Default) {
-                    sdk.updateNonogram(nonogramId, saved.copy(publishStatus = PublishStatus.PENDING))
-                    val persisted = sdk.getNonogramById(nonogramId)
-                    val accepted = persisted != null &&
-                            syncService.requestPublish(firebaseUid, persisted)
-                    if (!accepted && persisted != null) {
-                        sdk.updateNonogram(
-                            nonogramId,
-                            persisted.copy(publishStatus = PublishStatus.NONE),
-                        )
-                    }
-                    sdk.getNonogramById(nonogramId)
-                }
+                val result = fileRequest(nonogramId, firebaseUid, saved)
                 if (result != null) nonogram = result
                 if (nonogram.publishStatus != PublishStatus.PENDING) {
                     publishError = "Could not send this publish request."
@@ -340,5 +307,51 @@ class GenViewModel(
                 isRequestingPublish = false
             }
         }
+    }
+
+    /**
+     * Writes the current puzzle — inserting when [nonogramId] is 0 — and pushes the row back out.
+     * Returns it re-read, so the caller's copy carries the `updatedAt` to the database stamped.
+     */
+    private suspend fun persistAndPush(
+        nonogramId: Long,
+        authorUid: String,
+        contentChanged: Boolean,
+    ): Nonogram? = withContext(Dispatchers.Default) {
+        val savedId = if (nonogramId != 0L) {
+            sdk.updateNonogram(nonogramId, nonogram)
+        } else {
+            sdk.addNonogram(
+                difficulty = nonogram.difficulty.toString(),
+                solution = nonogram.solution,
+                authorUid = authorUid,
+                name = nonogram.name,
+                publishStatus = nonogram.publishStatus,
+            )
+        }
+        // Re-fetch so the UI and pushed copy carry the freshly stamped updatedAt.
+        val persisted = sdk.getNonogramById(savedId)
+        val firebaseUid = authRepository.currentFirebaseUid
+        if (persisted != null && firebaseUid != null) {
+            syncService.pushNonogram(firebaseUid, persisted, contentChanged)
+        }
+        persisted
+    }
+
+    /**
+     * Moves [saved] to `PENDING` locally before pushing the request, so the button responds without
+     * waiting on the network, and puts it back to `NONE` if Firestore refuses it. Returns the row as
+     * it now stands, or null if it went missing under us.
+     */
+    private suspend fun fileRequest(
+        nonogramId: Long,
+        firebaseUid: String,
+        saved: Nonogram,
+    ): Nonogram? = withContext(Dispatchers.Default) {
+        sdk.updateNonogram(nonogramId, saved.copy(publishStatus = PublishStatus.PENDING))
+        val pending = sdk.getNonogramById(nonogramId) ?: return@withContext null
+        if (syncService.requestPublish(firebaseUid, pending)) return@withContext pending
+        sdk.updateNonogram(nonogramId, pending.copy(publishStatus = PublishStatus.NONE))
+        sdk.getNonogramById(nonogramId)
     }
 }
