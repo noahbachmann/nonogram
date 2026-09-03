@@ -12,17 +12,12 @@ internal external interface ProgressDocData : JsAny {
 }
 
 internal external interface NonogramDocData : JsAny {
-    val difficulty: String
-    val solution: String
+    val difficulty: String?
+    val solution: String?
     val name: String?
-
-    /** Nullable only for docs written before the field existed; every writer sets it. */
     val authorUid: String?
-    val updatedAt: Double
+    val updatedAt: Double?
     val publishStatus: String?
-
-    /** Legacy visibility flag, read only to classify docs written before review existed. */
-    val status: Double?
 }
 
 internal external interface UserGateDocData : JsAny {

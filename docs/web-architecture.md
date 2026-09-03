@@ -58,7 +58,11 @@ without gitlive: `kmpauth-google` (publishes js+wasmJs, commonMain dep) obtains 
 - **`sync/SyncService`** — web binds `sync/FirebaseWebSyncService` (webMain), which mirrors the androidMain
   `FirebaseAndroidSyncService` method-for-method against the same Firestore shape, so Android and web sync interoperate.
   Two collections: progress (`users/{uid}/progress/{nonogramId}`, fields `boardState: String?` +
-  `updatedAt: number`) and the shared `nonograms/{id}` puzzle collection (own + public).
+  `updatedAt: number`) and the shared `nonograms/{id}` puzzle collection (own + public). Neither service owns any
+  *policy*: the paths and field names (`sync/FirestoreSchema.kt`), the progress merge
+  (`sync/RemoteProgress.kt`) and the document → `Nonogram` mapping (`sync/NonogramDocument.kt`) all live in
+  commonMain. A platform supplies the fetch, the document write and its own log tag — nothing else, because
+  everything else drifted the last time it was duplicated.
 - **`screens/GoogleSignInSection`** — the web actual drives kmpauth's `rememberGoogleSignInState` from a
   `GoogleSignInButton`, exchanges the Google token via `FirebaseWeb.signInWithGoogle`, and feeds the resulting Firebase
   `uid`/`displayName` into the unchanged common login flow. Deliberately the *credential-only* state, not
@@ -97,7 +101,10 @@ touching callers.
 - **Session restore gate:** on page reload the app trusts the local SQL `User.firebaseUid`, but the Firebase JS session
   restores asynchronously from indexedDB. Every Firestore op in `FirebaseWebSyncService` first awaits
   `auth.authStateReady()` and verifies the live uid matches — otherwise it logs and no-ops instead of hitting a
-  guaranteed permission-denied.
+  guaranteed permission-denied. That is `gated(uid, label, fallback) { }`, which wraps the check *and* the
+  best-effort catch around every override, so a new method cannot silently skip the gate. The one exception is
+  `pullPublicNonogramsSince`: approved docs are readable signed out, so it calls `awaitSessionSettled()` — the same
+  await, deliberately without the comparison — and keeps its own catch.
 - **Config:** `webApp/.../FirebaseWebConfig.kt` holds committed constants (Firebase web config + the Google web OAuth
   client id). These are public-by-design — they ship in every JS bundle; security comes from Firestore rules and the
   OAuth **Authorized JavaScript origins** allowlist (each dev/prod origin must be listed there; note js and wasmJs dev
