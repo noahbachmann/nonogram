@@ -40,7 +40,7 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
     private suspend fun sessionMatches(firebaseUid: String): Boolean {
         val liveUid = FirebaseWeb.awaitSignedInUid()
         if (liveUid != firebaseUid) {
-            println("FirestoreSync(web): no live session for $firebaseUid (have $liveUid)")
+            println("FirestoreSync(web): no live session for the requested user")
         }
         return liveUid == firebaseUid
     }
