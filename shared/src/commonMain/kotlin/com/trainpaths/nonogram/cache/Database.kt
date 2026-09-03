@@ -3,10 +3,11 @@ package com.trainpaths.nonogram.cache
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.db.SqlDriver
-import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
+import com.trainpaths.nonogram.classes.isRectangularGrid
 import com.trainpaths.nonogram.classes.normalizeNonogramName
+import com.trainpaths.nonogram.util.toDifficulty
 import com.trainpaths.nonogram.util.toLong
 import com.trainpaths.nonogram.util.toPublishStatus
 import kotlinx.serialization.json.Json
@@ -186,6 +187,17 @@ internal class Database(driver: SqlDriver) {
         )
     }
 
+    /**
+     * A row the app cannot make sense of must not take the whole query down with it: one bad
+     * `solution` would otherwise make the menu unopenable. Ragged grids are dropped too, since
+     * `colClues` indexes across the first row's width.
+     */
+    private fun decodeSolution(solution: String): List<List<Int>> =
+        runCatching { json.decodeFromString<List<List<Int>>>(solution) }
+            .getOrNull()
+            ?.takeIf { it.isRectangularGrid() }
+            ?: emptyList()
+
     private fun mapNonogram(
         id: Long,
         difficulty: String,
@@ -196,8 +208,8 @@ internal class Database(driver: SqlDriver) {
         name: String?,
     ): Nonogram = Nonogram(
         id = id,
-        difficulty = Difficulty.valueOf(difficulty),
-        solution = json.decodeFromString(solution),
+        difficulty = difficulty.toDifficulty(),
+        solution = decodeSolution(solution),
         name = name,
         authorUid = authorUid,
         updatedAt = updatedAt,
@@ -217,14 +229,14 @@ internal class Database(driver: SqlDriver) {
     ): NonogramProgress = NonogramProgress(
         nonogram = Nonogram(
             id = id,
-            difficulty = Difficulty.valueOf(difficulty),
-            solution = json.decodeFromString(solution),
+            difficulty = difficulty.toDifficulty(),
+            solution = decodeSolution(solution),
             name = name,
             authorUid = authorUid,
             updatedAt = updatedAt,
             publishStatus = status.toPublishStatus(),
         ),
-        board = boardState?.let { json.decodeFromString(it) },
+        board = boardState?.let { runCatching { json.decodeFromString<List<List<Int>>>(it) }.getOrNull() },
         beat = beat
     )
 }

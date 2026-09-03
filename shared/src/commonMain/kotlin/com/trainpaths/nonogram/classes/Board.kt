@@ -139,7 +139,8 @@ fun Board(
                         onTap = { position ->
                             if (!currentIsEditable.value) return@detectBoardTaps
                             val hit = state.hitTest(position) ?: return@detectBoardTaps
-                            val tile = currentTiles.value[hit.row][hit.col]
+                            val tile = currentTiles.value
+                                .getOrNull(hit.row)?.getOrNull(hit.col) ?: return@detectBoardTaps
                             val before = tile.state
                             tile.click(currentDrawMode.value)
                             if (tile.state != before) {

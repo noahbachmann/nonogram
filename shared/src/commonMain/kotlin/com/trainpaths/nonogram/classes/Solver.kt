@@ -400,7 +400,6 @@ class Solver(val ng: Nonogram) {
         val posClues = if (isRow) cell.posRowClues else cell.posColClues
 
         if (index != null) {
-            posClues.add(index)
             posClues.clear()
             posClues.add(index)
             if (cell.state == 1) return

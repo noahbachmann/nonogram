@@ -4,6 +4,7 @@ import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
+import com.trainpaths.nonogram.classes.isWellFormedGrid
 import com.trainpaths.nonogram.util.toPublishStatus
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.DocumentSnapshot
@@ -217,11 +218,13 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
         for (doc in documents) {
             val nonogramId = doc.id.toLongOrNull() ?: continue
             try {
+                val solution: List<List<Int>> = json.decodeFromString(doc.get<String>("solution"))
+                require(solution.isWellFormedGrid()) { "grid out of range or ragged" }
                 add(
                     Nonogram(
                         id = nonogramId,
                         difficulty = Difficulty.valueOf(doc.get("difficulty")),
-                        solution = json.decodeFromString(doc.get<String>("solution")),
+                        solution = solution,
                         name = doc.get<String?>("name"),
                         authorUid = doc.get<String?>("authorUid") ?: "",
                         updatedAt = doc.get("updatedAt"),

@@ -5,7 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.classes.Nonogram
@@ -14,7 +13,6 @@ import com.trainpaths.nonogram.filter.FilterSortState
 import com.trainpaths.nonogram.filter.NonogramFilters
 import com.trainpaths.nonogram.settings.SettingsRepository
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MenuViewModel(
@@ -49,29 +47,32 @@ class MenuViewModel(
 
     fun reload(loadAll: Boolean = false) {
         isLoading = loadAll
-        viewModelScope.launch {
-            val uid = authRepository.currentUserUid.value
-            authorUid = uid
-            nonograms = withContext(Dispatchers.Default) {
-                sdk.seedIfEmpty()
-                sdk.getVisibleNonograms(uid.orEmpty())
-            }
-            if (uid != null) {
-                val allProgress = withContext(Dispatchers.Default) {
-                    sdk.getProgressForUser(uid)
+        launchGuarded(onError = { println("Menu: loading nonograms failed: ${it.message}") }) {
+            try {
+                val uid = authRepository.currentUserUid.value
+                authorUid = uid
+                nonograms = withContext(Dispatchers.Default) {
+                    sdk.seedIfEmpty()
+                    sdk.getVisibleNonograms(uid.orEmpty())
                 }
-                progressMap = allProgress
-                    .filter { it.board != null }
-                    .associate { it.nonogram.id to it.board!! }
-                beatMap = allProgress
-                    .filter { it.beat > 0 }
-                    .associate { it.nonogram.id to it.beat }
-            } else {
-                progressMap = emptyMap()
-                beatMap = emptyMap()
+                if (uid != null) {
+                    val allProgress = withContext(Dispatchers.Default) {
+                        sdk.getProgressForUser(uid)
+                    }
+                    progressMap = allProgress
+                        .filter { it.board != null }
+                        .associate { it.nonogram.id to it.board!! }
+                    beatMap = allProgress
+                        .filter { it.beat > 0 }
+                        .associate { it.nonogram.id to it.beat }
+                } else {
+                    progressMap = emptyMap()
+                    beatMap = emptyMap()
+                }
+            } finally {
+                isLoading = false
+                isRefreshing = false
             }
-            isLoading = false
-            isRefreshing = false
         }
     }
 

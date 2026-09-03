@@ -4,11 +4,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.classes.BoardHistory
 import com.trainpaths.nonogram.classes.Difficulty
+import com.trainpaths.nonogram.classes.MAX_NONOGRAM_SIDE
+import com.trainpaths.nonogram.classes.MIN_NONOGRAM_SIDE
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.Tile
@@ -17,7 +18,6 @@ import com.trainpaths.nonogram.sync.SyncService
 import com.trainpaths.nonogram.sync.syncPublicNonograms
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 internal data class SaveValidationResult(
@@ -137,14 +137,17 @@ class GenViewModel(
 
     fun loadMyNonograms() {
         isLoadingMine = true
-        viewModelScope.launch {
-            val authorUid = authRepository.currentUserUid.value
-            myNonograms = if (authorUid == null) {
-                emptyList()
-            } else {
-                withContext(Dispatchers.Default) { sdk.getNonogramsByAuthor(authorUid) }
+        launchGuarded(onError = { println("Generator: loading own nonograms failed: ${it.message}") }) {
+            try {
+                val authorUid = authRepository.currentUserUid.value
+                myNonograms = if (authorUid == null) {
+                    emptyList()
+                } else {
+                    withContext(Dispatchers.Default) { sdk.getNonogramsByAuthor(authorUid) }
+                }
+            } finally {
+                isLoadingMine = false
             }
-            isLoadingMine = false
         }
     }
 
@@ -152,11 +155,13 @@ class GenViewModel(
         setNonogram(DEFAULT_SIZE, DEFAULT_SIZE)
     }
 
+    private fun Int.clampToGridSide(): Int = coerceIn(MIN_NONOGRAM_SIDE, MAX_NONOGRAM_SIDE)
+
     fun setNonogram(h: Int, w: Int, name: String? = null) {
-        height = h
-        width = w
+        height = h.clampToGridSide()
+        width = w.clampToGridSide()
         nonogram = Nonogram(0, Difficulty.EASY, emptyList(), name = name)
-        tiles = List(h) { List(w) { Tile() } }
+        tiles = List(height) { List(width) { Tile() } }
         history.reset(tiles)
         updateNonogram()
         isDirty = false
@@ -171,20 +176,23 @@ class GenViewModel(
     }
 
     /**
-     * Resizes the current puzzle to [h] x [w] while preserving the existing drawing where the old
-     * and new grids overlap. Keeps [nonogram] (and its id) so an edit still updates the same row.
+     * Resizes the current puzzle to [h] x [w], each clamped to the allowed sides, while preserving
+     * the existing drawing where the old and new grids overlap. Keeps [nonogram] (and its id) so
+     * an edit still updates the same row.
      */
     fun resizeNonogram(h: Int, w: Int) {
-        if (h == height && w == width) return
+        val rows = h.clampToGridSide()
+        val cols = w.clampToGridSide()
+        if (rows == height && cols == width) return
         val old = tiles
-        tiles = List(h) { r ->
-            List(w) { c ->
+        tiles = List(rows) { r ->
+            List(cols) { c ->
                 val previous = old.getOrNull(r)?.getOrNull(c)
                 Tile().apply { if (previous != null) state = previous.state }
             }
         }
-        height = h
-        width = w
+        height = rows
+        width = cols
         history.reset(tiles)
         updateNonogram()
     }
@@ -232,7 +240,7 @@ class GenViewModel(
         validationState = ValidationState.CHECKING
         saveError = null
         validationError = null
-        viewModelScope.launch {
+        launchGuarded {
             try {
                 val validation = withContext(Dispatchers.Default) {
                     validationForSave { nonogram.isValid }
@@ -290,7 +298,7 @@ class GenViewModel(
         val firebaseUid = authRepository.currentFirebaseUid ?: return
         isRequestingPublish = true
         publishError = null
-        viewModelScope.launch {
+        launchGuarded {
             try {
                 val saved = withContext(Dispatchers.Default) {
                     syncService.syncPublicNonograms(authRepository, firebaseUid)
@@ -298,14 +306,14 @@ class GenViewModel(
                 }
                 if (saved == null) {
                     publishError = "Could not send this publish request."
-                    return@launch
+                    return@launchGuarded
                 }
                 val conflict = withContext(Dispatchers.Default) {
                     sdk.hasPublishConflict(saved.solution, nonogramId, firebaseUid)
                 }
                 if (conflict) {
                     publishError = "This puzzle already exists."
-                    return@launch
+                    return@launchGuarded
                 }
                 val result = withContext(Dispatchers.Default) {
                     sdk.updateNonogram(nonogramId, saved.copy(publishStatus = PublishStatus.PENDING))

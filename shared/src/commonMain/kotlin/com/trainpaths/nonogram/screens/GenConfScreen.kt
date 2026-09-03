@@ -40,6 +40,8 @@ import com.trainpaths.nonogram.BUTTON_SHAPE
 import com.trainpaths.nonogram.switchColors
 import com.trainpaths.nonogram.auth.AuthState
 import com.trainpaths.nonogram.classes.MAX_NONOGRAM_NAME_LENGTH
+import com.trainpaths.nonogram.classes.MAX_NONOGRAM_SIDE
+import com.trainpaths.nonogram.classes.MIN_NONOGRAM_SIDE
 import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.normalizeNonogramName
 import com.trainpaths.nonogram.dialogs.PublicEditConfirmDialog
@@ -49,6 +51,12 @@ import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.ValidationState
 import com.trainpaths.nonogram.tutorial.TutorialStep
 import com.trainpaths.nonogram.tutorial.tutorialAnchor
+
+/**
+ * Digits the size fields accept \u2014 as many as [MAX_NONOGRAM_SIDE] needs, so a number too long to
+ * fit an `Int` can't reach `toIntOrNull()` and make the Done button silently do nothing.
+ */
+private const val SIDE_RANGE_HINT = "$MIN_NONOGRAM_SIDE-$MAX_NONOGRAM_SIDE"
 
 @Composable
 fun GenConfScreen(
@@ -76,6 +84,9 @@ fun GenConfScreen(
 
         focusedPlaceholderColor = MaterialTheme.colorScheme.onSecondary,
         unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary,
+
+        focusedSupportingTextColor = MaterialTheme.colorScheme.onSecondary,
+        unfocusedSupportingTextColor = MaterialTheme.colorScheme.onPrimary,
 
         cursorColor = MaterialTheme.colorScheme.onBackground,
         selectionColors = TextSelectionColors(
@@ -124,8 +135,9 @@ fun GenConfScreen(
             ) {
                 OutlinedTextField(
                     value = rows,
-                    onValueChange = { rows = it.filter { c -> c.isDigit() } },
+                    onValueChange = { rows = it.filter { c -> c.isDigit() }.take(2) },
                     label = { Text("Rows") },
+                    supportingText = { Text(SIDE_RANGE_HINT) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     enabled = !genViewModel.isSaving,
@@ -135,8 +147,9 @@ fun GenConfScreen(
 
                 OutlinedTextField(
                     value = cols,
-                    onValueChange = { cols = it.filter { c -> c.isDigit() } },
+                    onValueChange = { cols = it.filter { c -> c.isDigit() }.take(2) },
                     label = { Text("Columns") },
+                    supportingText = { Text(SIDE_RANGE_HINT) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     enabled = !genViewModel.isSaving,
@@ -311,8 +324,12 @@ fun GenConfScreen(
 
             Button(
                 onClick = {
-                    val h = rows.toIntOrNull() ?: return@Button
-                    val w = cols.toIntOrNull() ?: return@Button
+                    val h = (rows.toIntOrNull() ?: return@Button)
+                        .coerceIn(MIN_NONOGRAM_SIDE, MAX_NONOGRAM_SIDE)
+                    val w = (cols.toIntOrNull() ?: return@Button)
+                        .coerceIn(MIN_NONOGRAM_SIDE, MAX_NONOGRAM_SIDE)
+                    rows = h.toString()
+                    cols = w.toString()
                     val normalizedName = normalizeNonogramName(name)
                     if (!editing) {
                         genViewModel.setNonogram(h, w, normalizedName)

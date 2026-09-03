@@ -3,6 +3,7 @@ package com.trainpaths.nonogram.sync
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
 import com.trainpaths.nonogram.classes.Nonogram
+import kotlin.time.Clock
 
 interface SyncService {
     suspend fun pushProgress(firebaseUid: String, nonogramId: Long, boardState: String?, updatedAt: Long)
@@ -50,9 +51,13 @@ internal suspend fun SyncService.mergeRemoteNonograms(
     remotes: List<Nonogram>,
 ): Long {
     var newestReceivedAt = lastSyncedAt
+    val now = Clock.System.now().toEpochMilliseconds()
     for (remote in remotes) {
-        if (remote.updatedAt > newestReceivedAt) newestReceivedAt = remote.updatedAt
+        if (remote.updatedAt in (newestReceivedAt + 1)..now) newestReceivedAt = remote.updatedAt
         val local = sdk.getNonogramById(remote.id)
+        if (local != null && local.authorUid.isNotEmpty() && local.authorUid != remote.authorUid) {
+            continue
+        }
         if (local == null || local.updatedAt < remote.updatedAt) {
             sdk.upsertNonogramFromRemote(remote)
         } else if (
