@@ -1,5 +1,5 @@
 [versions]
-agp = "9.1.1"
+agp = "9.4.0"
 android-compileSdk = "37"
 android-minSdk = "24"
 android-targetSdk = "36"
@@ -11,7 +11,7 @@ material3 = "1.12.0-alpha03"
 coroutinesVersion = "1.11.0"
 dateTimeVersion = "0.8.0"
 koin = "4.2.2"
-kotlinxSerializationJson = "1.9.0"
+kotlinxSerializationJson = "1.11.0"
 navigationCompose = "2.9.2"
 navigationEvent = "1.1.2"
 sqlDelight = "2.3.2"
@@ -19,7 +19,7 @@ kmpauth = "3.0.5"
 google-services-plugin = "4.5.0"
 firebaseBom = "34.18.0"
 multiplatformSettings = "1.3.0"
-gitliveFirebase = "3.0.0-alpha01"
+gitliveFirebase = "3.0.0-alpha02"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
