@@ -93,6 +93,17 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   implements it with `dev.gitlive:firebase-firestore`; web binds `sync/FirebaseWebSyncService` (webMain), built on
   hand-written Kotlin externals to the Firebase JS SDK in `firebase/` (see `docs/web-architecture.md` for the externals
   pattern and the auth-session gate). Same Firestore shape on both platforms, so data interoperates.
+
+  **The platform services are adapters, not logic.** Anything two implementations would otherwise write twice lives in
+  commonMain beside `SyncService`, because every duplicated piece had already drifted once: `FirestoreSchema.kt`
+  (`Paths` / `Fields` — every collection path and field name, mirrored a second time by the web externals' property
+  names and a third by `firestore.rules`), `RemoteProgress.kt` (`mergeRemoteProgress` / `applyRemoteProgress` /
+  `uploadAllProgress`, the mirror of `mergeRemoteNonograms`) and `NonogramDocument.kt` (the wire document plus
+  `toNonogram(onSkip)` — decoding, `isWellFormedGrid`, and the enum fallbacks that let an older writer's document
+  read on a newer client; `encodeSolution` is the write side). A platform contributes a fetch (`fetchProgress`,
+  `parseNonograms` + its snapshot → `NonogramDocument` adapter), the document writes, and its error handling:
+  `gated(uid, label, fallback) { }` on web (session check + catch), `logged(label, fallback) { }` on Android (catch).
+  Put new merge or mapping rules in commonMain and let both platforms call them.
 - **`classes/` board + game** — the interactive grid (clues, tiles, pan/zoom, drag-to-draw) is a self-contained Compose
   engine: `Board`/`BoardTransform` (one Canvas for all tiles + a layer-transform pan/zoom model),
   `Game` (win check), `Tile`/`TileState`. Performance-critical and gesture-heavy — see `docs/board-rendering.md`.

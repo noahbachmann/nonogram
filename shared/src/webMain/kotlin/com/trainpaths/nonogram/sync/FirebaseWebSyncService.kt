@@ -3,11 +3,10 @@
 package com.trainpaths.nonogram.sync
 
 import com.trainpaths.nonogram.AppSDK
-import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
-import com.trainpaths.nonogram.classes.isWellFormedGrid
 import com.trainpaths.nonogram.firebase.FirebaseWeb
+import com.trainpaths.nonogram.firebase.NonogramDocSnapshot
 import com.trainpaths.nonogram.firebase.NonogramQuerySnapshot
 import com.trainpaths.nonogram.firebase.collection
 import com.trainpaths.nonogram.firebase.doc
@@ -22,115 +21,92 @@ import com.trainpaths.nonogram.firebase.query3
 import com.trainpaths.nonogram.firebase.setDoc
 import com.trainpaths.nonogram.firebase.setDocMerged
 import com.trainpaths.nonogram.firebase.where
-import com.trainpaths.nonogram.util.toPublishStatus
 import kotlinx.coroutines.await
-import kotlinx.serialization.json.Json
 import kotlin.js.ExperimentalWasmJsInterop
 import kotlin.js.toJsNumber
 import kotlin.js.toJsString
 import kotlin.time.Clock
 
+private const val LOG_TAG = "FirestoreSync(web)"
+
 class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
-
-    private data class Remote(val nonogramId: Long, val boardState: String?, val updatedAt: Long)
-
-    private val json = Json
 
     // Firestore rejects ops until the JS SDK restores its indexedDB session, so gate on it.
     private suspend fun sessionMatches(firebaseUid: String): Boolean {
         val liveUid = FirebaseWeb.awaitSignedInUid()
         if (liveUid != firebaseUid) {
-            println("FirestoreSync(web): no live session for the requested user")
+            println("$LOG_TAG: no live session for the requested user")
         }
         return liveUid == firebaseUid
     }
 
-    private suspend fun fetchAll(firebaseUid: String): List<Remote> {
+    /**
+     * Waits for the same session restore as [sessionMatches] but does not require a match: the
+     * public pull must also work signed out, where approved docs are readable without a session.
+     */
+    private suspend fun awaitSessionSettled() {
+        FirebaseWeb.awaitSignedInUid()
+    }
+
+    /**
+     * The session gate plus the best-effort contract, in one place: no override can forget either.
+     * Reports [label] and falls back to [fallback] both when there is no live session and when the
+     * call itself fails.
+     */
+    private suspend inline fun <T> gated(firebaseUid: String, label: String, fallback: T, block: () -> T): T = try {
+        if (!sessionMatches(firebaseUid)) fallback else block()
+    } catch (e: Throwable) {
+        println("$LOG_TAG: $label: ${e.message}")
+        fallback
+    }
+
+    private suspend fun fetchProgress(firebaseUid: String): List<RemoteProgress> {
         val snapshot =
-            getProgressDocs(collection(FirebaseWeb.requireFirestore(), "users/$firebaseUid/progress"))
+            getProgressDocs(collection(FirebaseWeb.requireFirestore(), Paths.progress(firebaseUid)))
                 .await()
-        val result = mutableListOf<Remote>()
+        val result = mutableListOf<RemoteProgress>()
         snapshot.forEach { docSnapshot ->
             val nonogramId = docSnapshot.id.toLongOrNull()
             if (nonogramId != null) {
                 val data = docSnapshot.data()
-                result += Remote(nonogramId, data.boardState, data.updatedAt.toLong())
+                result += RemoteProgress(nonogramId, data.boardState, data.updatedAt.toLong())
             }
         }
         return result
     }
 
-    override suspend fun pushProgress(firebaseUid: String, nonogramId: Long, boardState: String?, updatedAt: Long) {
-        try {
-            if (!sessionMatches(firebaseUid)) return
-            val reference = doc(FirebaseWeb.requireFirestore(), "users/$firebaseUid/progress/$nonogramId")
+    override suspend fun pushProgress(firebaseUid: String, nonogramId: Long, boardState: String?, updatedAt: Long) =
+        gated(firebaseUid, "push failed for nonogram $nonogramId", Unit) {
+            val reference = doc(FirebaseWeb.requireFirestore(), Paths.progressDoc(firebaseUid, nonogramId))
             setDoc(reference, FirebaseWeb.makeProgressData(boardState, updatedAt)).await()
-        } catch (e: Throwable) {
-            println("FirestoreSync(web): push failed for nonogram $nonogramId: ${e.message}")
+            Unit
         }
-    }
 
-    override suspend fun hasRemoteProgress(firebaseUid: String): Boolean {
-        return try {
-            if (!sessionMatches(firebaseUid)) return false
-            fetchAll(firebaseUid).isNotEmpty()
-        } catch (e: Throwable) {
-            println("FirestoreSync(web): check remote failed: ${e.message}")
-            false
+    override suspend fun hasRemoteProgress(firebaseUid: String): Boolean =
+        gated(firebaseUid, "check remote failed", false) { fetchProgress(firebaseUid).isNotEmpty() }
+
+    override suspend fun uploadAllLocalProgress(firebaseUid: String) =
+        gated(firebaseUid, "upload all failed", Unit) { uploadAllProgress(sdk, firebaseUid) }
+
+    override suspend fun pullAllProgress(firebaseUid: String) =
+        gated(firebaseUid, "pull all failed", Unit) {
+            applyRemoteProgress(sdk, firebaseUid, fetchProgress(firebaseUid))
         }
-    }
 
-    override suspend fun uploadAllLocalProgress(firebaseUid: String) {
-        try {
-            if (!sessionMatches(firebaseUid)) return
-            val allProgress = sdk.getProgressForUserWithTimestamp(firebaseUid)
-            for ((nonogramId, boardState, updatedAt) in allProgress) {
-                pushProgress(firebaseUid, nonogramId, boardState, updatedAt)
-            }
-        } catch (e: Throwable) {
-            println("FirestoreSync(web): upload all failed: ${e.message}")
+    override suspend fun pullAndMergeAllProgress(firebaseUid: String) =
+        gated(firebaseUid, "pull and merge failed", Unit) {
+            mergeRemoteProgress(sdk, firebaseUid, fetchProgress(firebaseUid))
         }
-    }
 
-    override suspend fun pullAllProgress(firebaseUid: String) {
-        try {
-            if (!sessionMatches(firebaseUid)) return
-            for ((nonogramId, boardState, updatedAt) in fetchAll(firebaseUid)) {
-                sdk.saveProgressWithTimestamp(firebaseUid, nonogramId, boardState, updatedAt)
-            }
-        } catch (e: Throwable) {
-            println("FirestoreSync(web): pull all failed: ${e.message}")
-        }
-    }
-
-    override suspend fun pullAndMergeAllProgress(firebaseUid: String) {
-        try {
-            if (!sessionMatches(firebaseUid)) return
-            for ((nonogramId, boardState, updatedAt) in fetchAll(firebaseUid)) {
-                val local = sdk.getSingleProgress(firebaseUid, nonogramId)
-
-                if (local == null || local.updatedAt < updatedAt) {
-                    sdk.saveProgressWithTimestamp(firebaseUid, nonogramId, boardState, updatedAt)
-                } else if (local.updatedAt > updatedAt) {
-                    pushProgress(firebaseUid, nonogramId, local.boardState, local.updatedAt)
-                }
-            }
-        } catch (e: Throwable) {
-            println("FirestoreSync(web): pull and merge failed: ${e.message}")
-        }
-    }
-
-    override suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, resetPublishStatus: Boolean) {
-        try {
-            if (!sessionMatches(firebaseUid)) return
-            val reference = doc(FirebaseWeb.requireFirestore(), "nonograms/${nonogram.id}")
+    override suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, resetPublishStatus: Boolean) =
+        gated(firebaseUid, "push nonogram ${nonogram.id} failed", Unit) {
+            val reference = doc(FirebaseWeb.requireFirestore(), Paths.nonogram(nonogram.id))
             // Merge, so an ordinary save never clobbers a pending or approved publish status.
             setDocMerged(
                 reference,
                 FirebaseWeb.makeNonogramData(
                     difficulty = nonogram.difficulty.toString(),
-                    // Solution stays a JSON string: Firestore rejects nested arrays.
-                    solutionJson = json.encodeToString(nonogram.solution),
+                    solutionJson = encodeSolution(nonogram.solution),
                     name = nonogram.name,
                     authorUid = firebaseUid,
                     updatedAt = nonogram.updatedAt,
@@ -138,91 +114,60 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
                 ),
                 FirebaseWeb.mergeOptions(),
             ).await()
-        } catch (e: Throwable) {
-            println("FirestoreSync(web): push nonogram ${nonogram.id} failed: ${e.message}")
+            Unit
         }
-    }
 
-    override suspend fun uploadAllLocalNonograms(firebaseUid: String) {
-        try {
-            if (!sessionMatches(firebaseUid)) return
+    override suspend fun uploadAllLocalNonograms(firebaseUid: String) =
+        gated(firebaseUid, "upload all nonograms failed", Unit) {
             for (nonogram in sdk.getNonogramsByAuthor(firebaseUid)) {
                 pushNonogram(firebaseUid, nonogram)
             }
-        } catch (e: Throwable) {
-            println("FirestoreSync(web): upload all nonograms failed: ${e.message}")
         }
-    }
 
     override suspend fun pullPublicNonogramsSince(firebaseUid: String?, since: Long): Long? {
-        if (firebaseUid != null) FirebaseWeb.awaitSignedInUid()
-
-        val nonograms = collection(FirebaseWeb.requireFirestore(), "nonograms")
-        val updatedAfterValue = since.toDouble().toJsNumber()
+        awaitSessionSettled()
         return try {
             val snapshot = getNonogramDocs(
                 query(
-                    nonograms,
-                    where("publishStatus", "==", PublishStatus.APPROVED.name.toJsString()),
-                    where("updatedAt", ">", updatedAfterValue),
+                    collection(FirebaseWeb.requireFirestore(), Paths.NONOGRAMS),
+                    where(Fields.PUBLISH_STATUS, "==", PublishStatus.APPROVED.name.toJsString()),
+                    where(Fields.UPDATED_AT, ">", since.toDouble().toJsNumber()),
                 )
             ).await()
             mergeRemoteNonograms(sdk, firebaseUid, since, parseNonograms(snapshot))
         } catch (e: Throwable) {
-            println("FirestoreSync(web): pull public nonograms for puzzle list failed: ${e.message}")
+            println("$LOG_TAG: pull public nonograms for puzzle list failed: ${e.message}")
             null
         }
     }
 
-    override suspend fun pullOwnedNonograms(firebaseUid: String, since: Long): Long? {
-        if (!sessionMatches(firebaseUid)) return null
-
-        val nonograms = collection(FirebaseWeb.requireFirestore(), "nonograms")
-        val updatedAfterValue = since.toDouble().toJsNumber()
-        return try {
+    override suspend fun pullOwnedNonograms(firebaseUid: String, since: Long): Long? =
+        gated(firebaseUid, "pull owned nonograms for Generator failed", null) {
             val snapshot = getNonogramDocs(
                 query(
-                    nonograms,
-                    where("authorUid", "==", firebaseUid.toJsString()),
-                    where("updatedAt", ">", updatedAfterValue)
+                    collection(FirebaseWeb.requireFirestore(), Paths.NONOGRAMS),
+                    where(Fields.AUTHOR_UID, "==", firebaseUid.toJsString()),
+                    where(Fields.UPDATED_AT, ">", since.toDouble().toJsNumber()),
                 )
             ).await()
             mergeRemoteNonograms(sdk, firebaseUid, since, parseNonograms(snapshot))
-        } catch (e: Throwable) {
-            println("FirestoreSync(web): pull owned nonograms for Generator failed: ${e.message}")
-            null
         }
-    }
 
-    override suspend fun requestPublish(firebaseUid: String, nonogram: Nonogram): Boolean = try {
-        if (!sessionMatches(firebaseUid)) {
-            false
-        } else {
+    override suspend fun requestPublish(firebaseUid: String, nonogram: Nonogram): Boolean =
+        gated(firebaseUid, "publish request for nonogram ${nonogram.id} rejected", false) {
             setDocMerged(
-                doc(FirebaseWeb.requireFirestore(), "nonograms/${nonogram.id}"),
+                doc(FirebaseWeb.requireFirestore(), Paths.nonogram(nonogram.id)),
                 FirebaseWeb.makePublishStatusData(PublishStatus.PENDING.name, nonogram.updatedAt),
                 FirebaseWeb.mergeOptions(),
             ).await()
             true
         }
-    } catch (e: Throwable) {
-        println("FirestoreSync(web): publish request for nonogram ${nonogram.id} rejected: ${e.message}")
-        false
-    }
 
-    override suspend fun fetchModerationGate(firebaseUid: String): ModerationGate? = try {
-        if (!sessionMatches(firebaseUid)) {
-            null
-        } else {
-            readModerationGate(firebaseUid)
-        }
-    } catch (e: Throwable) {
-        println("FirestoreSync(web): moderation gate read failed: ${e.message}")
-        null
-    }
+    override suspend fun fetchModerationGate(firebaseUid: String): ModerationGate? =
+        gated(firebaseUid, "moderation gate read failed", null) { readModerationGate(firebaseUid) }
 
-    private suspend fun readModerationGate(uid: String): ModerationGate {
-        val snapshot = getUserGateDoc(doc(FirebaseWeb.requireFirestore(), "users/$uid"))
+    private suspend fun readModerationGate(firebaseUid: String): ModerationGate {
+        val snapshot = getUserGateDoc(doc(FirebaseWeb.requireFirestore(), Paths.user(firebaseUid)))
             .await()
         if (!snapshot.exists()) return ModerationGate()
         val data = snapshot.data() ?: return ModerationGate()
@@ -230,92 +175,75 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
         return ModerationGate(streak, data.publishBanned ?: isPublishBanned(streak))
     }
 
-    override suspend fun isAdmin(firebaseUid: String): Boolean = try {
-        if (!sessionMatches(firebaseUid)) {
-            false
-        } else {
-            getExistsDoc(doc(FirebaseWeb.requireFirestore(), "admins/$firebaseUid"))
+    override suspend fun isAdmin(firebaseUid: String): Boolean =
+        gated(firebaseUid, "admin check failed", false) {
+            getExistsDoc(doc(FirebaseWeb.requireFirestore(), Paths.admin(firebaseUid)))
                 .await()
                 .exists()
         }
-    } catch (e: Throwable) {
-        println("FirestoreSync(web): admin check failed: ${e.message}")
-        false
-    }
 
-    override suspend fun pullPendingReviews(firebaseUid: String, limit: Int): List<Nonogram> = try {
-        if (!sessionMatches(firebaseUid)) {
-            emptyList()
-        } else {
+    override suspend fun pullPendingReviews(firebaseUid: String, limit: Int): List<Nonogram> =
+        gated(firebaseUid, "pending review fetch failed", emptyList()) {
             parseNonograms(
                 getNonogramDocs(
                     query3(
-                        collection(FirebaseWeb.requireFirestore(), "nonograms"),
-                        where("publishStatus", "==", PublishStatus.PENDING.name.toJsString()),
-                        orderBy("updatedAt"),
+                        collection(FirebaseWeb.requireFirestore(), Paths.NONOGRAMS),
+                        where(Fields.PUBLISH_STATUS, "==", PublishStatus.PENDING.name.toJsString()),
+                        orderBy(Fields.UPDATED_AT),
                         limitTo(limit),
                     )
                 ).await()
             )
         }
-    } catch (e: Throwable) {
-        println("FirestoreSync(web): pending review fetch failed: ${e.message}")
-        emptyList()
-    }
 
     override suspend fun decideReview(
         firebaseUid: String,
         nonogram: Nonogram,
         approve: Boolean,
-    ): Boolean = try {
-        if (!sessionMatches(firebaseUid)) {
-            false
-        } else {
-            val firestore = FirebaseWeb.requireFirestore()
-            setDocMerged(
-                doc(firestore, "nonograms/${nonogram.id}"),
-                FirebaseWeb.makePublishStatusData(
-                    publishStatus = (if (approve) PublishStatus.APPROVED else PublishStatus.DENIED).name,
-                    updatedAt = Clock.System.now().toEpochMilliseconds(),
-                ),
-                FirebaseWeb.mergeOptions(),
-            ).await()
-            val streak = nextDenialStreak(readModerationGate(nonogram.authorUid).denialStreak, approve)
-            setDocMerged(
-                doc(firestore, "users/${nonogram.authorUid}"),
-                FirebaseWeb.makeUserGateData(streak, isPublishBanned(streak)),
-                FirebaseWeb.mergeOptions(),
-            ).await()
-            true
-        }
-    } catch (e: Throwable) {
-        println("FirestoreSync(web): decision on nonogram ${nonogram.id} failed: ${e.message}")
-        false
+    ): Boolean = gated(firebaseUid, "decision on nonogram ${nonogram.id} failed", false) {
+        val firestore = FirebaseWeb.requireFirestore()
+        setDocMerged(
+            doc(firestore, Paths.nonogram(nonogram.id)),
+            FirebaseWeb.makePublishStatusData(
+                publishStatus = (if (approve) PublishStatus.APPROVED else PublishStatus.DENIED).name,
+                updatedAt = Clock.System.now().toEpochMilliseconds(),
+            ),
+            FirebaseWeb.mergeOptions(),
+        ).await()
+        val streak = nextDenialStreak(readModerationGate(nonogram.authorUid).denialStreak, approve)
+        setDocMerged(
+            doc(firestore, Paths.user(nonogram.authorUid)),
+            FirebaseWeb.makeUserGateData(streak, isPublishBanned(streak)),
+            FirebaseWeb.mergeOptions(),
+        ).await()
+        true
     }
 
     private fun parseNonograms(snapshot: NonogramQuerySnapshot): List<Nonogram> = buildList {
         // The JS forEach callback cannot suspend, so parsing stays synchronous here.
         snapshot.forEach { docSnapshot ->
-            val nonogramId = docSnapshot.id.toLongOrNull()
-            if (nonogramId != null) {
-                try {
-                    val data = docSnapshot.data()
-                    val solution: List<List<Int>> = json.decodeFromString(data.solution)
-                    require(solution.isWellFormedGrid()) { "grid out of range or ragged" }
-                    add(
-                        Nonogram(
-                            id = nonogramId,
-                            difficulty = Difficulty.valueOf(data.difficulty),
-                            solution = solution,
-                            name = data.name,
-                            authorUid = data.authorUid ?: "",
-                            updatedAt = data.updatedAt.toLong(),
-                        )
-                    )
-                } catch (e: Throwable) {
-                    println("FirestoreSync(web): skipping malformed nonogram doc ${docSnapshot.id}: ${e.message}")
-                }
+            val skip = { reason: String ->
+                println("$LOG_TAG: skipping malformed nonogram doc ${docSnapshot.id}: $reason")
+            }
+            try {
+                val nonogram = docSnapshot.toDocument().toNonogram(skip)
+                if (nonogram != null) add(nonogram)
+            } catch (e: Throwable) {
+                skip("unreadable fields: ${e.message}")
             }
         }
+    }
+
+    private fun NonogramDocSnapshot.toDocument(): NonogramDocument {
+        val data = data()
+        return NonogramDocument(
+            id = id,
+            difficulty = data.difficulty,
+            solution = data.solution,
+            name = data.name,
+            authorUid = data.authorUid,
+            updatedAt = data.updatedAt?.toLong(),
+            publishStatus = data.publishStatus,
+        )
     }
 }

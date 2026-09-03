@@ -2,6 +2,7 @@
 
 package com.trainpaths.nonogram.firebase
 
+import com.trainpaths.nonogram.sync.Fields
 import kotlinx.coroutines.await
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -64,8 +65,8 @@ object FirebaseWeb {
     internal fun makeProgressData(boardState: String?, updatedAt: Long): JsAny =
         JSON.parse(
             buildJsonObject {
-                put("boardState", boardState)
-                put("updatedAt", updatedAt)
+                put(Fields.BOARD_STATE, boardState)
+                put(Fields.UPDATED_AT, updatedAt)
             }.toString()
         )!!
 
@@ -79,29 +80,28 @@ object FirebaseWeb {
     ): JsAny =
         JSON.parse(
             buildJsonObject {
-                put("difficulty", difficulty)
-                put("solution", solutionJson)
-                put("name", name)
-                put("authorUid", authorUid)
-                put("updatedAt", updatedAt)
-                // Omitted unless the caller means to reset it: a merge write must not clobber it.
-                if (publishStatus != null) put("publishStatus", publishStatus)
+                put(Fields.DIFFICULTY, difficulty)
+                put(Fields.SOLUTION, solutionJson)
+                put(Fields.NAME, name)
+                put(Fields.AUTHOR_UID, authorUid)
+                put(Fields.UPDATED_AT, updatedAt)
+                if (publishStatus != null) put(Fields.PUBLISH_STATUS, publishStatus)
             }.toString()
         )!!
 
     internal fun makePublishStatusData(publishStatus: String, updatedAt: Long): JsAny =
         JSON.parse(
             buildJsonObject {
-                put("publishStatus", publishStatus)
-                put("updatedAt", updatedAt)
+                put(Fields.PUBLISH_STATUS, publishStatus)
+                put(Fields.UPDATED_AT, updatedAt)
             }.toString()
         )!!
 
     internal fun makeUserGateData(denialStreak: Int, publishBanned: Boolean): JsAny =
         JSON.parse(
             buildJsonObject {
-                put("denialStreak", denialStreak)
-                put("publishBanned", publishBanned)
+                put(Fields.DENIAL_STREAK, denialStreak)
+                put(Fields.PUBLISH_BANNED, publishBanned)
             }.toString()
         )!!
 
