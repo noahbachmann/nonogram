@@ -302,15 +302,17 @@ defined.
   of `kotlin.srcDir` in `webApp/build.gradle.kts`. The two files declare the same object, so callers never see
   the switch — but a new constant has to be added to both. Both are public-by-design client config; the only
   gitignored secrets are `keystore.properties` / `*.jks`. 
-- **App Check** — Play Integrity on Android, reCAPTCHA v3 on web, prod only. Android installs the provider in
+- **App Check** — **Android only.** Play Integrity in `prod`, the debug provider in `dev`, installed in
   `MainApplication.onCreate` *before* `startKoin` (Koin builds `FirebaseAndroidSyncService`, which touches
   Firestore) via `installAppCheck()`, which has one copy **per flavor** (`androidApp/src/{dev,prod}/`), with the
   provider artifacts scoped `devImplementation` / `prodImplementation` to match. Provider therefore tracks the
   Firebase project, not debuggability, which encodes the project's rule — **debug against dev, build for
   prod**. `devDebug` is the variant to develop in; `prodRelease` is what ships; `devRelease` is only the local
   R8 smoke test. `prodDebug` is not used: once prod App Check is enforced it cannot reach Firestore, since
-  Play Integrity cannot attest a sideloaded APK. Web folds it into `FirebaseWeb.initialize`,
-  which skips App Check entirely when `RECAPTCHA_SITE_KEY` is blank — which is how dev runs without it.
+  Play Integrity cannot attest a sideloaded APK. **Web has no App Check** — reCAPTCHA v3 no longer has a free
+  tier, so the provider, its externals and `RECAPTCHA_SITE_KEY` were removed; `FirebaseWeb.initialize` just
+  builds the app and hands back auth + Firestore. Anything web-facing must therefore stay unenforced in the
+  Firebase console.
 - `AppInitializer.onApplicationStart()` calls `KMPAuth.initialize { google(serverId = …) }` with a web client ID.
   Android passes `R.string.default_web_client_id` (generated from the flavor's `google-services.json`); web passes
   `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID`. The two must be the same OAuth web client within an environment, or the

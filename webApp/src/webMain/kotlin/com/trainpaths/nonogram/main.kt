@@ -28,7 +28,6 @@ fun main() {
         projectId = FirebaseWebConfig.PROJECT_ID,
         messagingSenderId = FirebaseWebConfig.MESSAGING_SENDER_ID,
         appId = FirebaseWebConfig.APP_ID,
-        recaptchaSiteKey = FirebaseWebConfig.RECAPTCHA_SITE_KEY,
     )
     AppInitializer.onApplicationStart(FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID)
     startKoin { modules(webModule, appModule) }
