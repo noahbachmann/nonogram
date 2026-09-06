@@ -7,17 +7,17 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:83667943466:android:0f9c485709c11d1ac94353",
+        "mobilesdk_app_id": "1:83667943466:android:7e32cd053d9fa6b7c94353",
         "android_client_info": {
-          "package_name": "com.trainpaths.nonogram"
+          "package_name": "com.trainpaths.nonogram.dev"
         }
       },
       "oauth_client": [
         {
-          "client_id": "83667943466-n4ceuf364gn2ji6c0sehput1hha3cctj.apps.googleusercontent.com",
+          "client_id": "83667943466-dericl5svb9qs5393g1h36282kh9oeu3.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.trainpaths.nonogram",
+            "package_name": "com.trainpaths.nonogram.dev",
             "certificate_hash": "5d591c10e64d57a731a262ab187686fd0f9a512c"
           }
         },
