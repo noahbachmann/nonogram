@@ -292,13 +292,16 @@ defined.
 - **Two environments, both committed.** `nonogram-trainpaths` is **prod**, `nonogram-ba791` is **dev**; they share
   nothing (separate uids, puzzles, admin rosters, rules). Android selects one with a product flavor in the `env`
   dimension, reading `androidApp/src/{dev,prod}/google-services.json` — so the tasks are `assembleDevDebug`,
-  `bundleProdRelease` and friends, never a bare `assembleDebug`. Web selects one with the Gradle property
+  `bundleProdRelease` and friends, never a bare `assembleDebug`. The `dev` flavor carries
+  `applicationIdSuffix = ".dev"` (and its own `app_name` in `androidApp/src/dev/res`), so it installs as
+  `com.trainpaths.nonogram.dev` alongside the prod build rather than colliding with it — which means
+  `com.trainpaths.nonogram.dev` is registered as its **own Android app** in the dev Firebase project, with the
+  debug SHA-1 on that app; `namespace` stays unsuffixed. Web selects one with the Gradle property
   `nonogram.env` (`dev` by default in `gradle.properties`, `-Pnonogram.env=prod` to switch), which picks the
   source directory holding `FirebaseWebConfig.kt`: `webApp/src/dev` or `webApp/src/prod`, one line
   of `kotlin.srcDir` in `webApp/build.gradle.kts`. The two files declare the same object, so callers never see
   the switch — but a new constant has to be added to both. Both are public-by-design client config; the only
-  gitignored secrets are `keystore.properties` / `*.jks`. Setup and rollout live in
-  `docs/prod-firebase-setup.md`.
+  gitignored secrets are `keystore.properties` / `*.jks`. 
 - **App Check** — Play Integrity on Android, reCAPTCHA v3 on web, prod only. Android installs the provider in
   `MainApplication.onCreate` *before* `startKoin` (Koin builds `FirebaseAndroidSyncService`, which touches
   Firestore) via `installAppCheck()`, which has one copy **per flavor** (`androidApp/src/{dev,prod}/`), with the
