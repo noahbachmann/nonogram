@@ -81,15 +81,6 @@ since Kotlin 2.2.20). The rules that make that work:
   (wasmJs is ESM anyway; webpack bundles either).
 - `js(...)` is unavailable in a shared source set. Plain JS objects (Firebase config, Firestore write payloads)
   are built via a global `external object JSON { fun parse(...) }` + kotlinx-serialization `buildJsonObject`.
-- **App Check's options object** — `{ provider, isTokenAutoRefreshEnabled }`, where
-  `provider` is a live `ReCaptchaV3Provider` that JSON can't carry. `firebase/AppCheckOptions.kt` solves it
-  without `js(...)`: `buildJsonObject` supplies the JSON-able half, and an `external interface` with a single
-  `var provider` sets the rest, so the whole thing stays in `webMain` and no per-target file exists. Uses an
-  unchecked cast from `JsAny` to that interface — legal on both targets, and the first thing to suspect if the
-  web build breaks.
-- `location` and `globalThis` are plain global bindings, declared as externals in `JsInterop.kt` alongside
-  `JSON`, which is how the App Check localhost/debug-token logic stays shared. Write the debug flag through
-  `globalThis`, never as a bare global name — the bundles are ESM, and ESM is strict mode.
 - `Promise<T : JsAny?>.await()` comes from kotlinx-coroutines ≥ 1.11, which ships it in its shared web fragment.
 - Statics like `GoogleAuthProvider.credential(...)` are bound as an `external object`.
 - `QuerySnapshot` is consumed via `.empty` / `.forEach(callback)` instead of `.docs`, sidestepping the js-vs-wasm
@@ -97,8 +88,8 @@ since Kotlin 2.2.20). The rules that make that work:
 
 `firebase/FirebaseWeb.kt` is the facade: everything outside the `firebase` package (sync service, sign-in UI,
 `webApp/main.kt`) talks only to it, so if shared externals ever regress the bindings can move per-target without
-touching callers. `initialize` also installs App Check before `getAuth`/`getFirestore`, so the ordering can't be
-lost — and skips it when `recaptchaSiteKey` is blank, which is how the dev environment runs without one.
+touching callers. `initialize` is just config → `initializeApp` → `getAuth`/`getFirestore`; there is no App Check
+on web (see `CLAUDE.md`).
 
 The config it is called with is environment-specific: `FirebaseWebConfig.kt` exists twice, in
 `webApp/src/dev` and `webApp/src/prod`, and `webApp/build.gradle.kts` puts one of them on

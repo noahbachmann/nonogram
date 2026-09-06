@@ -8,5 +8,4 @@ object FirebaseWebConfig {
     const val MESSAGING_SENDER_ID = "482051008739"
     const val APP_ID = "1:482051008739:web:538968bebfaa8781533dd6"
     const val GOOGLE_WEB_CLIENT_ID = "482051008739-hc89i851oq6l369ihfd0khfr9g9i46p9.apps.googleusercontent.com"
-    const val RECAPTCHA_SITE_KEY = "6Ld6yqktAAAAABvGaDeX2npk99Mnb8R2xhrY2HGZ"
 }
