@@ -16,6 +16,7 @@ class MainApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        installAppCheck()
 
         val koinApp = startKoin {
             androidContext(this@MainApplication)

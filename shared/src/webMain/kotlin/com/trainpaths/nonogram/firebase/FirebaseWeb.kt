@@ -26,6 +26,7 @@ object FirebaseWeb {
         projectId: String,
         messagingSenderId: String,
         appId: String,
+        recaptchaSiteKey: String,
     ) {
         val options = JSON.parse(
             buildJsonObject {
@@ -37,6 +38,12 @@ object FirebaseWeb {
             }.toString()
         )!!
         val app = initializeApp(options)
+        if (recaptchaSiteKey.isNotBlank()) {
+            if (location.hostname == "localhost" || location.hostname == "127.0.0.1") {
+                globalThis.FIREBASE_APPCHECK_DEBUG_TOKEN = true
+            }
+            initializeAppCheck(app, appCheckOptions(ReCaptchaV3Provider(recaptchaSiteKey)))
+        }
         auth = getAuth(app)
         firestore = getFirestore(app)
     }

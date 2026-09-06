@@ -10,17 +10,17 @@ solve nonogram puzzles, track progress, and optionally sync via Google sign-in w
 ## Build & Run
 
 ```bash
-# Android
-./gradlew :androidApp:assembleDebug
+# Android — dev/prod are product flavors (Firebase environments), so every variant is qualified
+./gradlew :androidApp:assembleDevDebug
 
-# Web (Wasm — faster, modern browsers)
+# Web (Wasm — faster, modern browsers) — dev by default, -Pnonogram.env=prod for the prod project
 ./gradlew :webApp:wasmJsBrowserDevelopmentRun
 
 # Web (JS — broader compatibility)
 ./gradlew :webApp:jsBrowserDevelopmentRun
 
-# Web production bundles
-./gradlew :webApp:wasmJsBrowserDistribution :webApp:jsBrowserDistribution
+# Web production bundles (against prod Firebase)
+./gradlew :webApp:wasmJsBrowserDistribution :webApp:jsBrowserDistribution -Pnonogram.env=prod
 
 # iOS: open iosApp/ in Xcode
 ```
@@ -101,7 +101,7 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   **The platform services are adapters, not logic.** Anything two implementations would otherwise write twice lives in
   commonMain beside `SyncService`, because every duplicated piece had already drifted once: `FirestoreSchema.kt`
   (`Paths` / `Fields` — every collection path and field name, mirrored a second time by the web externals' property
-  names and a third by `firestore.rules`), `RemoteProgress.kt` (`mergeRemoteProgress` / `applyRemoteProgress` /
+  names and a third by the console-managed Firestore rules), `RemoteProgress.kt` (`mergeRemoteProgress` / `applyRemoteProgress` /
   `uploadAllProgress`, the mirror of `mergeRemoteNonograms`) and `NonogramDocument.kt` (the wire document plus
   `toNonogram(onSkip)` — decoding, `isWellFormedGrid`, and the enum fallbacks that let an older writer's document
   read on a newer client; `encodeSolution` is the write side). A platform contributes a fetch (`fetchProgress`,
@@ -144,7 +144,7 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   `AuthRepository`) and then refreshes the admin flag and publish ban (`isAdmin` / `publishBanned` StateFlows),
   `retryOwnNonograms` re-runs just the owned stream for the generator's retry button. The **public** stream runs first,
   before the `currentFirebaseUid` gate, so guests pull public puzzles too — approved puzzles are
-  readable unauthenticated (see `firestore.rules`), while progress, owned puzzles and the admin/moderation reads all
+  readable unauthenticated (enforced by the Firestore rules), while progress, owned puzzles and the admin/moderation reads all
   need a session and stay behind the gate. `AdminViewModel` drives the admin review queue (one pending request at a
   time, buffered a batch at a time). All depend on the suspend `AppSDK`/`SyncService` from inside
   `viewModelScope.launch` — but always via `launchGuarded` (`screens/viewModel/LaunchGuarded.kt`), never
@@ -226,7 +226,7 @@ dirty puzzle). Icons come from the hand-built `icons/` package of `ImageVector`s
   in `GenConfScreen`'s size fields, plus `isRectangularGrid()` / `isWellFormedGrid()`. Both sync services reject a
   grid failing `isWellFormedGrid()` in `parseNonograms` (ragged grids crash `colClues`), and the DB mapper falls back
   to an empty solution for one already stored — keep `MAX_NONOGRAM_SIDE` in step with the 20 000-character cap
-  `firestore.rules` puts on the encoded `solution`.
+  the Firestore rules put on the encoded `solution`.
 - **`Tile`** — mutable Compose state. Cycles: NONE → FILLED → CROSSED → NONE.
 - Board state is serialized as `List<List<Int>>` (0/1) for persistence and sync.
 
@@ -289,9 +289,29 @@ defined.
   androidMain-only dependency: its wasmJs actual cannot do browser-flow sign-in (gitlive has no wasm target), and
   `webMain` is shared by js+wasmJs, so web exchanges the credential itself. `kmpauth-google`/`kmpauth-uihelper` are
   commonMain (both publish js+wasmJs).
+- **Two environments, both committed.** `nonogram-trainpaths` is **prod**, `nonogram-ba791` is **dev**; they share
+  nothing (separate uids, puzzles, admin rosters, rules). Android selects one with a product flavor in the `env`
+  dimension, reading `androidApp/src/{dev,prod}/google-services.json` — so the tasks are `assembleDevDebug`,
+  `bundleProdRelease` and friends, never a bare `assembleDebug`. Web selects one with the Gradle property
+  `nonogram.env` (`dev` by default in `gradle.properties`, `-Pnonogram.env=prod` to switch), which picks the
+  source directory holding `FirebaseWebConfig.kt`: `webApp/src/dev` or `webApp/src/prod`, one line
+  of `kotlin.srcDir` in `webApp/build.gradle.kts`. The two files declare the same object, so callers never see
+  the switch — but a new constant has to be added to both. Both are public-by-design client config; the only
+  gitignored secrets are `keystore.properties` / `*.jks`. Setup and rollout live in
+  `docs/prod-firebase-setup.md`.
+- **App Check** — Play Integrity on Android, reCAPTCHA v3 on web, prod only. Android installs the provider in
+  `MainApplication.onCreate` *before* `startKoin` (Koin builds `FirebaseAndroidSyncService`, which touches
+  Firestore) via `installAppCheck()`, which has one copy **per flavor** (`androidApp/src/{dev,prod}/`), with the
+  provider artifacts scoped `devImplementation` / `prodImplementation` to match. Provider therefore tracks the
+  Firebase project, not debuggability, which encodes the project's rule — **debug against dev, build for
+  prod**. `devDebug` is the variant to develop in; `prodRelease` is what ships; `devRelease` is only the local
+  R8 smoke test. `prodDebug` is not used: once prod App Check is enforced it cannot reach Firestore, since
+  Play Integrity cannot attest a sideloaded APK. Web folds it into `FirebaseWeb.initialize`,
+  which skips App Check entirely when `RECAPTCHA_SITE_KEY` is blank — which is how dev runs without it.
 - `AppInitializer.onApplicationStart()` calls `KMPAuth.initialize { google(serverId = …) }` with a web client ID.
-  Android passes `R.string.default_web_client_id` (generated from `androidApp/google-services.json`); web passes
-  `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID` (committed constants in `webApp` — Firebase web config is public-by-design).
+  Android passes `R.string.default_web_client_id` (generated from the flavor's `google-services.json`); web passes
+  `FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID`. The two must be the same OAuth web client within an environment, or the
+  platforms mint different Firebase users.
 - Firestore paths: `users/{firebaseUid}/progress/{nonogramId}` (progress), `nonograms/{id}` (puzzles — own + public per
   their `publishStatus` field), `users/{firebaseUid}` (`denialStreak` /
   `publishBanned`) and `admins/{firebaseUid}` (admin roster). Puzzles are pulled incrementally by
@@ -304,10 +324,12 @@ defined.
   upsert; local newer & locally authored → push back. On both platforms — Android via
   `dev.gitlive:firebase-firestore` (androidMain), web via hand-written Firebase JS SDK externals (webMain), both
   isolated behind `sync/SyncService`; the web impl gates every call on `sessionMatches` *except* the public pull, which
-  must work signed out. Security rules are checked in at `firestore.rules` — they are what actually enforces publish
-  moderation, and the `nonograms` read rule deliberately allows unauthenticated reads of `APPROVED` docs. Two composite
-  indexes are needed on `nonograms` — `(publishStatus, updatedAt)` (public pull + review queue) and
-  `(authorUid, updatedAt)` (owned pull) — but they are configured in the Firebase console, not checked in.
+  must work signed out. Security rules are **not** checked in — they are maintained per project in the Firebase
+  console (the last tracked copy is `git show fix/admin-panel:firestore.rules`). They are what actually enforces
+  publish moderation, and the `nonograms` read rule deliberately allows unauthenticated reads of `APPROVED` docs; a
+  rule change has to be applied to dev and prod separately. Two composite indexes are needed on `nonograms` —
+  `(publishStatus, updatedAt)` (public pull + review queue) and `(authorUid, updatedAt)` (owned pull) — likewise
+  configured in the console, not checked in.
 - `auth/PlatformAuth.kt` declares `expect suspend fun firebaseSignOut()`, ending the platform Firebase session —
   `dev.gitlive.firebase.auth.auth.signOut()` on Android, `FirebaseWeb.signOut()` (a new `firebase/auth` `signOut`
   external) on web. `AuthViewModel.signOut()` calls it before `AuthRepository.signOut()`, swallowing failures so local

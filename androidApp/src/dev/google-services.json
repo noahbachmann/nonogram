@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "83667943466",
+    "project_id": "nonogram-ba791",
+    "storage_bucket": "nonogram-ba791.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:83667943466:android:0f9c485709c11d1ac94353",
+        "android_client_info": {
+          "package_name": "com.trainpaths.nonogram"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "83667943466-n4ceuf364gn2ji6c0sehput1hha3cctj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.trainpaths.nonogram",
+            "certificate_hash": "5d591c10e64d57a731a262ab187686fd0f9a512c"
+          }
+        },
+        {
+          "client_id": "83667943466-r9ptgubthqnaq8m68elequuabkpru208.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARTAU1h6iNJRjlmX-6cG_r9zTfPpuZATk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "83667943466-r9ptgubthqnaq8m68elequuabkpru208.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

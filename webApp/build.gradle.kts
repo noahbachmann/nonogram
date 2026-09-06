@@ -8,6 +8,8 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+val nonogramEnv = providers.gradleProperty("nonogram.env").getOrElse("dev")
+
 kotlin {
     js {
         browser()
@@ -27,11 +29,14 @@ kotlin {
 
             implementation(libs.compose.ui)
         }
-        webMain.dependencies {
-            implementation(libs.koin.core)
-            implementation(libs.koin.compose.viewmodel)
-            implementation(npm("@sqlite.org/sqlite-wasm", "3.50.4-build1"))
-            implementation(devNpm("copy-webpack-plugin", "13.0.1"))
+        webMain {
+            kotlin.srcDir("src/$nonogramEnv/kotlin")
+            dependencies {
+                implementation(libs.koin.core)
+                implementation(libs.koin.compose.viewmodel)
+                implementation(npm("@sqlite.org/sqlite-wasm", "3.50.4-build1"))
+                implementation(devNpm("copy-webpack-plugin", "13.0.1"))
+            }
         }
     }
 }
