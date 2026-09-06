@@ -1,0 +1,63 @@
+{
+  "project_info": {
+    "project_number": "482051008739",
+    "project_id": "nonogram-trainpaths",
+    "storage_bucket": "nonogram-trainpaths.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:482051008739:android:afaf12e399c3cbf5533dd6",
+        "android_client_info": {
+          "package_name": "com.trainpaths.nonogram"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "482051008739-5jbe1sunomve0rouj5f1d6od6mg3bhh5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.trainpaths.nonogram",
+            "certificate_hash": "c3604877aba2baf87cfef7d91bd837743f9c01f1"
+          }
+        },
+        {
+          "client_id": "482051008739-nturr7a97kcjfi2aqk4uq9pocsj0h3ao.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.trainpaths.nonogram",
+            "certificate_hash": "b397e80207024692dcf7a025cd5f7bcfa3b27381"
+          }
+        },
+        {
+          "client_id": "482051008739-qhjs2sfjk86b8n4i79027ofj10r00phn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.trainpaths.nonogram",
+            "certificate_hash": "3c57e0d250b7f61b4c79415c7edf52d7db569a0c"
+          }
+        },
+        {
+          "client_id": "482051008739-hc89i851oq6l369ihfd0khfr9g9i46p9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYlhpUZWtLQeClwG46fZ_UKcBYgoWARUg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "482051008739-hc89i851oq6l369ihfd0khfr9g9i46p9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

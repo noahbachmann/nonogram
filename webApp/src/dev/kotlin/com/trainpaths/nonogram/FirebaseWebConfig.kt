@@ -1,7 +1,6 @@
 package com.trainpaths.nonogram
 
-// These values are public-by-design
-
+// Dev Firebase project
 object FirebaseWebConfig {
     const val API_KEY = "AIzaSyD4VXmYnQgnkTXT4Yw5GfvGjPOKv5e04FA"
     const val AUTH_DOMAIN = "nonogram-ba791.firebaseapp.com"
@@ -9,4 +8,5 @@ object FirebaseWebConfig {
     const val MESSAGING_SENDER_ID = "83667943466"
     const val APP_ID = "1:83667943466:web:7c152e7ffce14591c94353"
     const val GOOGLE_WEB_CLIENT_ID = "83667943466-r9ptgubthqnaq8m68elequuabkpru208.apps.googleusercontent.com"
+    const val RECAPTCHA_SITE_KEY = ""
 }

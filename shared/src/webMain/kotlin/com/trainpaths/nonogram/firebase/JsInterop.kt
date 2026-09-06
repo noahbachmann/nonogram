@@ -29,3 +29,15 @@ internal external interface UserGateDocData : JsAny {
 internal external object JSON : JsAny {
     fun parse(text: String): JsAny?
 }
+
+internal external interface JsLocation : JsAny {
+    val hostname: String
+}
+
+internal external val location: JsLocation
+
+internal external interface GlobalScope : JsAny {
+    var FIREBASE_APPCHECK_DEBUG_TOKEN: Boolean
+}
+
+internal external val globalThis: GlobalScope
