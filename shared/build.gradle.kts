@@ -70,6 +70,7 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
+            implementation(libs.androidx.activity.compose)
             implementation(libs.sqldelight.android.driver)
             implementation(libs.koin.android)
             implementation(libs.koin.androidx.compose)
@@ -112,6 +113,7 @@ kotlin {
             implementation(libs.sqldelight.sqlite.driver)
         }
         webMain.dependencies {
+            implementation(libs.kotlinx.browser)
             implementation(libs.sqldelight.web.worker.driver)
             implementation(npm("firebase", "12.13.0"))
         }

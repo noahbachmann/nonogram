@@ -18,6 +18,9 @@ data class GenConfRoute(val editing: Boolean = false)
 object GeneratorRoute
 
 @Serializable
+object GenScanRoute
+
+@Serializable
 object SettingsRoute
 
 @Serializable

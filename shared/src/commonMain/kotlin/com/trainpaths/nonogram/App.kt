@@ -27,6 +27,7 @@ import com.trainpaths.nonogram.navigation.AdminRoute
 import com.trainpaths.nonogram.navigation.GameRoute
 import com.trainpaths.nonogram.navigation.GenConfRoute
 import com.trainpaths.nonogram.navigation.GenListRoute
+import com.trainpaths.nonogram.navigation.GenScanRoute
 import com.trainpaths.nonogram.navigation.GeneratorRoute
 import com.trainpaths.nonogram.navigation.LocalNavController
 import com.trainpaths.nonogram.navigation.LoginRoute
@@ -37,6 +38,7 @@ import com.trainpaths.nonogram.navigation.WinDialogRoute
 import com.trainpaths.nonogram.screens.AdminScreen
 import com.trainpaths.nonogram.screens.GameScreen
 import com.trainpaths.nonogram.screens.GenConfScreen
+import com.trainpaths.nonogram.screens.GenScanScreen
 import com.trainpaths.nonogram.screens.GenScreen
 import com.trainpaths.nonogram.screens.LoadingScreen
 import com.trainpaths.nonogram.screens.LoginScreen
@@ -49,6 +51,7 @@ import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.GeneratorSyncState
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
+import com.trainpaths.nonogram.screens.viewModel.ScanViewModel
 import com.trainpaths.nonogram.screens.viewModel.SettingsViewModel
 import com.trainpaths.nonogram.tutorial.TutorialHost
 import com.trainpaths.nonogram.tutorial.TutorialRepository
@@ -62,6 +65,7 @@ fun App(
     tutorialRepository: TutorialRepository,
     gameViewModelFactory: @Composable () -> GameViewModel,
     adminViewModelFactory: @Composable () -> AdminViewModel,
+    scanViewModelFactory: @Composable () -> ScanViewModel,
 ) {
     val theme by settingsViewModel.theme.collectAsState()
     val authState by authViewModel.authState.collectAsState()
@@ -78,6 +82,7 @@ fun App(
                 tutorialRepository = tutorialRepository,
                 gameViewModelFactory = gameViewModelFactory,
                 adminViewModelFactory = adminViewModelFactory,
+                scanViewModelFactory = scanViewModelFactory,
             )
         }
     }
@@ -92,6 +97,7 @@ private fun AppContent(
     tutorialRepository: TutorialRepository,
     gameViewModelFactory: @Composable () -> GameViewModel,
     adminViewModelFactory: @Composable () -> AdminViewModel,
+    scanViewModelFactory: @Composable () -> ScanViewModel,
 ) {
     val startDestination = if (authViewModel.hasCompletedOnboarding) MenuRoute else LoginRoute
 
@@ -176,6 +182,7 @@ private fun AppContent(
                             genViewModel.startNew()
                             navController.navigate(GenConfRoute(editing = false))
                         },
+                        onScanClick = { navController.navigate(GenScanRoute) },
                         onEditClick = { nonogram ->
                             genViewModel.loadForEdit(nonogram)
                             navController.navigate(GeneratorRoute)
@@ -197,6 +204,18 @@ private fun AppContent(
                                 navController.navigate(GeneratorRoute) {
                                     popUpTo(GenListRoute) { inclusive = false }
                                 }
+                            }
+                        },
+                    )
+                }
+                composable<GenScanRoute> {
+                    GenScanScreen(
+                        genViewModel = genViewModel,
+                        scanViewModel = scanViewModelFactory(),
+                        onBack = { navController.popBackStack() },
+                        onDone = {
+                            navController.navigate(GeneratorRoute) {
+                                popUpTo(GenListRoute) { inclusive = false }
                             }
                         },
                     )
