@@ -2,16 +2,23 @@ package com.trainpaths.nonogram
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.TextSelectionColors
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -25,6 +32,9 @@ val MAX_CONTENT_WIDTH = 1000.dp
  * Corner rounding for the app's buttons — card-like. Pass as `shape = BUTTON_SHAPE`.
  */
 val BUTTON_SHAPE = RoundedCornerShape(12.dp)
+
+/** Height of a full-width action button. Pass as `Modifier.height(BUTTON_HEIGHT)`. */
+val BUTTON_HEIGHT = 48.dp
 
 /**
  * The playing field's frame — the divider between the clue gutters and the grid, and the grid's own
@@ -176,3 +186,33 @@ fun outlinedFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
         backgroundColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
     ),
 )
+
+/**
+ * The app's button: [BUTTON_SHAPE] plus a label, in the accent-on-background pairing every screen
+ * uses. Colours and text style are parameters because a handful of buttons deliberately differ —
+ * the admin verdicts, the tutorial's "Got it" — but the shape never does.
+ */
+@Composable
+fun AppButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    height: Dp? = BUTTON_HEIGHT,
+    containerColor: Color = MaterialTheme.colorScheme.onPrimary,
+    contentColor: Color = MaterialTheme.colorScheme.primary,
+    textStyle: TextStyle = MaterialTheme.typography.titleMedium,
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        shape = BUTTON_SHAPE,
+        modifier = if (height != null) modifier.height(height) else modifier,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+        ),
+    ) {
+        Text(text, style = textStyle)
+    }
+}

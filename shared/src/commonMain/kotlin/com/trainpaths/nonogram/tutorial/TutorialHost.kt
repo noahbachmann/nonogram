@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -45,7 +43,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.trainpaths.nonogram.BUTTON_SHAPE
+import com.trainpaths.nonogram.AppButton
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -181,16 +179,14 @@ private fun TutorialOverlay(
                             Text("Skip all tips", style = MaterialTheme.typography.bodySmall)
                         }
                         Spacer(Modifier.size(8.dp))
-                        Button(
+                        AppButton(
+                            text = "Got it",
                             onClick = onDismiss,
-                            shape = BUTTON_SHAPE,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ),
-                        ) {
-                            Text("Got it", style = MaterialTheme.typography.bodyMedium)
-                        }
+                            height = null,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            textStyle = MaterialTheme.typography.bodyMedium,
+                        )
                     }
                 }
             }

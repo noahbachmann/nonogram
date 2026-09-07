@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,6 +26,7 @@ import com.trainpaths.nonogram.classes.NonogramCard
 import com.trainpaths.nonogram.classes.NonogramGrid
 import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.TopAppBar
+import com.trainpaths.nonogram.AppButton
 import com.trainpaths.nonogram.BUTTON_SHAPE
 import com.trainpaths.nonogram.MAX_CONTENT_WIDTH
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
@@ -63,32 +62,19 @@ fun GenListScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Button(
+                AppButton(
+                    text = "+ New",
                     onClick = onNewClick,
-                    shape = BUTTON_SHAPE,
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp)
                         .tutorialAnchor(TutorialStep.GENLIST_NEW),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onPrimary,
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    ),
-                ) {
-                    Text("+ New", style = MaterialTheme.typography.titleMedium)
-                }
+                )
 
-                Button(
+                AppButton(
+                    text = "Scan image",
                     onClick = onScanClick,
-                    shape = BUTTON_SHAPE,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onPrimary,
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    ),
-                ) {
-                    Text("Scan image", style = MaterialTheme.typography.titleMedium)
-                }
+                    modifier = Modifier.weight(1f),
+                )
             }
 
             when (generatorSyncState) {
