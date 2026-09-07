@@ -8,6 +8,7 @@ import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
+import com.trainpaths.nonogram.screens.viewModel.ScanViewModel
 import com.trainpaths.nonogram.screens.viewModel.SettingsViewModel
 import com.trainpaths.nonogram.settings.SettingsRepository
 import com.trainpaths.nonogram.tutorial.TutorialRepository
@@ -24,6 +25,7 @@ val appModule = module {
     viewModelOf(::MenuViewModel)
     viewModelOf(::GameViewModel)
     viewModelOf(::GenViewModel)
+    viewModelOf(::ScanViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AdminViewModel)
 }
