@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.trainpaths.nonogram.BUTTON_SHAPE
+import com.trainpaths.nonogram.AppButton
 import com.trainpaths.nonogram.classes.DrawNonogram
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.UNNAMED_NONOGRAM_TITLE
@@ -126,30 +124,22 @@ private fun ReviewCard(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Button(
+            AppButton(
+                text = "Deny",
                 onClick = onDeny,
                 enabled = !isDeciding,
-                shape = BUTTON_SHAPE,
-                modifier = Modifier.weight(1f).height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryFixed,
-                    contentColor = MaterialTheme.colorScheme.outline,
-                ),
-            ) {
-                Text("Deny", style = MaterialTheme.typography.titleMedium)
-            }
-            Button(
+                containerColor = MaterialTheme.colorScheme.tertiaryFixed,
+                contentColor = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.weight(1f),
+            )
+            AppButton(
+                text = "Accept",
                 onClick = onAccept,
                 enabled = !isDeciding,
-                shape = BUTTON_SHAPE,
-                modifier = Modifier.weight(1f).height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onTertiary,
-                    contentColor = MaterialTheme.colorScheme.outline,
-                ),
-            ) {
-                Text("Accept", style = MaterialTheme.typography.titleMedium)
-            }
+                containerColor = MaterialTheme.colorScheme.onTertiary,
+                contentColor = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

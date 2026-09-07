@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +36,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.trainpaths.nonogram.BUTTON_SHAPE
+import com.trainpaths.nonogram.AppButton
 import com.trainpaths.nonogram.ColorTheme
 import com.trainpaths.nonogram.switchColors
 import com.trainpaths.nonogram.darken
@@ -129,32 +127,19 @@ fun SettingsScreen(
                 )
             }
             SettingsDivider()
-            Button(
+            AppButton(
+                text = "Show tips again",
                 onClick = { tutorialRepository.resetAll() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onPrimary,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                ),
-                shape = BUTTON_SHAPE,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
                     .tutorialAnchor(TutorialStep.SETTINGS_REPLAY),
-            ) {
-                Text("Show tips again")
-            }
+            )
             if (isAdmin) {
-                Button(
+                AppButton(
+                    text = "Admin panel",
                     onClick = onAdminPanel,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onPrimary,
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    ),
-                    shape = BUTTON_SHAPE,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                ) {
-                    Text("Admin panel")
-                }
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             if (isSigningIn) {
                 SettingsDivider()
@@ -184,17 +169,12 @@ fun SettingsScreen(
                 )
             } else if (authState == AuthState.SIGNED_IN) {
                 SettingsDivider()
-                Button(
+                AppButton(
+                    text = "Log Out",
                     onClick = { showSignOutDialog = true },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onSecondary,
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    ),
-                    shape = BUTTON_SHAPE,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                ) {
-                    Text("Log Out")
-                }
+                    containerColor = MaterialTheme.colorScheme.onSecondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
