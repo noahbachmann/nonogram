@@ -13,7 +13,9 @@ import com.trainpaths.nonogram.scan.defaultDimensions
 import com.trainpaths.nonogram.scan.otsuThreshold
 import com.trainpaths.nonogram.scan.toGrid
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Bigger than any image worth turning into a 50x50 grid, and past the point where decoding one is
@@ -21,6 +23,9 @@ import kotlinx.coroutines.withContext
  * pixels are read back afterward.
  */
 private const val MAX_IMAGE_BYTES = 20 * 1024 * 1024
+
+/** One frame at 60Hz. */
+private const val SPINNER_FRAME_MS = 16L
 
 /**
  * Holds a picked image while the user tunes it into a grid.
@@ -78,6 +83,7 @@ class ScanViewModel : ViewModel() {
         isProcessing = true
         launchGuarded(onError = { error = it.message ?: "Could not read that image." }) {
             try {
+                delay(SPINNER_FRAME_MS.milliseconds)
                 val map = withContext(Dispatchers.Default) { bytes.decodeToLumaMap() }
                 lumaMap = map
                 val (defaultRows, defaultCols) = defaultDimensions(map.width, map.height)
