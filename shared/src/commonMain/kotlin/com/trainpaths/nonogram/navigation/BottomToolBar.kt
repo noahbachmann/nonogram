@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.MAX_CONTENT_WIDTH
 import com.trainpaths.nonogram.classes.BoardHistory
 import com.trainpaths.nonogram.classes.DrawMode
+import com.trainpaths.nonogram.icons.check
 import com.trainpaths.nonogram.icons.expand_content
 import com.trainpaths.nonogram.icons.lockClosed
 import com.trainpaths.nonogram.icons.lockOpen
@@ -50,6 +51,7 @@ fun BottomToolBar(
     history: BoardHistory? = null,
     onSave: (() -> Unit)? = null,
     saveEnabled: Boolean = true,
+    onCheck: (() -> Unit)? = null,
 ) {
     Box(
         modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.secondary),
@@ -122,6 +124,15 @@ fun BottomToolBar(
             }
 
             Spacer(Modifier.weight(1f))
+
+            if (onCheck != null) {
+                BottomBarItem(
+                    label = "Check",
+                    imageVector = check,
+                    contentDescription = "Check board for mistakes",
+                    onClick = onCheck,
+                )
+            }
 
             if (onSave != null) {
                 BottomBarItem(

@@ -34,6 +34,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -399,7 +400,7 @@ private fun ColClueLine(clues: List<Int>, slots: Int, gutterH: Dp) {
 private fun ClueText(value: Int) {
     Text(
         text = value.toString(),
-        style = MaterialTheme.typography.labelMedium,
+        style = MaterialTheme.typography.labelLarge,
         color = Color.Black,
         textAlign = TextAlign.Center,
         maxLines = 1,
@@ -454,9 +455,9 @@ private fun BoardFrame(state: BoardTransformState, background: Color) {
 /**
  * Draws the whole grid into one node.
  *
- * Reading `tile.state` here registers a *draw-scope* dependency, so filling a tile invalidates the
- * draw of this single node — no recomposition, no relayout. That is far cheaper than the 2500
- * layout nodes a per-tile Box grid would need merely to exist.
+ * Reading `tile.state` (and `tile.wrong`) here registers a *draw-scope* dependency, so filling a tile
+ * invalidates the draw of this single node — no recomposition, no relayout. That is far cheaper than
+ * the 2500 layout nodes a per-tile Box grid would need merely to exist.
  *
  * [scale] is the layer's scale, and drawing depends on it: this node paints in *content* px and the
  * layer matrix scales the result, so every stroke is a multiple of [lineUnitPx] — proportional to the
@@ -517,6 +518,21 @@ private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx
         val w = if (row % BLOCK_SIZE == 0) thick else thin
         val y = row * cellPx
         drawLine(Color.Gray, Offset(0f, y), Offset(width, y), strokeWidth = w)
+    }
+
+    val wrongStroke = max(cellPx * 0.10f, LINE_MIN_DEVICE_PX / scale)
+    val wrongInset = wrongStroke / 2f
+    for (row in tiles.indices) {
+        val top = row * cellPx
+        for (column in tiles[row].indices) {
+            if (!tiles[row][column].wrong) continue
+            drawRect(
+                color = Color.Red,
+                topLeft = Offset(column * cellPx + wrongInset, top + wrongInset),
+                size = Size(cellPx - wrongStroke, cellPx - wrongStroke),
+                style = Stroke(width = wrongStroke),
+            )
+        }
     }
 
     // The playing field's right and bottom edges

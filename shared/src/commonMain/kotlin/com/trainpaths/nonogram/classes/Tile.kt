@@ -38,7 +38,17 @@ enum class DrawMode {
 }
 
 class Tile {
-    var state by mutableStateOf(TileState.NONE)
+    private var _state by mutableStateOf(TileState.NONE)
+
+    var wrong by mutableStateOf(false)
+
+    var state: TileState
+        get() = _state
+        set(value) {
+            if (value == _state) return
+            _state = value
+            wrong = false
+        }
 
     fun click(mode: DrawMode = DrawMode.TOGGLE) {
         state = mode.apply(state)

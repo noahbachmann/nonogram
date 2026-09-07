@@ -85,6 +85,25 @@ class GameViewModel(
         }
     }
 
+    /**
+     * Marks every tile that contradicts the solution.
+     * Assigning a new value to a red tile clears the red
+     */
+    fun checkBoard() {
+        val solution = nonogram?.solution ?: return
+        for ((rowIndex, row) in tiles.withIndex()) {
+            val solutionRow = solution.getOrNull(rowIndex)
+            for ((colIndex, tile) in row.withIndex()) {
+                val expected = solutionRow?.getOrNull(colIndex)
+                tile.wrong = when (tile.state) {
+                    TileState.FILLED -> expected == 0
+                    TileState.CROSSED -> expected == 1
+                    TileState.NONE -> false
+                }
+            }
+        }
+    }
+
     fun resetBoard() {
         val edits = mutableListOf<TileEdit>()
         for ((rowIndex, row) in tiles.withIndex()) {
