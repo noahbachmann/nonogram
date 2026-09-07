@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -106,27 +107,21 @@ fun GenConfScreen(
                     .tutorialAnchor(TutorialStep.GENCONF_SIZE),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedTextField(
+                SizeField(
                     value = rows,
                     onValueChange = { rows = it.filter { c -> c.isDigit() }.take(2) },
-                    label = { Text("Rows") },
-                    supportingText = { Text(SIDE_RANGE_HINT) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    enabled = !genViewModel.isSaving,
+                    label = "Rows",
                     colors = textFieldColors,
+                    enabled = !genViewModel.isSaving,
                     modifier = Modifier.weight(1f),
                 )
 
-                OutlinedTextField(
+                SizeField(
                     value = cols,
                     onValueChange = { cols = it.filter { c -> c.isDigit() }.take(2) },
-                    label = { Text("Columns") },
-                    supportingText = { Text(SIDE_RANGE_HINT) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    enabled = !genViewModel.isSaving,
+                    label = "Columns",
                     colors = textFieldColors,
+                    enabled = !genViewModel.isSaving,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -366,4 +361,27 @@ private fun PublishSection(
             )
         }
     }
+}
+
+/** A grid-side input: digits only, with the allowed range as its hint. Shared with `GenScanScreen`. */
+@Composable
+fun SizeField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    colors: TextFieldColors,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        supportingText = { Text(SIDE_RANGE_HINT) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        singleLine = true,
+        enabled = enabled,
+        colors = colors,
+        modifier = modifier,
+    )
 }

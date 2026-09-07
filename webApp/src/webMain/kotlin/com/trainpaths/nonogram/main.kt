@@ -11,6 +11,7 @@ import com.trainpaths.nonogram.screens.viewModel.AuthViewModel
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.MenuViewModel
+import com.trainpaths.nonogram.screens.viewModel.ScanViewModel
 import com.trainpaths.nonogram.screens.viewModel.SettingsViewModel
 import com.trainpaths.nonogram.tutorial.TutorialRepository
 import kotlinx.coroutines.MainScope
@@ -44,6 +45,7 @@ fun main() {
             tutorialRepository = koinInject<TutorialRepository>(),
             gameViewModelFactory = { koinViewModel<GameViewModel>() },
             adminViewModelFactory = { koinViewModel<AdminViewModel>() },
+            scanViewModelFactory = { koinViewModel<ScanViewModel>() },
         )
     }
 }

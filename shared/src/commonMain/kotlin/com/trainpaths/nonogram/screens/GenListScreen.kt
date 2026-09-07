@@ -42,6 +42,7 @@ fun GenListScreen(
     onRetrySync: () -> Unit,
     onSwap: () -> Unit,
     onNewClick: () -> Unit,
+    onScanClick: () -> Unit,
     onEditClick: (Nonogram) -> Unit,
 ) {
     Column(
@@ -56,20 +57,38 @@ fun GenListScreen(
         )
 
         Column(modifier = Modifier.widthIn(max = MAX_CONTENT_WIDTH).fillMaxSize()) {
-            Button(
-                onClick = onNewClick,
-                shape = BUTTON_SHAPE,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .height(48.dp)
-                    .tutorialAnchor(TutorialStep.GENLIST_NEW),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onPrimary,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                ),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("+ New", style = MaterialTheme.typography.titleMedium)
+                Button(
+                    onClick = onNewClick,
+                    shape = BUTTON_SHAPE,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .tutorialAnchor(TutorialStep.GENLIST_NEW),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onPrimary,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                ) {
+                    Text("+ New", style = MaterialTheme.typography.titleMedium)
+                }
+
+                Button(
+                    onClick = onScanClick,
+                    shape = BUTTON_SHAPE,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onPrimary,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                ) {
+                    Text("Scan image", style = MaterialTheme.typography.titleMedium)
+                }
             }
 
             when (generatorSyncState) {

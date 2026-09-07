@@ -14,6 +14,7 @@ import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileState
+import com.trainpaths.nonogram.classes.isWellFormedGrid
 import com.trainpaths.nonogram.classes.toInts
 import com.trainpaths.nonogram.sync.SyncService
 import com.trainpaths.nonogram.sync.syncPublicNonograms
@@ -187,6 +188,17 @@ class GenViewModel(
         }
         history.reset(tiles)
         updateNonogram()
+    }
+    
+    fun loadScanned(grid: List<List<Int>>, name: String? = null) {
+        if (!grid.isWellFormedGrid()) return
+        nonogram = Nonogram(0, Difficulty.EASY, emptyList(), name = name)
+        tiles = grid.map { row ->
+            row.map { cell -> Tile().apply { if (cell == 1) state = TileState.FILLED } }
+        }
+        history.reset(tiles)
+        updateNonogram()
+        publishError = null
     }
 
     fun loadForEdit(existing: Nonogram) {
