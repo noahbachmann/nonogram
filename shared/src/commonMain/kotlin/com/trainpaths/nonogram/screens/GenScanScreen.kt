@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
@@ -113,12 +112,6 @@ private fun ScanIntro(scanViewModel: ScanViewModel, onPick: () -> Unit) {
         enabled = !scanViewModel.isProcessing,
         modifier = Modifier.fillMaxWidth(),
     )
-    if (scanViewModel.isProcessing) {
-        CircularProgressIndicator(
-            color = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.padding(top = 24.dp),
-        )
-    }
 }
 
 @Composable
