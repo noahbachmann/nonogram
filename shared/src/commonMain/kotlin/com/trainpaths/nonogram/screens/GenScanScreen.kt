@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -27,7 +25,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.trainpaths.nonogram.BUTTON_SHAPE
+import com.trainpaths.nonogram.AppButton
 import com.trainpaths.nonogram.MAX_CONTENT_WIDTH
 import com.trainpaths.nonogram.classes.normalizeNonogramName
 import com.trainpaths.nonogram.icons.scan
@@ -109,10 +107,11 @@ private fun ScanIntro(scanViewModel: ScanViewModel, onPick: () -> Unit) {
         color = MaterialTheme.colorScheme.onPrimary,
         modifier = Modifier.padding(vertical = 24.dp),
     )
-    ScanButton(
+    AppButton(
         text = if (scanViewModel.isProcessing) "Reading..." else "Choose image",
         onClick = onPick,
         enabled = !scanViewModel.isProcessing,
+        modifier = Modifier.fillMaxWidth(),
     )
     if (scanViewModel.isProcessing) {
         CircularProgressIndicator(
@@ -138,7 +137,7 @@ private fun ScanControls(
 
     OutlinedTextField(
         value = scanViewModel.name,
-        onValueChange = scanViewModel::setName,
+        onValueChange = scanViewModel::updateName,
         label = { Text("Name") },
         placeholder = { Text("...") },
         singleLine = true,
@@ -152,14 +151,14 @@ private fun ScanControls(
     ) {
         SizeField(
             value = scanViewModel.rowsInput,
-            onValueChange = scanViewModel::setRows,
+            onValueChange = scanViewModel::updateRows,
             label = "Rows",
             colors = textFieldColors,
             modifier = Modifier.weight(1f),
         )
         SizeField(
             value = scanViewModel.colsInput,
-            onValueChange = scanViewModel::setCols,
+            onValueChange = scanViewModel::updateCols,
             label = "Columns",
             colors = textFieldColors,
             modifier = Modifier.weight(1f),
@@ -174,7 +173,7 @@ private fun ScanControls(
     )
     Slider(
         value = scanViewModel.threshold.toFloat(),
-        onValueChange = { scanViewModel.setThreshold(it.toInt()) },
+        onValueChange = { scanViewModel.updateThreshold(it.toInt()) },
         valueRange = 1f..255f,
         colors = SliderDefaults.colors(
             thumbColor = MaterialTheme.colorScheme.onPrimary,
@@ -196,12 +195,12 @@ private fun ScanControls(
         )
         Switch(
             checked = scanViewModel.invert,
-            onCheckedChange = scanViewModel::setInvert,
+            onCheckedChange = scanViewModel::updateInvert,
             colors = switchColors(),
         )
     }
 
-    ScanButton(
+    AppButton(
         text = "Generate",
         onClick = {
             scanViewModel.normalizeSizeInputs()
@@ -212,13 +211,13 @@ private fun ScanControls(
             onDone()
         },
         enabled = scanViewModel.previewGrid.isNotEmpty(),
-        modifier = Modifier.padding(top = 20.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
     )
-    ScanButton(
+    AppButton(
         text = "Choose another image",
         onClick = onPickAnother,
         enabled = !scanViewModel.isProcessing,
-        modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 20.dp),
     )
 }
 
@@ -248,26 +247,5 @@ private fun GridPreview(grid: List<List<Int>>, modifier: Modifier = Modifier) {
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ScanButton(
-    text: String,
-    onClick: () -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier,
-) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        shape = BUTTON_SHAPE,
-        modifier = modifier.fillMaxWidth().height(48.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.onPrimary,
-            contentColor = MaterialTheme.colorScheme.primary,
-        ),
-    ) {
-        Text(text, style = MaterialTheme.typography.titleMedium)
     }
 }

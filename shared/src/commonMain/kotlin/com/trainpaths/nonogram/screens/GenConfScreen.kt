@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -35,7 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.trainpaths.nonogram.BUTTON_SHAPE
+import com.trainpaths.nonogram.AppButton
 import com.trainpaths.nonogram.outlinedFieldColors
 import com.trainpaths.nonogram.switchColors
 import com.trainpaths.nonogram.auth.AuthState
@@ -134,11 +132,12 @@ fun GenConfScreen(
                 )
             }
 
-            Button(
+            AppButton(
+                text = if (editing) "Save" else "Generate",
                 onClick = {
-                    val h = (rows.toIntOrNull() ?: return@Button)
+                    val h = (rows.toIntOrNull() ?: return@AppButton)
                         .coerceIn(MIN_NONOGRAM_SIDE, MAX_NONOGRAM_SIDE)
-                    val w = (cols.toIntOrNull() ?: return@Button)
+                    val w = (cols.toIntOrNull() ?: return@AppButton)
                         .coerceIn(MIN_NONOGRAM_SIDE, MAX_NONOGRAM_SIDE)
                     rows = h.toString()
                     cols = w.toString()
@@ -146,7 +145,7 @@ fun GenConfScreen(
                     if (!editing) {
                         genViewModel.setNonogram(h, w, normalizedName)
                         onDone()
-                        return@Button
+                        return@AppButton
                     }
                     val save = {
                         genViewModel.updateName(normalizedName)
@@ -165,19 +164,11 @@ fun GenConfScreen(
                     }
                 },
                 enabled = !genViewModel.isSaving,
-                shape = BUTTON_SHAPE,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = if (editing) 12.dp else 32.dp)
-                    .height(48.dp)
                     .tutorialAnchor(TutorialStep.GENCONF_DONE),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onPrimary,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                ),
-            ) {
-                Text(if (editing) "Save" else "Generate", style = MaterialTheme.typography.titleMedium)
-            }
+            )
         }
     }
 
@@ -299,21 +290,14 @@ private fun PublishSection(
                 color = MaterialTheme.colorScheme.tertiaryFixed,
             )
 
-            else -> Button(
+            else -> AppButton(
+                text = if (status == PublishStatus.PENDING) "Sent" else "Request publish",
                 onClick = { genViewModel.requestPublish() },
                 enabled = status == PublishStatus.NONE && canRequest &&
                         !genViewModel.isRequestingPublish,
-                shape = BUTTON_SHAPE,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onPrimary,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                ),
-            ) {
-                Text(
-                    if (status == PublishStatus.PENDING) "Sent" else "Request publish",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+                height = null,
+                textStyle = MaterialTheme.typography.bodyMedium,
+            )
         }
     }
 
