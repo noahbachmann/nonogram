@@ -369,8 +369,10 @@ query) matches the saved `solution` against any `APPROVED` puzzle and against th
 copies, and `requestPublish` reports it through `publishError` before anything reaches Firestore. It first runs
 `SyncService.syncPublicNonograms` (the cursor-advancing public pull, shared with `AuthViewModel.syncAll`) so a puzzle
 approved on another device is in the local DB before the comparison; a failed pull still checks what is already local.
-The match is exact — mirrored, rotated or padded grids are different puzzles. Difficulty is still hardcoded to `EASY` in
-`GenViewModel` (no selector yet).
+The match is exact — mirrored, rotated or padded grids are different puzzles. **Difficulty is the reviewer's call**:
+`GenViewModel` authors every puzzle as `EASY` (no selector), and `AdminScreen`'s four difficulty buttons — defaulting to
+`MEDIUM` — decide what `SyncService.decideReview` writes alongside `APPROVED`, which every other device picks up on its
+next public pull.
 
 Web (js + wasmJs) has persistent OPFS storage plus Google sign-in and Firestore sync via hand-written Firebase JS SDK
 externals in `shared/src/webMain` (no gitlive — it doesn't publish wasmJs; see `docs/web-architecture.md` for the

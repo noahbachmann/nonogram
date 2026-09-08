@@ -1,6 +1,7 @@
 package com.trainpaths.nonogram.sync
 
 import com.trainpaths.nonogram.AppSDK
+import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.toSolutionJson
@@ -148,14 +149,17 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
         firebaseUid: String,
         nonogram: Nonogram,
         approve: Boolean,
+        difficulty: Difficulty,
     ): Boolean = logged("decision on nonogram ${nonogram.id} failed", false) {
-        nonogramsCollection().document(nonogram.id.toString()).set(
-            mapOf(
-                Fields.PUBLISH_STATUS to (if (approve) PublishStatus.APPROVED else PublishStatus.DENIED).name,
-                Fields.UPDATED_AT to Clock.System.now().toEpochMilliseconds(),
-            ),
-            merge = true,
-        )
+        val fields = buildMap<String, Any?> {
+            put(
+                Fields.PUBLISH_STATUS,
+                (if (approve) PublishStatus.APPROVED else PublishStatus.DENIED).name,
+            )
+            put(Fields.UPDATED_AT, Clock.System.now().toEpochMilliseconds())
+            if (approve) put(Fields.DIFFICULTY, difficulty.name)
+        }
+        nonogramsCollection().document(nonogram.id.toString()).set(fields, merge = true)
         val streak = nextDenialStreak(
             current = fetchModerationGate(nonogram.authorUid)?.denialStreak ?: 0,
             approved = approve,

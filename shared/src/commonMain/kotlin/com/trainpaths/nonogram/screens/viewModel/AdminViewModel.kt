@@ -5,12 +5,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.trainpaths.nonogram.auth.AuthRepository
+import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.CancellationException
 
 private const val REVIEW_BATCH_SIZE = 20
 private const val SIGN_IN_REQUIRED_TO_REVIEW = "Sign in again to review requests."
+private val DEFAULT_REVIEW_DIFFICULTY = Difficulty.MEDIUM
 
 class AdminViewModel(
     private val authRepository: AuthRepository,
@@ -30,13 +32,22 @@ class AdminViewModel(
     var error by mutableStateOf<String?>(null)
         private set
 
+    /** The difficulty an approval is filed at; authors never rate their own puzzles. */
+    var selectedDifficulty by mutableStateOf(DEFAULT_REVIEW_DIFFICULTY)
+        private set
+
     init {
         refresh()
+    }
+
+    fun selectDifficulty(difficulty: Difficulty) {
+        selectedDifficulty = difficulty
     }
 
     fun refresh() {
         isLoading = true
         error = null
+        selectedDifficulty = DEFAULT_REVIEW_DIFFICULTY
         launchGuarded {
             try {
                 val firebaseUid = authRepository.currentFirebaseUid
@@ -66,12 +77,14 @@ class AdminViewModel(
                 val firebaseUid = authRepository.currentFirebaseUid
                     .orMissing { error = SIGN_IN_REQUIRED_TO_REVIEW } ?: return@launchGuarded
 
-                val decided = syncService.decideReview(firebaseUid, nonogram, approve)
+                val decided =
+                    syncService.decideReview(firebaseUid, nonogram, approve, selectedDifficulty)
                 if (!decided) {
                     error = "The decision could not be saved."
                     return@launchGuarded
                 }
                 queue = queue.drop(1)
+                selectedDifficulty = DEFAULT_REVIEW_DIFFICULTY
                 if (queue.isEmpty()) refresh()
             } catch (failure: CancellationException) {
                 throw failure
