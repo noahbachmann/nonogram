@@ -111,10 +111,24 @@ class ImageToGridTest {
 
     @Test
     fun defaultDimensions_preservesAspectAndClamps() {
-        assertEquals(10 to 20, defaultDimensions(width = 100, height = 50))
-        assertEquals(20 to 20, defaultDimensions(width = 10, height = 10))
+        assertEquals(15 to 30, defaultDimensions(width = 100, height = 50))
+        // The side is the longest one, so it lands on the rows for a portrait image.
+        assertEquals(30 to 15, defaultDimensions(width = 50, height = 100))
+        assertEquals(30 to 30, defaultDimensions(width = 10, height = 10))
         // A panorama would round down to nothing, so the short side clamps up instead.
         assertEquals(MIN_NONOGRAM_SIDE to DEFAULT_SCAN_SIDE, defaultDimensions(width = 4000, height = 2))
+    }
+
+    @Test
+    fun defaultDimensions_scalesToTheRequestedSide() {
+        assertEquals(10 to 20, defaultDimensions(width = 100, height = 50, side = 20))
+        // The requested side is clamped before the other one is derived from it.
+        assertEquals(25 to MAX_NONOGRAM_SIDE, defaultDimensions(width = 100, height = 50, side = 99))
+        assertEquals(
+            MIN_NONOGRAM_SIDE to MIN_NONOGRAM_SIDE,
+            defaultDimensions(width = 100, height = 50, side = 0),
+        )
+        assertEquals(12 to 12, defaultDimensions(width = 0, height = 0, side = 12))
     }
 
     @Test

@@ -5,9 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.trainpaths.nonogram.classes.sanitizeNameInput
+import com.trainpaths.nonogram.scan.DEFAULT_SCAN_SIDE
 import com.trainpaths.nonogram.scan.LumaMap
 import com.trainpaths.nonogram.scan.ScanOptions
-import com.trainpaths.nonogram.scan.clampToGridSide
 import com.trainpaths.nonogram.scan.decodeToLumaMap
 import com.trainpaths.nonogram.scan.defaultDimensions
 import com.trainpaths.nonogram.scan.otsuThreshold
@@ -31,7 +31,7 @@ private const val SPINNER_FRAME_MS = 16L
  * Holds a picked image while the user tunes it into a grid.
  *
  * The image is reduced to a small [LumaMap] once, on the way in; every later recompute — the
- * threshold slider, the size fields, invert — runs against that map.
+ * threshold slider, the size field, invert — runs against that map.
  *
  * This is a ViewModel rather than `remember`ed screen state because `MainActivity` declares no
  * `android:configChanges`, a rotation would otherwise throw the picked image away.
@@ -51,11 +51,12 @@ class ScanViewModel : ViewModel() {
     var error by mutableStateOf<String?>(null)
         private set
 
-    var rowsInput by mutableStateOf("")
+    /** The longest grid side the user wants, as typed. Pre-filled, so it can be set before a pick. */
+    var sideInput by mutableStateOf(DEFAULT_SCAN_SIDE.toString())
         private set
 
-    var colsInput by mutableStateOf("")
-        private set
+    private var sourceWidth by mutableStateOf(0)
+    private var sourceHeight by mutableStateOf(0)
 
     var threshold by mutableStateOf(128)
         private set
@@ -70,8 +71,12 @@ class ScanViewModel : ViewModel() {
     var previewGrid by mutableStateOf<List<List<Int>>>(emptyList())
         private set
 
-    val rows: Int get() = rowsInput.toIntOrNull().clampOrDefault()
-    val cols: Int get() = colsInput.toIntOrNull().clampOrDefault()
+    /** The grid that will actually be produced: the typed side, the other one from the aspect ratio. */
+    private val dimensions: Pair<Int, Int>
+        get() = defaultDimensions(sourceWidth, sourceHeight, side = sideInput.toIntOrNull() ?: 0)
+
+    val rows: Int get() = dimensions.first
+    val cols: Int get() = dimensions.second
 
     fun onImagePicked(bytes: ByteArray) {
         if (isProcessing) return
@@ -86,9 +91,9 @@ class ScanViewModel : ViewModel() {
                 delay(SPINNER_FRAME_MS.milliseconds)
                 val map = withContext(Dispatchers.Default) { bytes.decodeToLumaMap() }
                 lumaMap = map
-                val (defaultRows, defaultCols) = defaultDimensions(map.width, map.height)
-                rowsInput = defaultRows.toString()
-                colsInput = defaultCols.toString()
+                sourceWidth = map.width
+                sourceHeight = map.height
+                sideInput = maxOf(rows, cols).toString()
                 threshold = map.otsuThreshold()
                 hasImage = true
                 recomputePreview()
@@ -102,13 +107,8 @@ class ScanViewModel : ViewModel() {
         error = message
     }
 
-    fun updateRows(value: String) {
-        rowsInput = value.filter { it.isDigit() }.take(2)
-        recomputePreview()
-    }
-
-    fun updateCols(value: String) {
-        colsInput = value.filter { it.isDigit() }.take(2)
+    fun updateSide(value: String) {
+        sideInput = value.filter { it.isDigit() }.take(2)
         recomputePreview()
     }
 
@@ -126,10 +126,9 @@ class ScanViewModel : ViewModel() {
         name = sanitizeNameInput(value)
     }
 
-    /** Snaps the size fields back to what was actually used, once the user leaves them. */
-    fun normalizeSizeInputs() {
-        rowsInput = rows.toString()
-        colsInput = cols.toString()
+    /** Snaps the size field back to what was actually used, once the user leaves it. */
+    fun normalizeSizeInput() {
+        sideInput = maxOf(rows, cols).toString()
         recomputePreview()
     }
 
@@ -144,7 +143,4 @@ class ScanViewModel : ViewModel() {
             )
         )
     }
-
-    /** A half-typed or empty size field previews at the smallest legal grid rather than crashing. */
-    private fun Int?.clampOrDefault(): Int = (this ?: 0).clampToGridSide()
 }

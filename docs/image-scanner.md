@@ -23,7 +23,11 @@ Two things that will bite:
    (256) on its longest side. Alpha is composited over **white**; without that a transparent PNG scans as a fully filled
    grid.
 2. `LumaMap.otsuThreshold()` — the initial slider value.
-3. `defaultDimensions(width, height)` — aspect-preserving, longest side `DEFAULT_SCAN_SIDE`.
+3. `defaultDimensions(width, height, side)` — aspect-preserving, longest side `side`. The size is the user's, not the
+   pipeline's: `ScanViewModel.sideInput` starts at `DEFAULT_SCAN_SIDE` (30) and is editable *before* the pick as well as
+   after it, so `onImagePicked` reads it rather than overwriting it. Only that one number is exposed — rows and columns
+   are both derived, which is what stops a resize from skewing the picture, and it lands on the rows for a portrait
+   image and on the columns for a landscape one.
 4. `LumaMap.toGrid(ScanOptions)` — averages the source pixels under each cell, fills when the average is below
    `threshold`, `invert` flips.
 
@@ -65,5 +69,6 @@ A dismissed picker is silent — no pick, no error — like the canceled sign-in
 
 ## Shared with the generator
 
-`SizeField` (rows/columns input, digit filter at the call site, `SIDE_RANGE_HINT` supporting text)
-lives in `GenConfScreen.kt`; same package, so no import. `AppButton` is in `AppTheme.kt`.
+`SizeField` (grid-side input, digit filter at the call site, `SIDE_RANGE_HINT` supporting text)
+lives in `GenConfScreen.kt`; same package, so no import. Both scan screens use one — the intro's is how the size is set
+before an image exists. `AppButton` is in `AppTheme.kt`.

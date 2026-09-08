@@ -49,12 +49,17 @@ internal fun LumaMap.otsuThreshold(): Int {
     return (level + 1).coerceIn(1, 255)
 }
 
-/** Rows and columns that keep the image's aspect ratio, longest side [DEFAULT_SCAN_SIDE]. */
-internal fun defaultDimensions(width: Int, height: Int): Pair<Int, Int> {
+/** Rows and columns that keep the image's aspect ratio, longest side [side]. */
+internal fun defaultDimensions(
+    width: Int,
+    height: Int,
+    side: Int = DEFAULT_SCAN_SIDE,
+): Pair<Int, Int> {
     val longest = maxOf(width, height)
-    if (longest == 0) return DEFAULT_SCAN_SIDE to DEFAULT_SCAN_SIDE
-    val cols = (width.toLong() * DEFAULT_SCAN_SIDE / longest).toInt()
-    val rows = (height.toLong() * DEFAULT_SCAN_SIDE / longest).toInt()
+    val target = side.clampToGridSide()
+    if (longest == 0) return target to target
+    val cols = (width.toLong() * target / longest).toInt()
+    val rows = (height.toLong() * target / longest).toInt()
     return rows.clampToGridSide() to cols.clampToGridSide()
 }
 
