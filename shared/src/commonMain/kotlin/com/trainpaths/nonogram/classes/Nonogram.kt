@@ -27,7 +27,7 @@ const val MAX_NONOGRAM_NAME_LENGTH = 30
 const val UNNAMED_NONOGRAM_TITLE = "???"
 
 const val MIN_NONOGRAM_SIDE = 5
-const val MAX_NONOGRAM_SIDE = 50
+const val MAX_NONOGRAM_SIDE = 60
 
 /**
  * Rectangular and non-empty — the shape every clue computation assumes. [Nonogram.colClues]

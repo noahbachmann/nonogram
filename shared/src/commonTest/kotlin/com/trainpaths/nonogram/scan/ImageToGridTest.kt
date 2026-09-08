@@ -123,7 +123,7 @@ class ImageToGridTest {
     fun defaultDimensions_scalesToTheRequestedSide() {
         assertEquals(10 to 20, defaultDimensions(width = 100, height = 50, side = 20))
         // The requested side is clamped before the other one is derived from it.
-        assertEquals(25 to MAX_NONOGRAM_SIDE, defaultDimensions(width = 100, height = 50, side = 99))
+        assertEquals(30 to MAX_NONOGRAM_SIDE, defaultDimensions(width = 100, height = 50, side = 99))
         assertEquals(
             MIN_NONOGRAM_SIDE to MIN_NONOGRAM_SIDE,
             defaultDimensions(width = 100, height = 50, side = 0),

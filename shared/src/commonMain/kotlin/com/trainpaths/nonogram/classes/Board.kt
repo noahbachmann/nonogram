@@ -85,7 +85,7 @@ fun Board(
     val currentOnTilesChanged = rememberUpdatedState(onTilesChanged)
     val currentOnEdits = rememberUpdatedState(onEdits)
 
-    // Gutters are sized by the thin CLUE_CELL, not CELL: a 50-wide row can hold 25 clues.
+    // Gutters are sized by the thin CLUE_CELL, not CELL
     val gutterW = CLUE_CELL * maxRowClues
     val gutterH = CLUE_CELL * maxColClues
     val gridW = CELL * nonogram.width

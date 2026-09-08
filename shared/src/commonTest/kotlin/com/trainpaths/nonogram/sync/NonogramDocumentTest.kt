@@ -1,6 +1,7 @@
 package com.trainpaths.nonogram.sync
 
 import com.trainpaths.nonogram.classes.Difficulty
+import com.trainpaths.nonogram.classes.MAX_NONOGRAM_SIDE
 import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.toSolutionJson
 import kotlin.test.Test
@@ -83,10 +84,11 @@ class NonogramDocumentTest {
     @Test
     fun skipsGridsThatAreNotWellFormed() {
         val ragged = listOf(listOf(1, 0, 0, 0, 0)) + List(4) { listOf(0, 0, 0, 0) }
+        val tooBig = List(MAX_NONOGRAM_SIDE + 1) { List(MAX_NONOGRAM_SIDE + 1) { 0 } }
 
         assertNull(document(solution = ragged.toSolutionJson()).parse())
         assertNull(document(solution = List(4) { List(4) { 0 } }.toSolutionJson()).parse())
-        assertNull(document(solution = List(51) { List(51) { 0 } }.toSolutionJson()).parse())
+        assertNull(document(solution = tooBig.toSolutionJson()).parse())
 
         assertEquals(3, skipped.size)
     }
