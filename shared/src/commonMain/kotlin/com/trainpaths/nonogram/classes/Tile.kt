@@ -42,5 +42,21 @@ class Tile {
     }
 }
 
-fun List<List<Tile>>.toInts(): List<List<Int>> =
+fun List<List<Tile>>.toSolutionInts(): List<List<Int>> =
     map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
+
+fun List<List<Tile>>.toProgressInts(): List<List<Int>> =
+    map { row -> row.map { it.state.toProgressInt() } }
+
+fun TileState.toProgressInt(): Int = when (this) {
+    TileState.NONE -> 0
+    TileState.FILLED -> 1
+    TileState.CROSSED -> 2
+}
+
+fun progressIntToTileState(value: Int): TileState = when (value) {
+    1 -> TileState.FILLED
+    2 -> TileState.CROSSED
+    else -> TileState.NONE
+}
+

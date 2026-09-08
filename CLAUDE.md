@@ -248,7 +248,14 @@ silently disappears. Icons come from the hand-built `icons/` package of `ImageVe
   to an empty solution for one already stored — keep `MAX_NONOGRAM_SIDE` in step with the 20 000-character cap
   the Firestore rules put on the encoded `solution`.
 - **`Tile`** — mutable Compose state. Cycles: NONE → FILLED → CROSSED → NONE.
-- Board state is serialized as `List<List<Int>>` (0/1) for persistence and sync.
+- Grids are serialized as `List<List<Int>>` (JSON, `classes/SolutionCodec.kt`), but in **two different
+  encodings**, and `Tile.kt` names them apart. A puzzle `solution` is 0/1 — `toSolutionInts()`, which collapses
+  `CROSSED` to 0; that is what the win check (`GameScreen`) and the generator (`GenViewModel`) want, and
+  `computeLineClues` would misread anything else. A **saved board** (`UserProgress.boardState`, and the same
+  string in Firestore) is 0/1/2 — `toProgressInts()` / `progressIntToTileState()`, where 2 is a cross, because
+  crosses are the solver's own working-out and have to survive leaving the puzzle. `progressIntToTileState`
+  falls back to `NONE`, so the 0/1 rows written before crosses were persisted still load unchanged. The layers
+  in between (codec, DB column, both `SyncService`s) never inspect the values.
 - **`cache/SeedPuzzles.kt`** — the built-in puzzles, **generated**: `./gradlew :seedTool:run` rewrites it from every
   `APPROVED` puzzle in the *dev* Firestore project, so it is a projection with no state of its own and each seed's id
   is its dev document id. `AppInitializer.initializeApp` calls `AppSDK.seedIfEmpty()` once at startup, before

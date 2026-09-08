@@ -154,7 +154,7 @@ fun DrawNonogram(progress: List<List<Int>>) {
         progress.forEachIndexed { rowIndex, row ->
             row.forEachIndexed { colIndex, tile ->
                 drawRect(
-                    color = if (tile == 0) Color.White else Color.Black,
+                    color = if (tile == 1) Color.Black else Color.White,
                     topLeft = Offset(originX + colIndex * cell, originY + rowIndex * cell),
                     size = Size(cell, cell),
                 )

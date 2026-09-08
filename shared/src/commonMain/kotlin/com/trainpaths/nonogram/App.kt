@@ -262,7 +262,7 @@ private fun AppContent(
                         onBack = {
                             viewModel.saveCurrentProgress()
                             viewModel.currentNonogramId?.let { id ->
-                                menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
+                                menuViewModel.updateSingleProgress(id, viewModel.currentProgress)
                             }
                             navController.popBackStack(MenuRoute, inclusive = false)
                         },
@@ -277,7 +277,7 @@ private fun AppContent(
                         onSwapMode = {
                             viewModel.saveCurrentProgress()
                             viewModel.currentNonogramId?.let { id ->
-                                menuViewModel.updateSingleProgress(id, viewModel.currentBoardAsInts)
+                                menuViewModel.updateSingleProgress(id, viewModel.currentProgress)
                             }
                             navController.navigate(GenListRoute) {
                                 popUpTo(MenuRoute) { inclusive = true }
