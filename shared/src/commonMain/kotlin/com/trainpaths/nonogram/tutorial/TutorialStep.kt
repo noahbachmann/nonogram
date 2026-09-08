@@ -45,15 +45,15 @@ enum class TutorialStep(val title: String, val text: String) {
     ),
     BOARD_DRAW_MODE(
         title = "Draw mode",
-        text = "Cycle between Draw, Fill, Cross and Erase.",
+        text = "Pick what a tap or drag writes: fill, cross or erase.",
     ),
     BOARD_ZOOM(
-        title = "Zoom out",
+        title = "Rezoom",
         text = "Fits the whole board back on screen after you've zoomed or panned.",
     ),
     BOARD_UNDO(
         title = "Undo and redo",
-        text = "Step back through your strokes. Saves up to 10 steps.",
+        text = "Step back through your strokes. Saves up to 25 steps.",
     ),
     GENLIST_NEW(
         title = "Create a nonogram",

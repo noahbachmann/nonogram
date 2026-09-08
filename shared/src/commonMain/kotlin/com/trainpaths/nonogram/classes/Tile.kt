@@ -7,34 +7,21 @@ import androidx.compose.runtime.setValue
 enum class TileState {
     NONE,
     FILLED,
-    CROSSED;
-
-    fun next(): TileState = when (this) {
-        NONE -> FILLED
-        FILLED -> CROSSED
-        CROSSED -> NONE
-    }
+    CROSSED,
 }
 
 enum class DrawMode {
-    TOGGLE,
     FILL,
     CROSS,
     ERASE;
 
-    fun next(): DrawMode = when (this) {
-        TOGGLE -> FILL
-        FILL -> CROSS
-        CROSS -> ERASE
-        ERASE -> TOGGLE
-    }
-
-    fun apply(current: TileState): TileState = when (this) {
-        TOGGLE -> current.next()
-        FILL -> TileState.FILLED
-        CROSS -> TileState.CROSSED
-        ERASE -> TileState.NONE
-    }
+    /** The state this mode writes. Constant per mode — an edit never depends on the cell's current state. */
+    val target: TileState
+        get() = when (this) {
+            FILL -> TileState.FILLED
+            CROSS -> TileState.CROSSED
+            ERASE -> TileState.NONE
+        }
 }
 
 class Tile {
@@ -50,8 +37,8 @@ class Tile {
             wrong = false
         }
 
-    fun click(mode: DrawMode = DrawMode.TOGGLE) {
-        state = mode.apply(state)
+    fun click(mode: DrawMode = DrawMode.FILL) {
+        state = mode.target
     }
 }
 

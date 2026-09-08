@@ -210,61 +210,6 @@ public val expand_content: ImageVector
         return _expand_content!!
     }
 
-@Suppress("CheckReturnValue")
-public val stylus: ImageVector
-    get() {
-        if (_stylus != null) {
-            return _stylus!!
-        }
-        _stylus =
-            ImageVector.Builder(
-                name = "stylus",
-                defaultWidth = 24.dp,
-                defaultHeight = 24.dp,
-                viewportWidth = 24f,
-                viewportHeight = 24f,
-            )
-                .apply {
-                    path(
-                        fill = SolidColor(Color.Black),
-                        fillAlpha = 1f,
-                        stroke = null,
-                        strokeAlpha = 1f,
-                        strokeLineWidth = 1f,
-                        strokeLineCap = StrokeCap.Butt,
-                        strokeLineJoin = StrokeJoin.Bevel,
-                        strokeLineMiter = 1f,
-                        pathFillType = PathFillType.Companion.NonZero,
-                    ) {
-                        moveTo(4.18f, 21f)
-                        quadTo(3.65f, 21.13f, 3.26f, 20.74f)
-                        reflectiveQuadTo(3f, 19.83f)
-                        lineTo(4f, 15.05f)
-                        lineTo(8.95f, 20f)
-                        lineTo(4.18f, 21f)
-                        close()
-                        moveTo(8.95f, 20f)
-                        lineTo(4f, 15.05f)
-                        lineTo(15.45f, 3.6f)
-                        quadTo(16.03f, 3.02f, 16.88f, 3.02f)
-                        quadToRelative(0.85f, 0f, 1.43f, 0.57f)
-                        lineToRelative(2.1f, 2.1f)
-                        quadToRelative(0.57f, 0.57f, 0.57f, 1.43f)
-                        quadToRelative(0f, 0.85f, -0.57f, 1.42f)
-                        lineTo(8.95f, 20f)
-                        close()
-                        moveTo(16.88f, 5f)
-                        lineTo(6.53f, 15.35f)
-                        lineToRelative(2.13f, 2.13f)
-                        lineTo(19f, 7.13f)
-                        lineTo(16.88f, 5f)
-                        close()
-                    }
-                }
-                .build()
-        return _stylus!!
-    }
-
 private inline fun toolIcon(
     name: String,
     fillType: PathFillType = PathFillType.NonZero,
@@ -313,7 +258,6 @@ private var _check: ImageVector? = null
 private var _lockClosed: ImageVector? = null
 private var _lockOpen: ImageVector? = null
 private var _save: ImageVector? = null
-private var _stylus: ImageVector? = null
 private var _tileFill: ImageVector? = null
 private var _tileCross: ImageVector? = null
 private var _tileErase: ImageVector? = null

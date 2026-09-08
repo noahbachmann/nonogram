@@ -106,7 +106,7 @@ class BoardInteractionTest {
     private fun assertStrokeResult(
         startingState: TileState,
         expectedState: TileState,
-        mode: DrawMode = DrawMode.TOGGLE,
+        mode: DrawMode = DrawMode.FILL,
     ) {
         val tiles = listOf(
             listOf(
