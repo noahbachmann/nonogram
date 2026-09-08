@@ -81,6 +81,13 @@ class GenViewModel(
     var isLoadingMine by mutableStateOf(true)
         private set
 
+    /** Solver verdicts for [myNonograms], filled in as they are checked; absent means not yet known. */
+    var validityById by mutableStateOf<Map<Long, Boolean>>(emptyMap())
+        private set
+
+    /** Verdicts kept across visits to the list, keyed by the `updatedAt` they were computed for. */
+    private val validityCache = mutableMapOf<Long, Pair<Long, Boolean>>()
+
     /** True when the current puzzle has edits not yet written to the database. */
     var isDirty by mutableStateOf(false)
         private set
@@ -145,6 +152,25 @@ class GenViewModel(
             } finally {
                 isLoadingMine = false
             }
+            checkValidity(myNonograms)
+        }
+    }
+
+    /**
+     * Solves each puzzle for the list's status dot, one hop through [Dispatchers.Default] at a
+     * time so the pass also yields on web, where that dispatcher is the main thread. An
+     * unsolvable puzzle is a verdict; a solver that throws simply leaves the id unknown.
+     */
+    private suspend fun checkValidity(nonograms: List<Nonogram>) {
+        val verdicts = mutableMapOf<Long, Boolean>()
+        for (nonogram in nonograms) {
+            val cached = validityCache[nonogram.id]?.takeIf { it.first == nonogram.updatedAt }?.second
+            val isValid = cached
+                ?: withContext(Dispatchers.Default) { validationForSave { nonogram.isValid }.isValid }
+            if (isValid == null) continue
+            validityCache[nonogram.id] = nonogram.updatedAt to isValid
+            verdicts[nonogram.id] = isValid
+            validityById = verdicts.toMap()
         }
     }
 

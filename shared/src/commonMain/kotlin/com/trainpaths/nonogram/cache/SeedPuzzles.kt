@@ -19,28 +19,4 @@ internal class SeedPuzzle(
 )
 
 internal val SEED_PUZZLES: List<SeedPuzzle> = listOf(
-    SeedPuzzle(
-        id = 5981082931731213L,
-        name = "Ritters",
-        difficulty = "EASY",
-        solution = listOf(
-            listOf(1, 1, 1, 1, 1),
-            listOf(1, 0, 0, 0, 1),
-            listOf(0, 0, 0, 0, 1),
-            listOf(1, 0, 0, 0, 1),
-            listOf(1, 1, 1, 1, 1),
-        ),
-    ),
-    SeedPuzzle(
-        id = 6964793539260140L,
-        name = "asdf",
-        difficulty = "EASY",
-        solution = listOf(
-            listOf(0, 1, 1, 1, 0),
-            listOf(0, 1, 1, 1, 0),
-            listOf(0, 1, 1, 1, 0),
-            listOf(0, 1, 1, 1, 0),
-            listOf(0, 1, 1, 1, 0),
-        ),
-    ),
 )

@@ -36,6 +36,9 @@ import androidx.compose.ui.unit.dp
 
 private val MIN_CARD_WIDTH = 220.dp
 
+/** What a card's top-right dot reports instead of the puzzle's difficulty. */
+enum class CardStatus { INVALID, UNPUBLISHED, PUBLISHED }
+
 @Composable
 fun NonogramGrid(
     modifier: Modifier = Modifier,
@@ -61,6 +64,7 @@ fun NonogramCard(
     beatCount: Long? = null,
     isOwn: Boolean = false,
     alwaysShowName: Boolean = true,
+    status: CardStatus? = null,
     onClick: () -> Unit
 ) {
     val isBeaten = (beatCount ?: 0L) > 0L
@@ -111,11 +115,16 @@ fun NonogramCard(
                             .padding(start = 8.dp, top = 4.dp)
                             .size(12.dp)
                             .background(
-                                color = when (nonogram.difficulty) {
-                                    Difficulty.EASY -> MaterialTheme.colorScheme.onTertiary
-                                    Difficulty.MEDIUM -> MaterialTheme.colorScheme.tertiary
-                                    Difficulty.HARD -> MaterialTheme.colorScheme.tertiaryFixed
-                                    Difficulty.HARDCORE -> Color.Black
+                                color = when (status) {
+                                    CardStatus.INVALID -> MaterialTheme.colorScheme.tertiaryFixed
+                                    CardStatus.UNPUBLISHED -> MaterialTheme.colorScheme.tertiary
+                                    CardStatus.PUBLISHED -> MaterialTheme.colorScheme.onTertiary
+                                    null -> when (nonogram.difficulty) {
+                                        Difficulty.EASY -> MaterialTheme.colorScheme.onTertiary
+                                        Difficulty.MEDIUM -> MaterialTheme.colorScheme.tertiary
+                                        Difficulty.HARD -> MaterialTheme.colorScheme.tertiaryFixed
+                                        Difficulty.HARDCORE -> Color.Black
+                                    }
                                 },
                                 shape = CircleShape,
                             )
