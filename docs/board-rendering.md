@@ -5,7 +5,7 @@ The interactive grid — clues, tiles, pan, zoom, and drawing — is a self-cont
 
 - **`Board.kt`** — the composable + all drawing.
 - **`BoardTransform.kt`** — `BoardTransformState` (the pan/zoom model), gesture detectors, and every layout constant.
-- **`Tile.kt`** — `Tile` (a Compose `mutableStateOf` cell), `TileState` (NONE → FILLED → CROSSED → …)
+- **`Tile.kt`** — `Tile` (a Compose `mutableStateOf` cell), `TileState` (NONE / FILLED / CROSSED)
   and `DrawMode` (which state an edit writes).
 
 Used by both `GameScreen` (playing) and `GenScreen` (drawing), which host `Board` directly — the win check is
@@ -87,20 +87,22 @@ Four stacked `pointerInput` nodes on the gesture Box. Compose dispatches the **M
 5. **`detectBoardDrawGestures`** (only when `isLocked`) — innermost, so in locked mode it gets first refusal. Commits a
    one-pointer stroke only after touch slop (a second finger before that hands off to pinch); once committed it consumes
    every change so the transform detector can't also pan.
-   `TileStroke` picks its target state once from the start tile (`mode.apply(startTile.state)`) and visits each cell at
+   `TileStroke` fixes its target state once from the mode (`mode.target`) and visits each cell at
    most once, so crossing back over a stroke doesn't re-toggle.
 
 **Lock mode** (`isLocked`): `true` → one-finger drag *draws*; `false` → one-finger drag *pans*. Pinch zoom and
 tap-to-edit work in both. Toggled from `BottomToolBar` (the lock/unlock button).
 
-**Draw mode** (`DrawMode`, cycled by the `BottomToolBar` tool button): what an edit *writes*.
-`TOGGLE` is the historical behaviour — advance the cell by `TileState.next()`. `FILL` / `CROSS` /
-`ERASE` write that one state and are idempotent, so re-tapping or re-crossing a cell never undoes it. Both mutation
+**Draw mode** (`DrawMode`, picked from the `BottomToolBar`'s drawing group): what an edit *writes*. `FILL` / `CROSS` /
+`ERASE` each write that one state and are idempotent, so re-tapping or re-crossing a cell never undoes it — clearing a
+cell means selecting `ERASE`. There is no toggle/cycle mode: the earlier `TOGGLE`, which advanced the cell by
+`TileState.next()`, was removed along with `TileState.next()` itself. Both mutation
 paths — the tap in `Board` and `TileStroke.begin` — resolve through
-`DrawMode.apply(current)`, which is the single answer to "what does this edit write?". The mode reaches the long-lived
+`DrawMode.target`, which is the single answer to "what does this edit write?" — and it is a plain constant per mode, so
+no edit anywhere reads the cell's existing state. The mode reaches the long-lived
 gesture coroutines as a lambda (`drawMode: () -> DrawMode`) read at stroke commit, and is *not* a `pointerInput` key:
 changing tools mid-board must not tear down and restart the detectors. It is per-screen composable state, like
-`isLocked`, and resets to `TOGGLE`.
+`isLocked`, and resets to `FILL`.
 
 ## The check mark
 

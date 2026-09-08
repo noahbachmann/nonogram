@@ -54,7 +54,7 @@ fun Board(
     isLocked: Boolean,
     modifier: Modifier = Modifier,
     isEditable: Boolean = true,
-    drawMode: DrawMode = DrawMode.TOGGLE,
+    drawMode: DrawMode = DrawMode.FILL,
     state: BoardTransformState = remember(nonogram.width, nonogram.height) { BoardTransformState() },
     onTilesChanged: () -> Unit = {},
     onEdits: (List<TileEdit>) -> Unit = {},

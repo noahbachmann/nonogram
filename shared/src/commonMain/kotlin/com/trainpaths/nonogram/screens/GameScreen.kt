@@ -32,7 +32,7 @@ fun GameScreen(
     onSwapMode: () -> Unit,
 ) {
     var isLocked by remember { mutableStateOf(true) }
-    var drawMode by remember { mutableStateOf(DrawMode.TOGGLE) }
+    var drawMode by remember { mutableStateOf(DrawMode.FILL) }
 
     val nonogram = viewModel.nonogram
     val tiles = viewModel.tiles
@@ -73,7 +73,7 @@ fun GameScreen(
             isLocked = isLocked,
             onLockToggle = { isLocked = !isLocked },
             drawMode = drawMode,
-            onDrawModeToggle = { drawMode = drawMode.next() },
+            onDrawModeSelect = { drawMode = it },
             resetZoom = { boardState.reset() },
             history = viewModel.history,
             onCheck = viewModel::checkBoard,

@@ -32,7 +32,7 @@ fun GenScreen(
     var showSaveDialog by remember { mutableStateOf(false) }
     var pendingPublicSave by remember { mutableStateOf<(() -> Unit)?>(null) }
     var isLocked by remember { mutableStateOf(true) }
-    var drawMode by remember { mutableStateOf(DrawMode.TOGGLE) }
+    var drawMode by remember { mutableStateOf(DrawMode.FILL) }
     val boardState = remember(genViewModel.nonogram.width, genViewModel.nonogram.height) { BoardTransformState() }
 
     fun requestSave(save: () -> Unit) {
@@ -82,7 +82,7 @@ fun GenScreen(
             isLocked = isLocked,
             onLockToggle = { isLocked = !isLocked },
             drawMode = drawMode,
-            onDrawModeToggle = { drawMode = drawMode.next() },
+            onDrawModeSelect = { drawMode = it },
             history = genViewModel.history,
             resetZoom = { boardState.reset() },
             saveEnabled = genViewModel.canSave,

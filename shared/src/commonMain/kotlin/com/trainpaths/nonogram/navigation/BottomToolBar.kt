@@ -4,14 +4,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -19,10 +23,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.MAX_CONTENT_WIDTH
 import com.trainpaths.nonogram.classes.BoardHistory
@@ -33,7 +41,6 @@ import com.trainpaths.nonogram.icons.lockClosed
 import com.trainpaths.nonogram.icons.lockOpen
 import com.trainpaths.nonogram.icons.redo
 import com.trainpaths.nonogram.icons.save
-import com.trainpaths.nonogram.icons.stylus
 import com.trainpaths.nonogram.icons.tileCross
 import com.trainpaths.nonogram.icons.tileErase
 import com.trainpaths.nonogram.icons.tileFill
@@ -41,12 +48,25 @@ import com.trainpaths.nonogram.icons.undo
 import com.trainpaths.nonogram.tutorial.TutorialStep
 import com.trainpaths.nonogram.tutorial.tutorialAnchor
 
+/** An icon-only button in a titled group: wide enough for the 28.dp icon and its highlight pill, no more. */
+private val ICON_ITEM_WIDTH = 38.dp
+
+/** A button that labels itself needs room for a word. Shrinks below this only to avoid overflowing. */
+private val MAX_ITEM_WIDTH = 64.dp
+
+/** Gap between groups. Items *inside* a group always sit flush, so this is the only thing that reads as grouping. */
+private val MIN_GROUP_GAP = 14.dp
+private val MAX_GROUP_GAP = 48.dp
+
+/** Inside the clickable, so it grows the touch target rather than just insetting the icon. */
+private val ITEM_VERTICAL_PADDING = 8.dp
+
 @Composable
 fun BottomToolBar(
     isLocked: Boolean,
     onLockToggle: () -> Unit,
     drawMode: DrawMode,
-    onDrawModeToggle: () -> Unit,
+    onDrawModeSelect: (DrawMode) -> Unit,
     resetZoom: (() -> Unit)? = null,
     history: BoardHistory? = null,
     onSave: (() -> Unit)? = null,
@@ -61,130 +81,206 @@ fun BottomToolBar(
             modifier = Modifier.widthIn(max = MAX_CONTENT_WIDTH).fillMaxWidth(),
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onSecondary,
+            contentPadding = PaddingValues(horizontal = 4.dp),
         ) {
-            BottomBarItem(
-                label = if (isLocked) "Locked" else "Unlocked",
-                imageVector = if (isLocked) lockClosed else lockOpen,
-                contentDescription = if (isLocked) "Locked" else "Unlocked",
-                onClick = onLockToggle,
-                tutorialStep = TutorialStep.BOARD_LOCK,
-            )
+            val iconOnlyCount = DrawMode.entries.size + (if (history != null) 2 else 0)
+            val labelledCount = 1 + // lock
+                (if (resetZoom != null) 1 else 0) +
+                (if (onSave != null) 1 else 0) +
+                (if (onCheck != null) 1 else 0)
 
-            val drawModeLabel = when (drawMode) {
-                DrawMode.TOGGLE -> "Draw"
-                DrawMode.FILL -> "Fill"
-                DrawMode.CROSS -> "Cross"
-                DrawMode.ERASE -> "Erase"
-            }
-            BottomBarItem(
-                label = drawModeLabel,
-                imageVector = when (drawMode) {
-                    DrawMode.TOGGLE -> stylus
-                    DrawMode.FILL -> tileFill
-                    DrawMode.CROSS -> tileCross
-                    DrawMode.ERASE -> tileErase
-                },
-                contentDescription = "Draw mode: $drawModeLabel",
-                onClick = onDrawModeToggle,
-                tutorialStep = TutorialStep.BOARD_DRAW_MODE,
-            )
+            val groupCount = if (history != null) 3 else 2
+            val gapCount = groupCount - 1
 
-            if (resetZoom != null) {
-                BottomBarItem(
-                    label = "Zoom out",
-                    imageVector = expand_content,
-                    contentDescription = "Zoom out to fit",
-                    onClick = resetZoom,
-                    tutorialStep = TutorialStep.BOARD_ZOOM,
-                )
-            }
+            BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                val forLabelled = maxWidth - MIN_GROUP_GAP * gapCount - ICON_ITEM_WIDTH * iconOnlyCount
+                val labelledWidth = (forLabelled / labelledCount).coerceAtMost(MAX_ITEM_WIDTH)
+                val used = ICON_ITEM_WIDTH * iconOnlyCount + labelledWidth * labelledCount
+                val groupGap = ((maxWidth - used) / gapCount).coerceIn(MIN_GROUP_GAP, MAX_GROUP_GAP)
 
-            if (history != null) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .tutorialAnchor(TutorialStep.BOARD_UNDO),
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(groupGap, Alignment.CenterHorizontally),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    BottomBarItem(
-                        label = "Undo",
-                        imageVector = undo,
-                        contentDescription = "Undo",
-                        onClick = { history.undo() },
-                        enabled = history.canUndo,
-                    )
-                    BottomBarItem(
-                        label = "Redo",
-                        imageVector = redo,
-                        contentDescription = "Redo",
-                        onClick = { history.redo() },
-                        enabled = history.canRedo,
-                    )
+                    ToolGroup(title = "Pencil", tutorialStep = TutorialStep.BOARD_DRAW_MODE) {
+                        DrawMode.entries.forEach { mode ->
+                            BottomBarItem(
+                                label = null,
+                                imageVector = mode.icon,
+                                contentDescription = "Draw mode: ${mode.label}",
+                                onClick = { onDrawModeSelect(mode) },
+                                width = ICON_ITEM_WIDTH,
+                                selected = drawMode == mode,
+                            )
+                        }
+                    }
+
+                    if (history != null) {
+                        ToolGroup(title = "History", tutorialStep = TutorialStep.BOARD_UNDO) {
+                            BottomBarItem(
+                                label = null,
+                                imageVector = undo,
+                                contentDescription = "Undo",
+                                onClick = { history.undo() },
+                                width = ICON_ITEM_WIDTH,
+                                enabled = history.canUndo,
+                            )
+                            BottomBarItem(
+                                label = null,
+                                imageVector = redo,
+                                contentDescription = "Redo",
+                                onClick = { history.redo() },
+                                width = ICON_ITEM_WIDTH,
+                                enabled = history.canRedo,
+                            )
+                        }
+                    }
+
+                    ToolGroup {
+                        if (resetZoom != null) {
+                            BottomBarItem(
+                                label = "Rezoom",
+                                imageVector = expand_content,
+                                contentDescription = "Zoom out to fit",
+                                onClick = resetZoom,
+                                width = labelledWidth,
+                                tutorialStep = TutorialStep.BOARD_ZOOM,
+                            )
+                        }
+
+                        BottomBarItem(
+                            label = if (isLocked) "Lock" else "Unlock",
+                            imageVector = if (isLocked) lockClosed else lockOpen,
+                            contentDescription = if (isLocked) "Locked" else "Unlocked",
+                            onClick = onLockToggle,
+                            width = labelledWidth,
+                            tutorialStep = TutorialStep.BOARD_LOCK,
+                        )
+
+                        if (onSave != null) {
+                            BottomBarItem(
+                                label = "Save",
+                                imageVector = save,
+                                contentDescription = "Save nonogram",
+                                onClick = onSave,
+                                width = labelledWidth,
+                                enabled = saveEnabled,
+                                tutorialStep = TutorialStep.GEN_SAVE,
+                            )
+                        }
+
+                        if (onCheck != null) {
+                            BottomBarItem(
+                                label = "Check",
+                                imageVector = check,
+                                contentDescription = "Check board for mistakes",
+                                onClick = onCheck,
+                                width = labelledWidth,
+                            )
+                        }
+                    }
                 }
             }
+        }
+    }
+}
 
-            Spacer(Modifier.weight(1f))
+private val DrawMode.label: String
+    get() = when (this) {
+        DrawMode.FILL -> "Fill"
+        DrawMode.CROSS -> "Cross"
+        DrawMode.ERASE -> "Erase"
+    }
 
-            if (onCheck != null) {
-                BottomBarItem(
-                    label = "Check",
-                    imageVector = check,
-                    contentDescription = "Check board for mistakes",
-                    onClick = onCheck,
-                )
-            }
+private val DrawMode.icon: ImageVector
+    get() = when (this) {
+        DrawMode.FILL -> tileFill
+        DrawMode.CROSS -> tileCross
+        DrawMode.ERASE -> tileErase
+    }
 
-            if (onSave != null) {
-                BottomBarItem(
-                    label = "Save",
-                    imageVector = save,
-                    contentDescription = "Save nonogram",
-                    onClick = onSave,
-                    enabled = saveEnabled,
-                    tutorialStep = TutorialStep.GEN_SAVE,
-                )
-            }
+@Composable
+private fun ToolGroup(
+    title: String? = null,
+    tutorialStep: TutorialStep? = null,
+    content: @Composable () -> Unit,
+) {
+    Column(
+        modifier = Modifier.tutorialAnchor(tutorialStep),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            content()
+        }
+        if (title != null) {
+            Text(
+                text = title,
+                color = MaterialTheme.colorScheme.onSecondary,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+            )
         }
     }
 }
 
 @Composable
 private fun BottomBarItem(
-    label: String,
+    /** null when the enclosing [ToolGroup] carries a shared title instead. */
+    label: String?,
     imageVector: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
+    width: Dp,
     enabled: Boolean = true,
+    /** null for a plain action; true/false marks the item as one option of a selectable group. */
+    selected: Boolean? = null,
     tutorialStep: TutorialStep? = null,
 ) {
     val contentColor = when {
         !enabled -> MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.50f)
         else -> MaterialTheme.colorScheme.onSecondary
     }
+    val highlight = if (selected == true) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        Color.Transparent
+    }
 
     Column(
         modifier = Modifier
-            .width(64.dp)
-            .fillMaxHeight()
+            .width(width)
             .tutorialAnchor(tutorialStep)
             .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = ITEM_VERTICAL_PADDING)
             .semantics(mergeDescendants = true) {
                 this.contentDescription = contentDescription
+                if (selected != null) this.selected = selected
             },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = imageVector,
-            contentDescription = null,
-            tint = contentColor,
-            modifier = Modifier.size(28.dp),
-        )
-        Text(
-            text = label,
-            color = contentColor,
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1,
-        )
+        Box(
+            modifier = Modifier
+                .background(highlight)
+                .padding(horizontal = 4.dp, vertical = 3.dp),
+        ) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+        if (label != null) {
+            Text(
+                text = label,
+                color = contentColor,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }

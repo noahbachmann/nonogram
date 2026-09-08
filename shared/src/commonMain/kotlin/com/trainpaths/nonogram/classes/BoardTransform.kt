@@ -112,14 +112,13 @@ internal class TileStroke private constructor(
     }
 
     companion object {
-        /** Resolves the stroke state from the starting cell and [mode], without changing it yet. */
         fun begin(
             tiles: List<List<Tile>>,
             start: TileCoord,
-            mode: DrawMode = DrawMode.TOGGLE,
+            mode: DrawMode = DrawMode.FILL,
         ): TileStroke? {
-            val startTile = tiles.getOrNull(start.row)?.getOrNull(start.col) ?: return null
-            return TileStroke(tiles = tiles, targetState = mode.apply(startTile.state))
+            tiles.getOrNull(start.row)?.getOrNull(start.col) ?: return null
+            return TileStroke(tiles = tiles, targetState = mode.target)
         }
     }
 }
@@ -363,8 +362,6 @@ class BoardTransformState {
         val k = new / old
         apply(new, anchor.x - (anchor.x - offsetX) * k, anchor.y - (anchor.y - offsetY) * k)
     }
-
-    fun zoomAtCenter(factor: Float) = zoomBy(factor, Offset(viewportW / 2f, viewportH / 2f))
 
     /**
      * Pan, then zoom about the pinch centroid.

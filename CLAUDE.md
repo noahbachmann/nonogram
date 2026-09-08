@@ -196,11 +196,25 @@ puzzle; the leave dialog's Save action remains save-and-exit.
 `TopAppBar` navigation icon: GENERATOR mode shows the `build` wrench (used as the "config" affordance in `GenScreen`);
 pass `backArrow = true` to force a plain back arrow (used in `GenConf`).
 
-`navigation/BottomToolBar.kt` is the board's bottom bar (GameScreen + GenScreen): a **lock/unlock** toggle (locked =
-one-finger drag draws, unlocked = drag pans — see `docs/board-rendering.md`), a **draw-mode** button cycling
-`DrawMode` (Toggle → Fill → Cross → Erase; Toggle keeps the classic `TileState.next()` cycle, the other three write that
-state idempotently), an optional **reset-zoom** button, and (GenScreen) the **Save** icon (enabled only for a new or
-dirty puzzle). Icons come from the hand-built `icons/` package of `ImageVector`s.
+`navigation/BottomToolBar.kt` is the board's bottom bar (GameScreen + GenScreen). Its buttons sit in **three groups** —
+drawing, history, board, in that order — each a `ToolGroup` of adjacent items, the separation coming from the parent
+`Row`'s `SpaceBetween` rather than any divider or container. The **drawing** group is one button per `DrawMode`
+(Fill / Cross / Erase), the active one highlighted; there is no cycling tool button and no Toggle mode — every mode
+writes its state idempotently. The **history** group is undo/redo. The **board** group is the optional **rezoom**
+button, the **lock/unlock** toggle (locked = one-finger drag draws, unlocked = drag pans — see
+`docs/board-rendering.md`), the (GenScreen) **Save** icon (enabled only for a new or dirty puzzle) and the (GameScreen)
+**Check** icon.
+
+A `ToolGroup` with a `title` labels the cluster as a whole and its buttons carry no labels of their own — that is what
+the drawing and history groups use ("Draw", "History"), since their buttons are options of one setting rather than
+separate actions. The board group passes no title, so each of its buttons labels itself. Both shapes come out the same
+height (pill + one text line), which is what keeps every icon on one line.
+
+Both screens render 8 buttons, which does not fit a phone at a fixed width, so `BoxWithConstraints` sizes them: the
+icon-only buttons take a fixed `ICON_ITEM_WIDTH`, the labelled ones split what is left and ellipsize rather than
+overflow, and the group gap absorbs the remainder (clamped, with the row centred) — **the gaps are subtracted before
+the items are sized**, because handing the items the full width leaves `SpaceBetween` no slack and the grouping
+silently disappears. Icons come from the hand-built `icons/` package of `ImageVector`s.
 
 ### DI (Koin)
 
