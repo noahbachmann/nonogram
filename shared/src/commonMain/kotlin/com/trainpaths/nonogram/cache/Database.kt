@@ -1,6 +1,7 @@
 package com.trainpaths.nonogram.cache
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOne
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.db.SqlDriver
 import com.trainpaths.nonogram.classes.Nonogram
@@ -64,6 +65,26 @@ internal class Database(driver: SqlDriver) {
             dbQuery.selectRandomNonogramByDifficulty(difficulty, ::mapNonogram)
                 .awaitAsOneOrNull()
         }
+
+    internal suspend fun countNonograms(): Long =
+        dbQuery.countNonograms().awaitAsOne()
+    
+    internal suspend fun insertSeeds(seeds: List<SeedPuzzle>) {
+        val now = Clock.System.now().toEpochMilliseconds()
+        dbQuery.transaction {
+            seeds.forEach { seed ->
+                dbQuery.insertSeedNonogram(
+                    seed.id,
+                    seed.difficulty,
+                    seed.solution.toSolutionJson(),
+                    "",
+                    PublishStatus.APPROVED.toLong(),
+                    now,
+                    seed.name?.let(::normalizeNonogramName),
+                )
+            }
+        }
+    }
 
     internal suspend fun addNonogram(
         difficulty: String,

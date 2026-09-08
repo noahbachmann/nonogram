@@ -229,6 +229,12 @@ dirty puzzle). Icons come from the hand-built `icons/` package of `ImageVector`s
   the Firestore rules put on the encoded `solution`.
 - **`Tile`** — mutable Compose state. Cycles: NONE → FILLED → CROSSED → NONE.
 - Board state is serialized as `List<List<Int>>` (0/1) for persistence and sync.
+- **`cache/SeedPuzzles.kt`** — the built-in puzzles, **generated**: `./gradlew :seedTool:run` rewrites it from every
+  `APPROVED` puzzle in the *dev* Firestore project, so it is a projection with no state of its own and each seed's id
+  is its dev document id. `AppInitializer.initializeApp` calls `AppSDK.seedIfEmpty()` once at startup, before
+  `AuthRepository.initialize()` and so before any ViewModel reads the table; the guard is a `SELECT count(*)`, since
+  an empty table is the first launch (and the one web storage eviction leaves behind). See `docs/seeding.md` — do not
+  hand-edit the file.
 
 ### SQLDelight
 

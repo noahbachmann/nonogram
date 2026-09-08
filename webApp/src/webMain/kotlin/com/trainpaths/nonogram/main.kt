@@ -33,7 +33,8 @@ fun main() {
     AppInitializer.onApplicationStart(FirebaseWebConfig.GOOGLE_WEB_CLIENT_ID)
     startKoin { modules(webModule, appModule) }
     MainScope().launch {
-        AppInitializer.initializeAuth(KoinPlatform.getKoin().get<AuthRepository>())
+        val koin = KoinPlatform.getKoin()
+        AppInitializer.initializeApp(koin.get<AppSDK>(), koin.get<AuthRepository>())
     }
 
     ComposeViewport {
