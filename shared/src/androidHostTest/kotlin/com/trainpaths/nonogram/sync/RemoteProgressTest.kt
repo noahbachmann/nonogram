@@ -2,6 +2,7 @@ package com.trainpaths.nonogram.sync
 
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.TestDatabaseFactory
+import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
@@ -133,7 +134,12 @@ private class RecordingSyncService : SyncService {
     override suspend fun fetchModerationGate(firebaseUid: String) = unused()
     override suspend fun isAdmin(firebaseUid: String) = unused()
     override suspend fun pullPendingReviews(firebaseUid: String, limit: Int) = unused()
-    override suspend fun decideReview(firebaseUid: String, nonogram: Nonogram, approve: Boolean) = unused()
+    override suspend fun decideReview(
+        firebaseUid: String,
+        nonogram: Nonogram,
+        approve: Boolean,
+        difficulty: Difficulty,
+    ) = unused()
 
     private fun unused(): Nothing = error("not part of the progress merge")
 }

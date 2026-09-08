@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.AppButton
+import com.trainpaths.nonogram.color
+import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.DrawNonogram
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.UNNAMED_NONOGRAM_TITLE
@@ -65,25 +68,14 @@ fun AdminScreen(
                 )
             }
 
-            else -> ReviewCard(
-                nonogram = pending,
-                isDeciding = adminViewModel.isDeciding,
-                error = adminViewModel.error,
-                onAccept = { adminViewModel.accept() },
-                onDeny = { adminViewModel.deny() },
-            )
+            else -> ReviewCard(nonogram = pending, adminViewModel = adminViewModel)
         }
     }
 }
 
 @Composable
-private fun ReviewCard(
-    nonogram: Nonogram,
-    isDeciding: Boolean,
-    error: String?,
-    onAccept: () -> Unit,
-    onDeny: () -> Unit,
-) {
+private fun ReviewCard(nonogram: Nonogram, adminViewModel: AdminViewModel) {
+    val isDeciding = adminViewModel.isDeciding
     Column(
         modifier = Modifier.widthIn(max = MAX_CONTENT_WIDTH).fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -95,7 +87,7 @@ private fun ReviewCard(
             color = MaterialTheme.colorScheme.onPrimary,
         )
         Text(
-            "${nonogram.difficulty.label} · ${nonogram.width}x${nonogram.height}",
+            "${nonogram.width}x${nonogram.height}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground,
         )
@@ -111,7 +103,7 @@ private fun ReviewCard(
             DrawNonogram(nonogram.solution)
         }
 
-        error?.let {
+        adminViewModel.error?.let {
             Text(
                 text = it,
                 style = MaterialTheme.typography.bodySmall,
@@ -122,11 +114,32 @@ private fun ReviewCard(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Difficulty.entries.forEach { difficulty ->
+                val selected = difficulty == adminViewModel.selectedDifficulty
+                val accent = difficulty.color()
+                AppButton(
+                    text = difficulty.label,
+                    onClick = { adminViewModel.selectDifficulty(difficulty) },
+                    enabled = !isDeciding,
+                    height = 40.dp,
+                    containerColor = if (selected) accent else MaterialTheme.colorScheme.outline,
+                    contentColor = if (selected) MaterialTheme.colorScheme.outline else accent,
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    contentPadding = PaddingValues(horizontal = 4.dp),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             AppButton(
                 text = "Deny",
-                onClick = onDeny,
+                onClick = { adminViewModel.deny() },
                 enabled = !isDeciding,
                 containerColor = MaterialTheme.colorScheme.tertiaryFixed,
                 contentColor = MaterialTheme.colorScheme.outline,
@@ -134,7 +147,7 @@ private fun ReviewCard(
             )
             AppButton(
                 text = "Accept",
-                onClick = onAccept,
+                onClick = { adminViewModel.accept() },
                 enabled = !isDeciding,
                 containerColor = MaterialTheme.colorScheme.onTertiary,
                 contentColor = MaterialTheme.colorScheme.outline,

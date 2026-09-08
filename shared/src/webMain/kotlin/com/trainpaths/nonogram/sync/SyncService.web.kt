@@ -3,6 +3,7 @@
 package com.trainpaths.nonogram.sync
 
 import com.trainpaths.nonogram.AppSDK
+import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.toSolutionJson
@@ -201,6 +202,7 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
         firebaseUid: String,
         nonogram: Nonogram,
         approve: Boolean,
+        difficulty: Difficulty,
     ): Boolean = gated(firebaseUid, "decision on nonogram ${nonogram.id} failed", false) {
         val firestore = FirebaseWeb.requireFirestore()
         setDocMerged(
@@ -208,6 +210,7 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
             FirebaseWeb.makePublishStatusData(
                 publishStatus = (if (approve) PublishStatus.APPROVED else PublishStatus.DENIED).name,
                 updatedAt = Clock.System.now().toEpochMilliseconds(),
+                difficulty = difficulty.name.takeIf { approve },
             ),
             FirebaseWeb.mergeOptions(),
         ).await()

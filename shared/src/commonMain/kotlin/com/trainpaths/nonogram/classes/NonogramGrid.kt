@@ -33,6 +33,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.color
 
 private val MIN_CARD_WIDTH = 220.dp
 
@@ -119,12 +120,7 @@ fun NonogramCard(
                                     CardStatus.INVALID -> MaterialTheme.colorScheme.tertiaryFixed
                                     CardStatus.UNPUBLISHED -> MaterialTheme.colorScheme.tertiary
                                     CardStatus.PUBLISHED -> MaterialTheme.colorScheme.onTertiary
-                                    null -> when (nonogram.difficulty) {
-                                        Difficulty.EASY -> MaterialTheme.colorScheme.onTertiary
-                                        Difficulty.MEDIUM -> MaterialTheme.colorScheme.tertiary
-                                        Difficulty.HARD -> MaterialTheme.colorScheme.tertiaryFixed
-                                        Difficulty.HARDCORE -> Color.Black
-                                    }
+                                    null -> nonogram.difficulty.color()
                                 },
                                 shape = CircleShape,
                             )

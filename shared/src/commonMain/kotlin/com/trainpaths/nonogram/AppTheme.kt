@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,6 +21,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.classes.Difficulty
 
 /**
  * Widest the app's content ever gets.
@@ -128,6 +130,15 @@ enum class ColorTheme(val label: String, val scheme: ColorScheme) {
 
 fun Color.darken(fraction: Float): Color = lerp(this, Color.Black, fraction)
 
+/** The frozen difficulty roles, read back: the colour a puzzle's difficulty is drawn in. */
+@Composable
+fun Difficulty.color(): Color = when (this) {
+    Difficulty.EASY -> MaterialTheme.colorScheme.onTertiary
+    Difficulty.MEDIUM -> MaterialTheme.colorScheme.tertiary
+    Difficulty.HARD -> MaterialTheme.colorScheme.tertiaryFixed
+    Difficulty.HARDCORE -> Color.Black
+}
+
 @Composable
 fun AppTheme(
     theme: ColorTheme,
@@ -202,6 +213,7 @@ fun AppButton(
     containerColor: Color = MaterialTheme.colorScheme.onPrimary,
     contentColor: Color = MaterialTheme.colorScheme.primary,
     textStyle: TextStyle = MaterialTheme.typography.titleMedium,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
 ) {
     Button(
         onClick = onClick,
@@ -212,6 +224,7 @@ fun AppButton(
             containerColor = containerColor,
             contentColor = contentColor,
         ),
+        contentPadding = contentPadding,
     ) {
         Text(text, style = textStyle)
     }

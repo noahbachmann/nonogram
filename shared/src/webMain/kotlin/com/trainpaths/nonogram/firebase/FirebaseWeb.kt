@@ -89,11 +89,16 @@ object FirebaseWeb {
             }.toString()
         )!!
 
-    internal fun makePublishStatusData(publishStatus: String, updatedAt: Long): JsAny =
+    internal fun makePublishStatusData(
+        publishStatus: String,
+        updatedAt: Long,
+        difficulty: String? = null,
+    ): JsAny =
         JSON.parse(
             buildJsonObject {
                 put(Fields.PUBLISH_STATUS, publishStatus)
                 put(Fields.UPDATED_AT, updatedAt)
+                if (difficulty != null) put(Fields.DIFFICULTY, difficulty)
             }.toString()
         )!!
 

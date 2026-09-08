@@ -2,6 +2,7 @@ package com.trainpaths.nonogram.sync
 
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.auth.AuthRepository
+import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
 import kotlin.time.Clock
 
@@ -36,8 +37,17 @@ interface SyncService {
     /** Admin only: the oldest pending requests, oldest first. */
     suspend fun pullPendingReviews(firebaseUid: String, limit: Int): List<Nonogram>
 
-    /** Admin only: accepts or denies [nonogram] and updates its author's denial streak. */
-    suspend fun decideReview(firebaseUid: String, nonogram: Nonogram, approve: Boolean): Boolean
+    /**
+     * Admin only: accepts [nonogram] at [difficulty] or denies it, and updates its author's denial
+     * streak. Difficulty is the reviewer's call — authors never rate their own puzzles — so it is
+     * written only when approving.
+     */
+    suspend fun decideReview(
+        firebaseUid: String,
+        nonogram: Nonogram,
+        approve: Boolean,
+        difficulty: Difficulty,
+    ): Boolean
 }
 
 /**
