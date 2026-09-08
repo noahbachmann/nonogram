@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
@@ -243,7 +241,7 @@ private fun BottomBarItem(
         else -> MaterialTheme.colorScheme.onSecondary
     }
     val highlight = if (selected == true) {
-        MaterialTheme.colorScheme.primary
+        Color.White.copy(alpha = 0.28f)
     } else {
         Color.Transparent
     }
@@ -263,7 +261,7 @@ private fun BottomBarItem(
     ) {
         Box(
             modifier = Modifier
-                .background(highlight)
+                .background(highlight, MaterialTheme.shapes.small)
                 .padding(horizontal = 4.dp, vertical = 3.dp),
         ) {
             Icon(
