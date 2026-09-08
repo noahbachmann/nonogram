@@ -12,8 +12,10 @@ interface SyncService {
     suspend fun pullAllProgress(firebaseUid: String)
     suspend fun pullAndMergeAllProgress(firebaseUid: String)
 
-    /** Writes the puzzle to the shared `nonograms` collection, authored by [firebaseUid]. */
-    suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, resetPublishStatus: Boolean = false)
+    /**
+     * Writes the puzzle to the shared `nonograms` collection, authored by [firebaseUid].
+     */
+    suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, writePublishStatus: Boolean = false)
 
     /** Pushes every locally authored puzzle; used once when an account first signs in. */
     suspend fun uploadAllLocalNonograms(firebaseUid: String)

@@ -230,6 +230,19 @@ class NonogramTest {
     }
 
     @Test
+    fun isKnownValid_readsTheStoredStatus() {
+        val puzzle = nonogramData.first { it.verifySolver }.nonogram
+
+        for (status in PublishStatus.entries) {
+            assertEquals(
+                expected = status != PublishStatus.NONE,
+                actual = puzzle.copy(publishStatus = status).isKnownValid,
+                message = "isKnownValid for $status",
+            )
+        }
+    }
+
+    @Test
     fun clues_areComputedCorrectly() {
         nonogramData.forEach { data ->
             data.expectedRowClues?.let { expected ->

@@ -67,7 +67,7 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
             mergeRemoteProgress(sdk, firebaseUid, fetchProgress(firebaseUid))
         }
 
-    override suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, resetPublishStatus: Boolean) =
+    override suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, writePublishStatus: Boolean) =
         logged("push nonogram ${nonogram.id} failed", Unit) {
             val fields = buildMap<String, Any?> {
                 put(Fields.DIFFICULTY, nonogram.difficulty.toString())
@@ -75,7 +75,7 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
                 put(Fields.NAME, nonogram.name)
                 put(Fields.AUTHOR_UID, firebaseUid)
                 put(Fields.UPDATED_AT, nonogram.updatedAt)
-                if (resetPublishStatus) put(Fields.PUBLISH_STATUS, PublishStatus.NONE.name)
+                if (writePublishStatus) put(Fields.PUBLISH_STATUS, nonogram.publishStatus.name)
             }
             // Merge, so an ordinary save never clobbers a pending or approved publish status.
             nonogramsCollection().document(nonogram.id.toString()).set(fields, merge = true)
