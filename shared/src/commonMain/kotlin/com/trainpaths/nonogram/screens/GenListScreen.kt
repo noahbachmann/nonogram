@@ -132,7 +132,7 @@ fun GenListScreen(
                             ),
                             status = when {
                                 nonogram.isPublic -> CardStatus.PUBLISHED
-                                genViewModel.validityById[nonogram.id] == false -> CardStatus.INVALID
+                                !nonogram.isKnownValid -> CardStatus.INVALID
                                 else -> CardStatus.UNPUBLISHED
                             },
                             onClick = { onEditClick(nonogram) },

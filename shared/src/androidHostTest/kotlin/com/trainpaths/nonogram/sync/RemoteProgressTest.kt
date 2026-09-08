@@ -125,7 +125,7 @@ private class RecordingSyncService : SyncService {
     override suspend fun uploadAllLocalProgress(firebaseUid: String) = unused()
     override suspend fun pullAllProgress(firebaseUid: String) = unused()
     override suspend fun pullAndMergeAllProgress(firebaseUid: String) = unused()
-    override suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, resetPublishStatus: Boolean) = unused()
+    override suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, writePublishStatus: Boolean) = unused()
     override suspend fun uploadAllLocalNonograms(firebaseUid: String) = unused()
     override suspend fun pullPublicNonogramsSince(firebaseUid: String?, since: Long) = unused()
     override suspend fun pullOwnedNonograms(firebaseUid: String, since: Long) = unused()

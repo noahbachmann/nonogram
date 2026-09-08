@@ -96,6 +96,20 @@ class AppSDKTest {
     }
 
     @Test
+    fun addAndUpdate_roundTripTheStoredSolverVerdict() = runTest {
+        val id = sdk.addNonogram(
+            "EASY", listOf(listOf(1)), authorUid = "uid-a", publishStatus = PublishStatus.VALID,
+        )
+        val added = assertNotNull(sdk.getNonogramById(id))
+        assertEquals(PublishStatus.VALID, added.publishStatus)
+        assertTrue(added.isKnownValid)
+        assertFalse(added.isPublic)
+
+        sdk.updateNonogram(id, added.copy(publishStatus = PublishStatus.NONE))
+        assertFalse(assertNotNull(sdk.getNonogramById(id)).isKnownValid)
+    }
+
+    @Test
     fun getVisibleNonograms_hidesOtherAuthorsUnapprovedPuzzles() = runTest {
         val approvedSeeds = approvedSeedIds()
         val minePrivate = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "uid-a")
@@ -106,10 +120,15 @@ class AppSDKTest {
             "EASY", listOf(listOf(1)), authorUid = "uid-b", publishStatus = PublishStatus.APPROVED,
         )
         val theirsPrivate = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "uid-b")
+        // Solvable but never submitted: a verdict is not a publication.
+        val theirsValid = sdk.addNonogram(
+            "EASY", listOf(listOf(1)), authorUid = "uid-b", publishStatus = PublishStatus.VALID,
+        )
 
         val mine = sdk.getVisibleNonograms("uid-a").map { it.id }.toSet()
         assertTrue(mine.containsAll(setOf(minePrivate, minePending, theirsApproved)))
         assertFalse(theirsPrivate in mine)
+        assertFalse(theirsValid in mine)
         // The approved seeds are visible to everyone.
         assertTrue(mine.containsAll(approvedSeeds))
 
@@ -149,7 +168,10 @@ class AppSDKTest {
         // Another author's request in flight is invisible to us, as it is in Firestore.
         sdk.addNonogram("EASY", grid, authorUid = "uid-b", publishStatus = PublishStatus.PENDING)
         sdk.addNonogram("EASY", grid, authorUid = "uid-b", publishStatus = PublishStatus.UNLISTED)
+        sdk.addNonogram("EASY", grid, authorUid = "uid-b", publishStatus = PublishStatus.VALID)
         sdk.addNonogram("EASY", grid, authorUid = "uid-a", publishStatus = PublishStatus.DENIED)
+        // My own solvable-but-unsubmitted copy does not block the request either.
+        sdk.addNonogram("EASY", grid, authorUid = "uid-a", publishStatus = PublishStatus.VALID)
         val mine = sdk.addNonogram("EASY", grid, authorUid = "uid-a")
 
         assertFalse(sdk.hasPublishConflict(grid, mine, "uid-a"))

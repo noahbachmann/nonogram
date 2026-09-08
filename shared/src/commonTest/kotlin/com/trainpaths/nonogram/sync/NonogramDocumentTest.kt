@@ -57,6 +57,15 @@ class NonogramDocumentTest {
     }
 
     @Test
+    fun carriesTheStoredSolverVerdict() {
+        val nonogram = assertNotNull(document(publishStatus = "VALID").parse())
+
+        assertEquals(PublishStatus.VALID, nonogram.publishStatus)
+        assertTrue(nonogram.isKnownValid)
+        assertTrue(skipped.isEmpty())
+    }
+
+    @Test
     fun unknownEnumNamesFallBackInsteadOfSkipping() {
         val nonogram = assertNotNull(
             document(difficulty = "IMPOSSIBLE", publishStatus = "RETRACTED").parse()

@@ -99,7 +99,7 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
             mergeRemoteProgress(sdk, firebaseUid, fetchProgress(firebaseUid))
         }
 
-    override suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, resetPublishStatus: Boolean) =
+    override suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, writePublishStatus: Boolean) =
         gated(firebaseUid, "push nonogram ${nonogram.id} failed", Unit) {
             val reference = doc(FirebaseWeb.requireFirestore(), Paths.nonogram(nonogram.id))
             // Merge, so an ordinary save never clobbers a pending or approved publish status.
@@ -111,7 +111,7 @@ class FirebaseWebSyncService(private val sdk: AppSDK) : SyncService {
                     name = nonogram.name,
                     authorUid = firebaseUid,
                     updatedAt = nonogram.updatedAt,
-                    publishStatus = if (resetPublishStatus) PublishStatus.NONE.name else null,
+                    publishStatus = if (writePublishStatus) nonogram.publishStatus.name else null,
                 ),
                 FirebaseWeb.mergeOptions(),
             ).await()

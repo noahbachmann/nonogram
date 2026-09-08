@@ -193,18 +193,20 @@ private fun PublishSection(
     isSignedIn: Boolean,
 ) {
     val validationState = genViewModel.validationState
-    val isValid = validationState == ValidationState.VALID &&
-            genViewModel.saveError == null
+    // The status is the stored Solver verdict, so `NONE` is exactly the not-uniquely-solvable case.
+    val isValid = genViewModel.nonogram.isKnownValid && genViewModel.saveError == null
     val status = genViewModel.nonogram.publishStatus
-    val canRequest = !genViewModel.isSaving && isSignedIn && isValid && !isPublishBanned
+    val canRequest = !genViewModel.isSaving && isSignedIn && !isPublishBanned &&
+            genViewModel.saveError == null
     val hint = when {
         genViewModel.isSaving -> null
         status == PublishStatus.PENDING -> "Waiting for review."
         status == PublishStatus.DENIED -> "Edit the puzzle to request again."
-        status != PublishStatus.NONE -> null
+        // Already reviewed: the Public/Private switch is the only control, and it needs no hint.
+        status == PublishStatus.APPROVED || status == PublishStatus.UNLISTED -> null
         isPublishBanned -> "You can no longer request publishing."
         !isSignedIn -> "Sign in to publish this nonogram."
-        !isValid -> "Only valid nonograms can be published."
+        status == PublishStatus.NONE -> "Only valid nonograms can be published."
         else -> null
     }
 
@@ -238,7 +240,7 @@ private fun PublishSection(
                 modifier = Modifier
                     .background(
                         color =
-                            if (validationState == ValidationState.VALID) MaterialTheme.colorScheme.onTertiary
+                            if (isValid) MaterialTheme.colorScheme.onTertiary
                             else MaterialTheme.colorScheme.tertiaryFixed,
                         RoundedCornerShape(6.dp)
                     ).size(30.dp)
@@ -293,7 +295,7 @@ private fun PublishSection(
             else -> AppButton(
                 text = if (status == PublishStatus.PENDING) "Sent" else "Request publish",
                 onClick = { genViewModel.requestPublish() },
-                enabled = status == PublishStatus.NONE && canRequest &&
+                enabled = status == PublishStatus.VALID && canRequest &&
                         !genViewModel.isRequestingPublish,
                 height = null,
                 textStyle = MaterialTheme.typography.bodyMedium,

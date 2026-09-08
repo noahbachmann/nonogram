@@ -215,11 +215,17 @@ dirty puzzle). Icons come from the hand-built `icons/` package of `ImageVector`s
 
 - **`Nonogram`** — `id`, `difficulty` (enum: EASY/MEDIUM/HARD/HARDCORE), `solution` (List<List<Int>> stored as JSON),
   `name: String?`, `authorUid` (the user key — see `auth/AuthRepository`; the same string as the Firestore
-  `authorUid` field, so no local↔remote translation is needed), `updatedAt`, `publishState` (enum:
-  NONE/PENDING/APPROVED/UNLISTED/DENIED, stored as its ordinal in the DB column `status`, as its name in the Firestore
-  field `publishStatus`). Visibility is derived, not stored:
-  `isPublic get() = publishState == APPROVED`, and the author's on/off switch moves an approved puzzle between APPROVED
-  and UNLISTED. Computes `rowClues`/`colClues` on the fly, and `isValid` lazily via the `Solver`. Name helpers live
+  `authorUid` field, so no local↔remote translation is needed), `updatedAt`, `publishStatus` (enum:
+  NONE/PENDING/DENIED/UNLISTED/APPROVED/VALID, stored as its ordinal in the DB column `status`, as its name in the
+  Firestore field `publishStatus`). **`publishStatus` also carries the Solver verdict**, because the two axes are not
+  independent: publication may only be requested from `VALID`, so every state past `NONE` was reached by passing the
+  Solver and `NONE` is the only state a puzzle that is not uniquely solvable can be in. That is what lets
+  `GenListScreen` read its status dot off the column (`isKnownValid get() = publishStatus != NONE`) instead of
+  re-solving every puzzle it shows; `GenViewModel.afterSave` is the one place the stored status is derived from a fresh
+  verdict. `VALID` is declared **last** so the ordinals of the existing entries do not move — an older build reads it,
+  and any unknown ordinal or name, back as `NONE` (`util/PublishStatusConversions.kt`). Visibility is derived, not
+  stored: `isPublic get() = publishStatus == APPROVED`, and the author's on/off switch moves an approved puzzle between
+  APPROVED and UNLISTED. Computes `rowClues`/`colClues` on the fly, and `isValid` lazily via the `Solver`. Name helpers live
   alongside: `MAX_NONOGRAM_NAME_LENGTH` (30), `normalizeNonogramName()`, `UNNAMED_NONOGRAM_TITLE`. Ownership is
   `isOwned(uid)`, which never matches the blank `authorUid` seeded puzzles carry. Grid shape lives here too:
   `MIN_NONOGRAM_SIDE` (5) / `MAX_NONOGRAM_SIDE` (60), clamped in `GenViewModel.setNonogram`/`resizeNonogram` and shown
@@ -352,7 +358,9 @@ The generator is implemented end-to-end: `GenListScreen` lists the signed-in use
 grid size, `GenScreen` is the tile-drawing board, all driven by the shared `GenViewModel`. Users can create new puzzles
 and edit existing ones (with non-destructive resize). See **Navigation → Generator flow** above. On save, `GenViewModel`
 runs `Nonogram.isValid` (the `Solver`) to check the puzzle is uniquely solvable — validation is *advisory* (the puzzle
-still saves if it fails or the check throws) and only gates whether the author may *request* publication. Publishing
+still saves if it fails or the check throws) and only gates whether the author may *request* publication. That is the
+**only** place the Solver runs for the generator: the verdict is then persisted into `publishStatus` (see **Data
+Model**), so the list screen and the config screen both read it rather than recomputing it. Publishing
 itself is admin-moderated: the generator's config screen offers a "Request publish" button, an admin accepts or denies
 in `AdminScreen` (reachable from Settings), and five denials in a row ban a user from requesting. Editing a puzzle that
 is currently public un-publishes it, so every save path first confirms via `PublicEditConfirmDialog`. A request is also
