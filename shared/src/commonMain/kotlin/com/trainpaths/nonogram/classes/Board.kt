@@ -3,7 +3,6 @@ package com.trainpaths.nonogram.classes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -12,13 +11,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,9 +43,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.BOARD_SEPARATOR_COLOR
-import com.trainpaths.nonogram.icons.refresh
 import kotlin.math.max
 import kotlin.math.pow
 
@@ -389,7 +382,7 @@ private fun ColClueLine(clues: List<Int>, slots: Int, gutterH: Dp) {
 private fun ClueText(value: Int) {
     Text(
         text = value.toString(),
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.titleMedium,
         color = Color.Black,
         textAlign = TextAlign.Center,
         maxLines = 1,
