@@ -27,6 +27,13 @@ upsertNonogram:
 INSERT OR REPLACE INTO NonogramData(id, difficulty, solution, authorUid, status, updatedAt, name)
 VALUES (?, ?, ?, ?, ?, ?, ?);
 
+insertSeedNonogram:
+INSERT OR IGNORE INTO NonogramData(id, difficulty, solution, authorUid, status, updatedAt, name)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+countNonograms:
+SELECT count(*) FROM NonogramData;
+
 updateNonogram:
 UPDATE NonogramData
 SET

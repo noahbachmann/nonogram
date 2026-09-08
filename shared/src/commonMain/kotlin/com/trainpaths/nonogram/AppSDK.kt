@@ -5,6 +5,7 @@ import com.trainpaths.nonogram.cache.DatabaseFactory
 import com.trainpaths.nonogram.cache.NonogramProgress
 import com.trainpaths.nonogram.cache.ProgressWithTimestamp
 import com.trainpaths.nonogram.cache.SEED_PUZZLES
+import com.trainpaths.nonogram.cache.SeedPuzzle
 import com.trainpaths.nonogram.cache.User
 import com.trainpaths.nonogram.cache.dbDispatcher
 import com.trainpaths.nonogram.classes.Nonogram
@@ -25,16 +26,20 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
     private suspend fun <T> onDb(block: suspend Database.() -> T): T =
         withContext(dbDispatcher) { db().block() }
 
-    suspend fun seedIfEmpty() {
-        if (getAllNonograms().isNotEmpty()) return
-        SEED_PUZZLES.forEach { seed ->
-            addNonogram(
-                difficulty = seed.difficulty,
-                solution = seed.solution,
-                publishStatus = PublishStatus.APPROVED,
-                id = seed.id,
-            )
-        }
+    /**
+     * Inserts the built-in puzzles into an empty database, and reports whether it wrote. Called once at
+     * startup ([AppInitializer]), before anything reads the table.
+     *
+     * An empty table *is* first launch, so no flag is needed to recognise it — and unlike a flag, the check
+     * still holds on web, where OPFS is evictable: a wiped database seeds again instead of coming back with
+     * no puzzles at all.
+     *
+     * [seeds] is a parameter only so tests can pin a fixture set; production always takes the default.
+     */
+    internal suspend fun seedIfEmpty(seeds: List<SeedPuzzle> = SEED_PUZZLES): Boolean {
+        if (onDb { countNonograms() } > 0) return false
+        onDb { insertSeeds(seeds) }
+        return true
     }
 
     suspend fun getAllNonograms(): List<Nonogram> =
