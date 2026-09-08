@@ -23,7 +23,7 @@ val CELL = 40.dp
  * a col-clue cell. Much thinner than [CELL]: a row of width W can hold up to `ceil(W / 2)` clues, so
  * at 48.dp the gutter would grow to half the grid and squeeze the board off-screen.
  */
-val CLUE_CELL = 20.dp
+val CLUE_CELL = 22.dp
 
 /**
  * Nominal width of the thinnest line on the board — the grid line between two tiles.
@@ -40,7 +40,7 @@ const val BLOCK_SIZE = 5
 const val BLOCK_LINE_UNITS = 2f
 
 /** Weight of the divider between the clue gutters and the playing field, in [lineUnitPx] units. */
-const val SEPARATOR_UNITS = 4f
+const val SEPARATOR_UNITS = 3f
 
 /** Height of a block-index label, as a fraction of [CELL]. Sized off the cell so it scales with the board. */
 const val BLOCK_LABEL_FONT_FRACTION = 0.30f
@@ -60,14 +60,8 @@ val BOARD_SEPARATOR = TILE_BORDER * SEPARATOR_UNITS
 /** Zoom ceiling, as a multiple of the larger of [BoardTransformState.fitScale] and 1x. */
 private const val MAX_ZOOM_MULTIPLE = 3f
 
-/** Zoom factor applied per press of the +/- buttons. */
-const val ZOOM_STEP = 1.5f
-
 /** Multiplicative zoom per scroll-wheel notch. */
 const val SCROLL_ZOOM_PER_NOTCH = 1.15f
-
-/** Material compact -> medium breakpoint. Below this the zoom buttons would cover the board. */
-val ZOOM_CONTROLS_MIN_WIDTH = 600.dp
 
 /** A clue gutter may never occupy more than this fraction of the viewport along its own axis. */
 private const val GUTTER_MAX_FRACTION = 0.35f
