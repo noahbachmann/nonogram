@@ -54,6 +54,20 @@ enum class ValidationState {
     UNAVAILABLE,
 }
 
+/**
+ * The status a save leaves behind, given what the Solver just said. A content change revokes any
+ * review verdict, so the puzzle falls back to the fresh verdict alone; an unchanged puzzle only has
+ * a stale *unpublished* status corrected, because `PENDING`/`DENIED`/`UNLISTED`/`APPROVED` are the
+ * reviewer's call. A solver that threw ([verdict] null) can never claim [PublishStatus.VALID].
+ */
+internal fun PublishStatus.afterSave(verdict: Boolean?, contentChanged: Boolean): PublishStatus =
+    when {
+        contentChanged || this == PublishStatus.NONE || this == PublishStatus.VALID ->
+            if (verdict == true) PublishStatus.VALID else PublishStatus.NONE
+
+        else -> this
+    }
+
 class GenViewModel(
     private val sdk: AppSDK,
     private val authRepository: AuthRepository,
@@ -80,13 +94,6 @@ class GenViewModel(
 
     var isLoadingMine by mutableStateOf(true)
         private set
-
-    /** Solver verdicts for [myNonograms], filled in as they are checked; absent means not yet known. */
-    var validityById by mutableStateOf<Map<Long, Boolean>>(emptyMap())
-        private set
-
-    /** Verdicts kept across visits to the list, keyed by the `updatedAt` they were computed for. */
-    private val validityCache = mutableMapOf<Long, Pair<Long, Boolean>>()
 
     /** True when the current puzzle has edits not yet written to the database. */
     var isDirty by mutableStateOf(false)
@@ -152,25 +159,6 @@ class GenViewModel(
             } finally {
                 isLoadingMine = false
             }
-            checkValidity(myNonograms)
-        }
-    }
-
-    /**
-     * Solves each puzzle for the list's status dot, one hop through [Dispatchers.Default] at a
-     * time so the pass also yields on web, where that dispatcher is the main thread. An
-     * unsolvable puzzle is a verdict; a solver that throws simply leaves the id unknown.
-     */
-    private suspend fun checkValidity(nonograms: List<Nonogram>) {
-        val verdicts = mutableMapOf<Long, Boolean>()
-        for (nonogram in nonograms) {
-            val cached = validityCache[nonogram.id]?.takeIf { it.first == nonogram.updatedAt }?.second
-            val isValid = cached
-                ?: withContext(Dispatchers.Default) { validationForSave { nonogram.isValid }.isValid }
-            if (isValid == null) continue
-            validityCache[nonogram.id] = nonogram.updatedAt to isValid
-            verdicts[nonogram.id] = isValid
-            validityById = verdicts.toMap()
         }
     }
 
@@ -234,7 +222,9 @@ class GenViewModel(
         }
         history.reset(tiles)
         isDirty = false
-        validationState = ValidationState.UNCHECKED
+        // The stored status already carries the verdict, so publishing needs no save-first round trip.
+        validationState =
+            if (existing.isKnownValid) ValidationState.VALID else ValidationState.INVALID
         saveError = null
         validationError = null
         publishError = null
@@ -268,7 +258,9 @@ class GenViewModel(
                 validationState = validation.state
                 validationError = validation.error
 
-                if (contentChanged) nonogram = nonogram.copy(publishStatus = PublishStatus.NONE)
+                nonogram = nonogram.copy(
+                    publishStatus = nonogram.publishStatus.afterSave(validation.isValid, contentChanged)
+                )
 
                 val savedNonogram = persistAndPush(nonogramId, authorUid, contentChanged)
                 if (savedNonogram != null) nonogram = savedNonogram
@@ -357,7 +349,7 @@ class GenViewModel(
 
     /**
      * Moves [saved] to `PENDING` locally before pushing the request, so the button responds without
-     * waiting on the network, and puts it back to `NONE` if Firestore refuses it. Returns the row as
+     * waiting on the network, and puts it back to `VALID` if Firestore refuses it. Returns the row as
      * it now stands, or null if it went missing under us.
      */
     private suspend fun fileRequest(
@@ -368,7 +360,7 @@ class GenViewModel(
         sdk.updateNonogram(nonogramId, saved.copy(publishStatus = PublishStatus.PENDING))
         val pending = sdk.getNonogramById(nonogramId) ?: return null
         if (syncService.requestPublish(firebaseUid, pending)) return pending
-        sdk.updateNonogram(nonogramId, pending.copy(publishStatus = PublishStatus.NONE))
+        sdk.updateNonogram(nonogramId, pending.copy(publishStatus = PublishStatus.VALID))
         return sdk.getNonogramById(nonogramId)
     }
 }

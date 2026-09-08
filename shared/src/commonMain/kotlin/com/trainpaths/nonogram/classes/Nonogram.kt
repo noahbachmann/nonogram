@@ -13,7 +13,7 @@ enum class Difficulty(val label: String) {
  * Where a puzzle stands in the publish-review flow; see `docs/publish-moderation.md`.
  *
  * The ordinal is what the `status` column stores, so entries may be appended but never reordered
- * or removed without a migration.
+ * or removed without a migration — which is why [VALID] sits last rather than beside [NONE].
  */
 enum class PublishStatus {
     NONE,
@@ -21,6 +21,7 @@ enum class PublishStatus {
     DENIED,
     UNLISTED,
     APPROVED,
+    VALID,
 }
 
 const val MAX_NONOGRAM_NAME_LENGTH = 30
@@ -55,6 +56,12 @@ data class Nonogram(
     val publishStatus: PublishStatus = PublishStatus.NONE,
 ) {
     val isPublic: Boolean get() = publishStatus == PublishStatus.APPROVED
+
+    /**
+     * The stored Solver verdict — see [PublishStatus]. Every state past [PublishStatus.NONE] was
+     * reached by passing the Solver, so the status *is* the verdict; [isValid] recomputes it.
+     */
+    val isKnownValid: Boolean get() = publishStatus != PublishStatus.NONE
 
     val height: Int get() = solution.size
     val width: Int get() = solution.firstOrNull()?.size ?: 0
