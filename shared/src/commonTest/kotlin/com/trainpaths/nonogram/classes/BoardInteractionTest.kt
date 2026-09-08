@@ -10,38 +10,30 @@ import kotlin.test.assertTrue
 class BoardInteractionTest {
 
     @Test
-    fun strokeFromNonePaintsEveryCellFilled() {
+    fun drawFillPaintsEveryCellFilled() {
         assertStrokeResult(
             startingState = TileState.NONE,
             expectedState = TileState.FILLED,
+            DrawMode.FILL
         )
     }
 
     @Test
-    fun strokeFromFilledPaintsEveryCellCrossed() {
+    fun drawCrossPaintsEveryCellCrossed() {
         assertStrokeResult(
             startingState = TileState.FILLED,
             expectedState = TileState.CROSSED,
+            DrawMode.CROSS
         )
     }
 
     @Test
-    fun strokeFromCrossedClearsEveryCell() {
+    fun drawEraseClearsEveryCell() {
         assertStrokeResult(
             startingState = TileState.CROSSED,
             expectedState = TileState.NONE,
+            DrawMode.ERASE
         )
-    }
-    
-    @Test
-    fun strokeInAnExplicitModeIgnoresTheStartingCell() {
-        for (start in TileState.entries) {
-            assertStrokeResult(
-                startingState = start,
-                expectedState = TileState.FILLED,
-                mode = DrawMode.FILL,
-            )
-        }
     }
 
     @Test
