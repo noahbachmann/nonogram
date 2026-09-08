@@ -222,7 +222,7 @@ dirty puzzle). Icons come from the hand-built `icons/` package of `ImageVector`s
   and UNLISTED. Computes `rowClues`/`colClues` on the fly, and `isValid` lazily via the `Solver`. Name helpers live
   alongside: `MAX_NONOGRAM_NAME_LENGTH` (30), `normalizeNonogramName()`, `UNNAMED_NONOGRAM_TITLE`. Ownership is
   `isOwned(uid)`, which never matches the blank `authorUid` seeded puzzles carry. Grid shape lives here too:
-  `MIN_NONOGRAM_SIDE` (5) / `MAX_NONOGRAM_SIDE` (50), clamped in `GenViewModel.setNonogram`/`resizeNonogram` and shown
+  `MIN_NONOGRAM_SIDE` (5) / `MAX_NONOGRAM_SIDE` (60), clamped in `GenViewModel.setNonogram`/`resizeNonogram` and shown
   in `GenConfScreen`'s size fields, plus `isRectangularGrid()` / `isWellFormedGrid()`. Both sync services reject a
   grid failing `isWellFormedGrid()` in `parseNonograms` (ragged grids crash `colClues`), and the DB mapper falls back
   to an empty solution for one already stored — keep `MAX_NONOGRAM_SIDE` in step with the 20 000-character cap
