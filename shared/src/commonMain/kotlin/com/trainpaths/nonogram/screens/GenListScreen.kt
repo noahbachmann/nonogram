@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.trainpaths.nonogram.classes.CardStatus
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.NonogramCard
 import com.trainpaths.nonogram.classes.NonogramGrid
@@ -129,6 +130,11 @@ fun GenListScreen(
                             modifier = Modifier.tutorialAnchor(
                                 TutorialStep.GENLIST_EDIT.takeIf { index == 0 }
                             ),
+                            status = when {
+                                nonogram.isPublic -> CardStatus.PUBLISHED
+                                genViewModel.validityById[nonogram.id] == false -> CardStatus.INVALID
+                                else -> CardStatus.UNPUBLISHED
+                            },
                             onClick = { onEditClick(nonogram) },
                         )
                     }
