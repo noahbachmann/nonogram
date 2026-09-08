@@ -84,7 +84,7 @@ fun Board(
     val currentOnTilesChanged = rememberUpdatedState(onTilesChanged)
     val currentOnEdits = rememberUpdatedState(onEdits)
 
-    // Gutters are sized by the thin CLUE_CELL, not CELL: a 50-wide row can hold 25 clues.
+    // Gutters are sized by the thin CLUE_CELL, not CELL
     val gutterW = CLUE_CELL * maxRowClues
     val gutterH = CLUE_CELL * maxColClues
     val gridW = CELL * nonogram.width
@@ -455,7 +455,7 @@ private fun BoardFrame(state: BoardTransformState, background: Color) {
  * Draws the whole grid into one node.
  *
  * Reading `tile.state` here registers a *draw-scope* dependency, so filling a tile invalidates the
- * draw of this single node — no recomposition, no relayout. That is far cheaper than the 2500
+ * draw of this single node — no recomposition, no relayout. That is far cheaper than the 3600
  * layout nodes a per-tile Box grid would need merely to exist.
  *
  * [scale] is the layer's scale, and drawing depends on it: this node paints in *content* px and the

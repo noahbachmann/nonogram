@@ -11,7 +11,7 @@ private const val SEED_FILE =
 
 // Mirrors `classes/Nonogram.kt`, which this module cannot see (`:shared` has no JVM target).
 private const val MIN_SIDE = 5
-private const val MAX_SIDE = 50
+private const val MAX_SIDE = 60
 private const val MAX_NAME_LENGTH = 30
 private val DIFFICULTIES = setOf("EASY", "MEDIUM", "HARD", "HARDCORE")
 

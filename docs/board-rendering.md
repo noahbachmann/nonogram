@@ -14,7 +14,7 @@ remember how it fits together — the source has the fine-grained *why* in comme
 
 ## The core performance idea: draw, don't recompose
 
-A naïve grid is one Box per tile — 2500 layout nodes for a 50×50, re-laid-out on every pan. Instead:
+A naïve grid is one Box per tile — 3600 layout nodes for a 60×60, re-laid-out on every pan. Instead:
 
 - **All tiles are one `Canvas`** (`drawTiles`). Reading `tile.state` inside the draw lambda registers a *draw-scope*
   dependency, so filling a tile invalidates only that one node's **draw** — no recomposition, no relayout.

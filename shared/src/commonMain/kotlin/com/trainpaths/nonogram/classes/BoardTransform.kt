@@ -142,7 +142,7 @@ enum class BoardRegion { GRID, ROW_GUTTER, COL_HEADER, CORNER }
  *
  * Nothing exposed here is read during composition — only inside `graphicsLayer {}` lambdas,
  * `drawBehind`, and gesture coroutines — so writes invalidate layers and draws but never trigger
- * recomposition. That is what keeps pan/zoom smooth on a 2500-tile board.
+ * recomposition. That is what keeps pan/zoom smooth on a 3600-tile board.
  */
 @Stable
 class BoardTransformState {
