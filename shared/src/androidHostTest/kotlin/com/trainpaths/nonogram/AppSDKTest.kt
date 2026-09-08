@@ -21,9 +21,12 @@ class AppSDKTest {
         sdk = AppSDK(TestDatabaseFactory())
     }
 
-    /** Seeds the fresh per-test DB and returns the seeds, so no test hardcodes how many there are. */
+    /**
+     * Seeds the fresh per-test DB with [SEED_FIXTURE] and returns the rows. The shipped set is generated
+     * from dev Firestore and may be empty between exports, so nothing here leans on its content.
+     */
     private suspend fun seed(): List<Nonogram> {
-        sdk.seedIfEmpty()
+        sdk.seedIfEmpty(SEED_FIXTURE)
         return sdk.getAllNonograms()
     }
 
@@ -35,7 +38,7 @@ class AppSDKTest {
         val seeded = seed().map { it.id }
         assertTrue(seeded.isNotEmpty())
 
-        sdk.seedIfEmpty()
+        assertFalse(sdk.seedIfEmpty(SEED_FIXTURE))
 
         assertEquals(seeded, sdk.getAllNonograms().map { it.id })
     }

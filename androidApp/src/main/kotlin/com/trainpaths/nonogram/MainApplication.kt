@@ -23,7 +23,8 @@ class MainApplication : Application() {
             modules(androidModule, appModule)
         }
 
+        val appSDK = koinApp.koin.get<AppSDK>()
         val authRepository = koinApp.koin.get<AuthRepository>()
-        applicationScope.launch { AppInitializer.initializeAuth(authRepository) }
+        applicationScope.launch { AppInitializer.initializeApp(appSDK, authRepository) }
     }
 }

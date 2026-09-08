@@ -49,7 +49,6 @@ class MenuViewModel(
             try {
                 val uid = authRepository.currentUserUid.value
                 authorUid = uid
-                sdk.seedIfEmpty()
                 nonograms = sdk.getVisibleNonograms(uid.orEmpty())
                 if (uid != null) {
                     val allProgress = sdk.getProgressForUser(uid)
