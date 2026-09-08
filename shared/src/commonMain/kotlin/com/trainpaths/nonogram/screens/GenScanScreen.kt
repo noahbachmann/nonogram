@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -37,6 +39,9 @@ import kotlin.math.min
 
 /** How tall the preview is allowed to be, whatever the grid's aspect ratio. */
 private val PREVIEW_HEIGHT = 300.dp
+
+/** Wide enough for the two digits and the range hint, narrow enough not to look like a text field. */
+private val SIZE_FIELD_WIDTH = 140.dp
 
 /**
  * Turns a picked image into a grid the user can tune, then hands it to the generator board.
@@ -106,6 +111,17 @@ private fun ScanIntro(scanViewModel: ScanViewModel, onPick: () -> Unit) {
         color = MaterialTheme.colorScheme.onPrimary,
         modifier = Modifier.padding(vertical = 24.dp),
     )
+    SizeField(
+        value = scanViewModel.sideInput,
+        onValueChange = scanViewModel::updateSide,
+        label = "Size",
+        colors = outlinedFieldColors(),
+        enabled = !scanViewModel.isProcessing,
+        modifier = Modifier
+            .width(SIZE_FIELD_WIDTH)
+            .padding(bottom = 16.dp)
+            .onFocusChanged { if (!it.isFocused) scanViewModel.normalizeSizeInput() },
+    )
     AppButton(
         text = if (scanViewModel.isProcessing) "Reading..." else "Choose image",
         onClick = onPick,
@@ -141,19 +157,21 @@ private fun ScanControls(
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         SizeField(
-            value = scanViewModel.rowsInput,
-            onValueChange = scanViewModel::updateRows,
-            label = "Rows",
+            value = scanViewModel.sideInput,
+            onValueChange = scanViewModel::updateSide,
+            label = "Size",
             colors = textFieldColors,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .width(SIZE_FIELD_WIDTH)
+                .onFocusChanged { if (!it.isFocused) scanViewModel.normalizeSizeInput() },
         )
-        SizeField(
-            value = scanViewModel.colsInput,
-            onValueChange = scanViewModel::updateCols,
-            label = "Columns",
-            colors = textFieldColors,
+        Text(
+            text = "${scanViewModel.rows} rows × ${scanViewModel.cols} columns",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.weight(1f),
         )
     }
@@ -196,7 +214,7 @@ private fun ScanControls(
     AppButton(
         text = "Generate",
         onClick = {
-            scanViewModel.normalizeSizeInputs()
+            scanViewModel.normalizeSizeInput()
             genViewModel.loadScanned(
                 grid = scanViewModel.previewGrid,
                 name = normalizeNonogramName(scanViewModel.name),
