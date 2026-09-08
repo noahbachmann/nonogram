@@ -171,17 +171,6 @@ fun Board(
 
             BoardFrame(state = state, background = background)
         }
-
-        // A sibling of the gesture Box, not a child: Compose commits to the first hit path among
-        // overlapping siblings, so pressing a zoom control never starts a pan or drawing stroke.
-        if (maxWidth >= ZOOM_CONTROLS_MIN_WIDTH) {
-            ZoomControls(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                onZoomIn = { state.zoomAtCenter(ZOOM_STEP) },
-                onZoomOut = { state.zoomAtCenter(1f / ZOOM_STEP) },
-                onFit = { state.reset() },
-            )
-        }
     }
 }
 
@@ -586,29 +575,5 @@ private fun DrawScope.drawBlockLabels(
         if (y < 0f || y > size.height) continue
         val label = labelMeasurer.measure(row.toString(), labelStyle)
         drawText(label, topLeft = Offset(anchorX - inset - label.size.width, y - inset - label.size.height))
-    }
-}
-
-@Composable
-private fun ZoomControls(
-    modifier: Modifier,
-    onZoomIn: () -> Unit,
-    onZoomOut: () -> Unit,
-    onFit: () -> Unit,
-) {
-    val colors = IconButtonDefaults.filledIconButtonColors(
-        containerColor = MaterialTheme.colorScheme.secondary,
-        contentColor = MaterialTheme.colorScheme.primary,
-    )
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilledIconButton(onClick = onZoomIn, colors = colors) {
-            Text(text = "+", style = MaterialTheme.typography.titleLarge)
-        }
-        FilledIconButton(onClick = onZoomOut, colors = colors) {
-            Text(text = "−", style = MaterialTheme.typography.titleLarge)
-        }
-        FilledIconButton(onClick = onFit, colors = colors) {
-            Icon(imageVector = refresh, contentDescription = "Fit board to screen")
-        }
     }
 }
