@@ -76,6 +76,7 @@ fun GameScreen(
             onDrawModeToggle = { drawMode = drawMode.next() },
             resetZoom = { boardState.reset() },
             history = viewModel.history,
+            onCheck = viewModel::checkBoard,
         )
     }
 }

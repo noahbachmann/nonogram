@@ -34,6 +34,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -169,17 +170,6 @@ fun Board(
             )
 
             BoardFrame(state = state, background = background)
-        }
-
-        // A sibling of the gesture Box, not a child: Compose commits to the first hit path among
-        // overlapping siblings, so pressing a zoom control never starts a pan or drawing stroke.
-        if (maxWidth >= ZOOM_CONTROLS_MIN_WIDTH) {
-            ZoomControls(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                onZoomIn = { state.zoomAtCenter(ZOOM_STEP) },
-                onZoomOut = { state.zoomAtCenter(1f / ZOOM_STEP) },
-                onFit = { state.reset() },
-            )
         }
     }
 }
@@ -399,7 +389,7 @@ private fun ColClueLine(clues: List<Int>, slots: Int, gutterH: Dp) {
 private fun ClueText(value: Int) {
     Text(
         text = value.toString(),
-        style = MaterialTheme.typography.labelMedium,
+        style = MaterialTheme.typography.labelLarge,
         color = Color.Black,
         textAlign = TextAlign.Center,
         maxLines = 1,
@@ -454,9 +444,9 @@ private fun BoardFrame(state: BoardTransformState, background: Color) {
 /**
  * Draws the whole grid into one node.
  *
- * Reading `tile.state` here registers a *draw-scope* dependency, so filling a tile invalidates the
- * draw of this single node — no recomposition, no relayout. That is far cheaper than the 3600
- * layout nodes a per-tile Box grid would need merely to exist.
+ * Reading `tile.state` (and `tile.wrong`) here registers a *draw-scope* dependency, so filling a tile
+ * invalidates the draw of this single node — no recomposition, no relayout. That is far cheaper than
+ * the 2500 layout nodes a per-tile Box grid would need merely to exist.
  *
  * [scale] is the layer's scale, and drawing depends on it: this node paints in *content* px and the
  * layer matrix scales the result, so every stroke is a multiple of [lineUnitPx] — proportional to the
@@ -519,6 +509,21 @@ private fun DrawScope.drawTiles(tiles: List<List<Tile>>, cellPx: Float, borderPx
         drawLine(Color.Gray, Offset(0f, y), Offset(width, y), strokeWidth = w)
     }
 
+    val wrongStroke = max(cellPx * 0.10f, LINE_MIN_DEVICE_PX / scale)
+    val wrongInset = wrongStroke / 2f
+    for (row in tiles.indices) {
+        val top = row * cellPx
+        for (column in tiles[row].indices) {
+            if (!tiles[row][column].wrong) continue
+            drawRect(
+                color = Color.Red,
+                topLeft = Offset(column * cellPx + wrongInset, top + wrongInset),
+                size = Size(cellPx - wrongStroke, cellPx - wrongStroke),
+                style = Stroke(width = wrongStroke),
+            )
+        }
+    }
+
     // The playing field's right and bottom edges
     drawLine(BOARD_SEPARATOR_COLOR, Offset(width, 0f), Offset(width, height), strokeWidth = frame)
     drawLine(BOARD_SEPARATOR_COLOR, Offset(0f, height), Offset(width, height), strokeWidth = frame)
@@ -570,29 +575,5 @@ private fun DrawScope.drawBlockLabels(
         if (y < 0f || y > size.height) continue
         val label = labelMeasurer.measure(row.toString(), labelStyle)
         drawText(label, topLeft = Offset(anchorX - inset - label.size.width, y - inset - label.size.height))
-    }
-}
-
-@Composable
-private fun ZoomControls(
-    modifier: Modifier,
-    onZoomIn: () -> Unit,
-    onZoomOut: () -> Unit,
-    onFit: () -> Unit,
-) {
-    val colors = IconButtonDefaults.filledIconButtonColors(
-        containerColor = MaterialTheme.colorScheme.secondary,
-        contentColor = MaterialTheme.colorScheme.primary,
-    )
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilledIconButton(onClick = onZoomIn, colors = colors) {
-            Text(text = "+", style = MaterialTheme.typography.titleLarge)
-        }
-        FilledIconButton(onClick = onZoomOut, colors = colors) {
-            Text(text = "−", style = MaterialTheme.typography.titleLarge)
-        }
-        FilledIconButton(onClick = onFit, colors = colors) {
-            Icon(imageVector = refresh, contentDescription = "Fit board to screen")
-        }
     }
 }

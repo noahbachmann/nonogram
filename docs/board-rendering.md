@@ -5,12 +5,12 @@ The interactive grid — clues, tiles, pan, zoom, and drawing — is a self-cont
 
 - **`Board.kt`** — the composable + all drawing.
 - **`BoardTransform.kt`** — `BoardTransformState` (the pan/zoom model), gesture detectors, and every layout constant.
-- **`Game.kt`** — thin wrapper: hosts `Board` and fires `onWin` when tiles match the solution.
 - **`Tile.kt`** — `Tile` (a Compose `mutableStateOf` cell), `TileState` (NONE → FILLED → CROSSED → …)
   and `DrawMode` (which state an edit writes).
 
-Used by both `GameScreen` (playing) and `GenScreen` (drawing). This doc exists so I don't have to re-read ~1000 lines to
-remember how it fits together — the source has the fine-grained *why* in comments; this is the map.
+Used by both `GameScreen` (playing) and `GenScreen` (drawing), which host `Board` directly — the win check is
+`GameScreen`'s own `onTilesChanged` comparison against the solution. This doc exists so I don't have to re-read ~1000
+lines to remember how it fits together — the source has the fine-grained *why* in comments; this is the map.
 
 ## The core performance idea: draw, don't recompose
 
@@ -102,6 +102,24 @@ gesture coroutines as a lambda (`drawMode: () -> DrawMode`) read at stroke commi
 changing tools mid-board must not tear down and restart the detectors. It is per-screen composable state, like
 `isLocked`, and resets to `TOGGLE`.
 
+## The check mark
+
+`GameScreen`'s bottom-bar **Check** button (`GameViewModel.checkBoard`) marks every tile that
+contradicts the solution — `FILLED` where the solution is 0, `CROSSED` where it is 1; a blank tile is
+unfinished, not wrong. The mark is a second Compose state on `Tile` (`wrong`), which buys both
+halves of the behaviour for free:
+
+- `drawTiles` reads `tile.wrong` in the same draw lambda it reads `tile.state`, so marking a tile
+  invalidates one node's draw exactly like filling one does. It is painted as a final pass, after the
+  gridlines, so the red reads over a black fill.
+- `Tile.state` is a setter that clears `wrong` on any *actual* state change. Every mutation path —
+  the tap, `TileStroke.paint`, undo/redo, `resetBoard` — writes `state`, so no gesture, history or
+  screen code participates in clearing. Re-writing the same state is not an edit and leaves the mark
+  standing.
+
+Nothing about it is persisted or synced, and leaving the puzzle drops it: `loadNonogram` rebuilds the
+grid from fresh `Tile`s.
+
 ## Edit history (undo/redo)
 
 `BoardHistory` (`classes/BoardHistory.kt`) is a capped (10-step) undo/redo journal, one instance owned by each of
@@ -127,7 +145,7 @@ coarser `onTilesChanged` (which fires many times per drag — once per pointer e
   `edits()` exactly **once**, at the same point the inner gesture loop exits (`event.changes.none { it.pressed }`) —
   i.e. gesture end, not per-batch.
 
-`Game.kt` threads `onEdits` through to `Board`; its win check is otherwise untouched by history. No re-check is needed
+`GameScreen` passes `onEdits` straight to `Board`; its win check is otherwise untouched by history. No re-check is needed
 after undo/redo: every recorded move's `after` state was already checked the moment that move was first applied (and its
 `before` state was checked before that), so undo/redo can only ever revisit board states that have already been through
 `checkSolved`.

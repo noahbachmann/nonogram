@@ -97,6 +97,22 @@ val save: ImageVector
     }
 
 @Suppress("CheckReturnValue")
+val check: ImageVector
+    get() {
+        if (_check != null) return _check!!
+        _check = toolIcon("check") {
+            moveTo(9.55f, 18f)
+            lineTo(3.85f, 12.3f)
+            lineTo(5.27f, 10.88f)
+            lineTo(9.55f, 15.16f)
+            lineTo(18.73f, 5.98f)
+            lineTo(20.15f, 7.4f)
+            close()
+        }
+        return _check!!
+    }
+
+@Suppress("CheckReturnValue")
 val tileFill: ImageVector
     get() {
         if (_tileFill != null) return _tileFill!!
@@ -293,6 +309,7 @@ private fun PathBuilder.squareOutline(inset: Float = 3f, thickness: Float = 2f) 
     close()
 }
 
+private var _check: ImageVector? = null
 private var _lockClosed: ImageVector? = null
 private var _lockOpen: ImageVector? = null
 private var _save: ImageVector? = null
