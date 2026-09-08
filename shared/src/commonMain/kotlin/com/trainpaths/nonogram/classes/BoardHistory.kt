@@ -18,7 +18,7 @@ data class TileEdit(val row: Int, val col: Int, val before: TileState, val after
  * tiles (e.g. `GenViewModel` recomputing clues) and would otherwise miss edits made outside of
  * [record].
  */
-class BoardHistory(private val maxSteps: Int = 10, private val onApply: () -> Unit = {}) {
+class BoardHistory(private val maxSteps: Int = 25, private val onApply: () -> Unit = {}) {
     private val undoStack = ArrayDeque<List<TileEdit>>()
     private val redoStack = ArrayDeque<List<TileEdit>>()
     private var tiles: List<List<Tile>> = emptyList()
