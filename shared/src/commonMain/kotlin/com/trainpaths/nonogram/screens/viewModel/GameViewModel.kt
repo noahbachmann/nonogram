@@ -11,7 +11,8 @@ import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileEdit
 import com.trainpaths.nonogram.classes.TileState
-import com.trainpaths.nonogram.classes.toInts
+import com.trainpaths.nonogram.classes.progressIntToTileState
+import com.trainpaths.nonogram.classes.toProgressInts
 import com.trainpaths.nonogram.classes.toSolutionOrNull
 import com.trainpaths.nonogram.sync.SyncService
 import kotlinx.coroutines.Dispatchers
@@ -32,8 +33,8 @@ class GameViewModel(
     val currentNonogramId: Long?
         get() = nonogram?.id
 
-    val currentBoardAsInts: List<List<Int>>
-        get() = tiles.toInts()
+    val currentProgress: List<List<Int>>
+        get() = tiles.toProgressInts()
 
     fun loadNonogram(id: Long) {
         nonogram = null
@@ -51,13 +52,7 @@ class GameViewModel(
 
                 nonogram = loaded
                 tiles = existingProgress?.map { row ->
-                    row.map { value ->
-                        Tile().apply {
-                            if (value == 1) {
-                                state = TileState.FILLED
-                            }
-                        }
-                    }
+                    row.map { value -> Tile().apply { state = progressIntToTileState(value) } }
                 }
                     ?: List(loaded.height) { List(loaded.width) { Tile() } }
                 history.reset(tiles)
@@ -68,7 +63,7 @@ class GameViewModel(
     fun saveCurrentProgress(win: Boolean = false) {
         val userUid = authRepository.currentUserUid.value.orMissing() ?: return
         val nonogramId = nonogram?.id ?: return
-        val board = currentBoardAsInts
+        val board = currentProgress
         launchGuarded(
             Dispatchers.Default,
             onError = { println("Game: saving progress for $nonogramId failed: ${it.message}") },

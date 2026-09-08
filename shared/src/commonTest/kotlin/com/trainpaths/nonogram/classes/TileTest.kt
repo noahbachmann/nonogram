@@ -47,24 +47,50 @@ class TileTest {
     }
 
     @Test
-    fun toInts_countsOnlyFilled() {
-        val tiles = listOf(
-            listOf(TileState.FILLED, TileState.CROSSED, TileState.NONE),
-            listOf(TileState.NONE, TileState.FILLED, TileState.CROSSED),
-        ).map { row -> row.map { Tile().apply { state = it } } }
-
+    fun toSolutionInts_countsOnlyFilled() {
         assertEquals(
             listOf(listOf(1, 0, 0), listOf(0, 1, 0)),
-            tiles.toInts(),
+            mixedBoard().toSolutionInts(),
         )
     }
 
     @Test
-    fun toInts_preservesShapeOfAnEmptyOrRaggedBoard() {
-        assertEquals(emptyList<List<Int>>(), emptyList<List<Tile>>().toInts())
+    fun toSolutionInts_preservesShapeOfAnEmptyOrRaggedBoard() {
+        assertEquals(emptyList<List<Int>>(), emptyList<List<Tile>>().toSolutionInts())
         assertEquals(
             listOf(listOf(0, 0), listOf(0)),
-            listOf(List(2) { Tile() }, List(1) { Tile() }).toInts(),
+            listOf(List(2) { Tile() }, List(1) { Tile() }).toSolutionInts(),
         )
     }
+
+    @Test
+    fun toProgressInts_keepsCrosses() {
+        assertEquals(
+            listOf(listOf(1, 2, 0), listOf(0, 1, 2)),
+            mixedBoard().toProgressInts(),
+        )
+    }
+
+    @Test
+    fun progressInts_roundTripEveryState() {
+        val states = TileState.entries.toList()
+        val board = listOf(states.map { Tile().apply { state = it } })
+
+        assertEquals(
+            listOf(states),
+            board.toProgressInts().map { row -> row.map(::progressIntToTileState) },
+        )
+    }
+
+    @Test
+    fun progressIntToTileState_fallsBackToNoneOnAnythingElse() {
+        for (value in listOf(0, 3, -1, 42)) {
+            assertEquals(TileState.NONE, progressIntToTileState(value), "value $value")
+        }
+    }
+
+    private fun mixedBoard(): List<List<Tile>> = listOf(
+        listOf(TileState.FILLED, TileState.CROSSED, TileState.NONE),
+        listOf(TileState.NONE, TileState.FILLED, TileState.CROSSED),
+    ).map { row -> row.map { Tile().apply { state = it } } }
 }

@@ -20,7 +20,7 @@ import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.classes.Board
 import com.trainpaths.nonogram.classes.BoardTransformState
 import com.trainpaths.nonogram.classes.DrawMode
-import com.trainpaths.nonogram.classes.toInts
+import com.trainpaths.nonogram.classes.toSolutionInts
 import com.trainpaths.nonogram.tutorial.TutorialStep
 import com.trainpaths.nonogram.tutorial.tutorialAnchor
 
@@ -63,7 +63,7 @@ fun GameScreen(
                     modifier = Modifier.fillMaxSize(),
                     drawMode = drawMode,
                     state = boardState,
-                    onTilesChanged = { if (tiles.toInts() == nonogram.solution) onWin() },
+                    onTilesChanged = { if (tiles.toSolutionInts() == nonogram.solution) onWin() },
                     onEdits = viewModel.history::record,
                 )
             }

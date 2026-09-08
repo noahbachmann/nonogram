@@ -15,7 +15,7 @@ import com.trainpaths.nonogram.classes.PublishStatus
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileState
 import com.trainpaths.nonogram.classes.isWellFormedGrid
-import com.trainpaths.nonogram.classes.toInts
+import com.trainpaths.nonogram.classes.toSolutionInts
 import com.trainpaths.nonogram.sync.SyncService
 import com.trainpaths.nonogram.sync.syncPublicNonograms
 import kotlinx.coroutines.Dispatchers
@@ -231,7 +231,7 @@ class GenViewModel(
     }
 
     fun updateNonogram() {
-        nonogram = nonogram.copy(solution = tiles.toInts())
+        nonogram = nonogram.copy(solution = tiles.toSolutionInts())
         isDirty = true
         validationState = ValidationState.UNCHECKED
         saveError = null
@@ -243,7 +243,7 @@ class GenViewModel(
         val authorUid = authRepository.currentUserUid.value
             .orMissing { saveError = "Sign in again to continue." } ?: return
         val nonogramId = nonogram.id
-        nonogram = nonogram.copy(solution = tiles.toInts())
+        nonogram = nonogram.copy(solution = tiles.toSolutionInts())
         // Any content change revokes approval, so the reviewer's verdict always matches the puzzle.
         val contentChanged = isDirty
         isSaving = true

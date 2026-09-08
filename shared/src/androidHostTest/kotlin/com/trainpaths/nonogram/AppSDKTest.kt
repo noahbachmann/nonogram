@@ -312,6 +312,16 @@ class AppSDKTest {
     }
 
     @Test
+    fun saveProgress_keepsCrossedCells() = runTest {
+        val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1, 0), listOf(0, 1)))
+        val board = listOf(listOf(1, 2), listOf(2, 0))
+
+        sdk.saveProgress("uid-cross", nonogramId, board)
+
+        assertEquals(board, sdk.getProgressForUser("uid-cross").single().board)
+    }
+
+    @Test
     fun saveProgressAfterWin_incrementsBeatCount() = runTest {
         val nonogramId = sdk.addNonogram("EASY", listOf(listOf(1)))
 
