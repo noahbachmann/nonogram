@@ -27,6 +27,12 @@ A naïve grid is one Box per tile — 3600 layout nodes for a 60×60, re-laid-ou
 > Consequence: nothing exposed by `BoardTransformState` is read during composition — only inside
 > `graphicsLayer{}`, draw lambdas, and gesture coroutines. Keep it that way.
 
+The rezoom button is the one control that reads the transform from *outside* those scopes, and it keeps the
+read to a single `derivedStateOf { state.canReset }`. A pan writes only the offsets, which `canReset` never
+reads, so a pan does not even re-evaluate it; a zoom re-evaluates to the same `true`. Only the flip
+recomposes, and only that one node. Its size and position are constants, so it never re-measures at all —
+anything else placed over the board should aim for the same.
+
 ## Layout of the `Board` composable
 
 Inside a `BoxWithConstraints(...safeContentPadding())`, `state.updateGeometry(...)` is pushed the viewport + cell/clue
@@ -46,10 +52,15 @@ Then a `clipToBounds` Box stacks, in draw order:
 5. **Frame overlay** (`Spacer` + `drawBehind`) — masks the corner where gutters would overlap when both axes are panned,
    and paints the field's *left/top* divider edges (the grid Canvas paints the matching right/bottom, so the field ends
    framed on all four sides).
-6. **`ZoomControls`** (+/−/fit) — only when `maxWidth >= ZOOM_CONTROLS_MIN_WIDTH` (600.dp); a *sibling*
-   of the gesture Box so pressing a button never starts a pan/stroke.
 
-Clue gutters use the thin `CLUE_CELL` (20.dp) along their own axis, not `CELL` (40.dp), because a row of width W holds
+`RezoomButton` is *not* in that stack. It is a sibling of the clipping Box, drawn after it: fixed at
+`REZOOM_SIDE` and pinned to the board's top-left, so the board's clip can never cut it and it never
+re-measures, and hit-tested ahead of every board gesture node, so pressing it cannot start a pan or a stroke.
+It floats over the grid and gutters on a translucent black scrim rather than trying to fit inside the corner —
+sizing it to the corner rect was the first design, and at fit on a large board that rect is a few dp across.
+It shows only while `state.canReset`.
+
+Clue gutters use the thin `CLUE_CELL` (22.dp) along their own axis, not `CELL` (40.dp), because a row of width W holds
 up to `ceil(W/2)` clues — at full cell size the gutter would eat half the screen.
 
 ## `BoardTransformState`
@@ -65,6 +76,12 @@ Maps a content plane (origin at the top-left of the empty corner cell) to the vi
   `GUTTER_MAX_FRACTION` (0.35) of the viewport; clues past the cap are reached by scrolling the gutter
   (`clueScroll{X,Y}`, always ≤ 0). `visibleGutterWpx` caps the reserved gutter at the grid's own width so it can't shove
   the grid off-screen.
+- **`canReset`** — is the board zoomed in past fit? That, and only that, shows the rezoom button. Not
+  `userAdjusted`, which a clamp-swallowed pan sets. Offsets need no check of their own: at `fitScale` both
+  axes are force-centred, so an offset off its default implies a scale off its default. Gutter scroll is
+  excluded even though `reset()` restores it — a pinch already clamped at `fitScale` falls through to
+  `applyTransformGesture`'s pan branch, where a centroid over a gutter scrolls it, which would otherwise
+  leave the button up on a board that is plainly already fitted.
 - **Zoom** is clamped to `[fitScale, max(fitScale,1)*MAX_ZOOM_MULTIPLE]` (3×), anchored so the content point under the
   cursor/centroid stays fixed (`zoomBy`).
 - **Hit testing.** `hitTest(v)` → `TileCoord?` (rejects gutters/corner via `regionAt`, and any tile occluded by a pinned

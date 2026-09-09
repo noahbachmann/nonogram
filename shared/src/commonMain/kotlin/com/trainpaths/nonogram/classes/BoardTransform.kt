@@ -63,8 +63,17 @@ const val CLUE_STRIKE_WIDTH_FRACTION = 0.07f
 /** Content-space width the divider reserves between the clue gutters and the playing field. */
 val BOARD_SEPARATOR = TILE_BORDER * SEPARATOR_UNITS
 
+/** Side of the rezoom control, which floats over the board rather than fitting inside the corner. */
+val REZOOM_SIDE = 36.dp
+
+/** Its inset from the board's top-left, inside the safe area. */
+val REZOOM_EDGE_INSET = 4.dp
+
 /** Zoom ceiling, as a multiple of the larger of [BoardTransformState.fitScale] and 1x. */
 private const val MAX_ZOOM_MULTIPLE = 3f
+
+/** Relative slack on the fit comparison, so a scale a rounding error above fit still reads as fitted. */
+private const val FIT_EPSILON = 0.001f
 
 /** Multiplicative zoom per scroll-wheel notch. */
 const val SCROLL_ZOOM_PER_NOTCH = 1.15f
@@ -243,6 +252,8 @@ class BoardTransformState {
 
     val minScale: Float get() = fitScale
     val maxScale: Float get() = max(fitScale, 1f) * MAX_ZOOM_MULTIPLE
+    
+    val canReset: Boolean get() = scale > fitScale * (1f + FIT_EPSILON)
 
     /** Viewport placement of the tile grid: after the *capped* gutter and its separator. */
     val gridTx: Float get() = (visibleGutterWpx + separatorContentPx) * scale + offsetX

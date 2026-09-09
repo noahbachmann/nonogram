@@ -34,7 +34,6 @@ import com.trainpaths.nonogram.MAX_CONTENT_WIDTH
 import com.trainpaths.nonogram.classes.BoardHistory
 import com.trainpaths.nonogram.classes.DrawMode
 import com.trainpaths.nonogram.icons.check
-import com.trainpaths.nonogram.icons.expand_content
 import com.trainpaths.nonogram.icons.lockClosed
 import com.trainpaths.nonogram.icons.lockOpen
 import com.trainpaths.nonogram.icons.redo
@@ -65,7 +64,6 @@ fun BottomToolBar(
     onLockToggle: () -> Unit,
     drawMode: DrawMode,
     onDrawModeSelect: (DrawMode) -> Unit,
-    resetZoom: (() -> Unit)? = null,
     history: BoardHistory? = null,
     onSave: (() -> Unit)? = null,
     saveEnabled: Boolean = true,
@@ -83,7 +81,6 @@ fun BottomToolBar(
         ) {
             val iconOnlyCount = DrawMode.entries.size + (if (history != null) 2 else 0)
             val labelledCount = 1 + // lock
-                (if (resetZoom != null) 1 else 0) +
                 (if (onSave != null) 1 else 0) +
                 (if (onCheck != null) 1 else 0)
 
@@ -136,17 +133,6 @@ fun BottomToolBar(
                     }
 
                     ToolGroup {
-                        if (resetZoom != null) {
-                            BottomBarItem(
-                                label = "Rezoom",
-                                imageVector = expand_content,
-                                contentDescription = "Zoom out to fit",
-                                onClick = resetZoom,
-                                width = labelledWidth,
-                                tutorialStep = TutorialStep.BOARD_ZOOM,
-                            )
-                        }
-
                         BottomBarItem(
                             label = if (isLocked) "Lock" else "Unlock",
                             imageVector = if (isLocked) lockClosed else lockOpen,
