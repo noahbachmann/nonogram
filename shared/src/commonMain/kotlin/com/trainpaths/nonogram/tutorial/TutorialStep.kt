@@ -2,7 +2,8 @@ package com.trainpaths.nonogram.tutorial
 
 /**
  * One tutorial hint. Declaration order is priority order: when several steps are on screen at once,
- * the first unseen one in this list is shown, and dismissing it reveals the next.
+ * the first unseen one in this list is shown, and dismissing it reveals the next. Within a screen
+ * that order follows its layout — the toolbar left to right, the app bar last.
  */
 enum class TutorialStep(val title: String, val text: String) {
     MENU_PLAY(
@@ -39,25 +40,34 @@ enum class TutorialStep(val title: String, val text: String) {
         title = "The board",
         text = "The numbers along the top and side are the clues. Drag across tiles to fill a run.",
     ),
-    BOARD_LOCK(
-        title = "Lock the board",
-        text = "Locked: dragging draws on the board. Unlocked: dragging pans the board.",
+    BOARD_ZOOM(
+        title = "Rezoom",
+        text = "Fits the whole board back on screen after you've zoomed or panned.",
     ),
     BOARD_DRAW_MODE(
         title = "Draw mode",
         text = "Pick what a tap or drag writes: fill, cross or erase.",
     ),
-    BOARD_ZOOM(
-        title = "Rezoom",
-        text = "Fits the whole board back on screen after you've zoomed or panned.",
-    ),
     BOARD_UNDO(
         title = "Undo and redo",
         text = "Step back through your strokes. Saves up to 25 steps.",
     ),
+    BOARD_LOCK(
+        title = "Lock the board",
+        text = "Locked: dragging draws on the board. Unlocked: dragging pans the board.",
+    ),
+    BOARD_CHECK(
+        title = "Check your work",
+        text = "Outlines every tile that contradicts the solution, and fits the board back on screen.",
+    ),
+
     GENLIST_NEW(
         title = "Create a nonogram",
         text = "Create a new puzzle. You pick its size and name next.",
+    ),
+    GENLIST_SCAN(
+        title = "Scan an image",
+        text = "Turns a picture into a black-and-white grid, then drops it on the drawing board.",
     ),
     GENLIST_EDIT(
         title = "Edit a puzzle",
@@ -68,13 +78,13 @@ enum class TutorialStep(val title: String, val text: String) {
         text = "Same button in reverse: takes you back to the puzzle list.",
     ),
 
+    GENCONF_NAME(
+        title = "Name",
+        text = "Optional, up to 30 characters. Puzzles without one show as \"???\".",
+    ),
     GENCONF_SIZE(
         title = "Grid size",
         text = "Rows and columns. Resizing later keeps whatever you've already drawn.",
-    ),
-    GENCONF_DONE(
-        title = "Off you go",
-        text = "This takes you to the drawing board and saves your changes when editing.",
     ),
     GENCONF_VALIDITY(
         title = "Validity",
@@ -84,14 +94,22 @@ enum class TutorialStep(val title: String, val text: String) {
         title = "Publishing",
         text = "Send a puzzle for review. Once approved, it will be published.",
     ),
-
-    GEN_WRENCH(
-        title = "Puzzle settings",
-        text = "Reopen the name, size and publishing options for this puzzle.",
+    GENCONF_DONE(
+        title = "Off you go",
+        text = "This takes you to the drawing board and saves your changes when editing.",
     ),
+
     GEN_SAVE(
         title = "Save",
         text = "Saves without leaving the board. It lights up whenever there's something to save.",
+    ),
+    GEN_CHECK(
+        title = "Check solvability",
+        text = "Outlines the cells the solver can't work out. Green means the puzzle is uniquely solvable.",
+    ),
+    GEN_WRENCH(
+        title = "Puzzle settings",
+        text = "Reopen the name, size and publishing options for this puzzle.",
     );
 }
 

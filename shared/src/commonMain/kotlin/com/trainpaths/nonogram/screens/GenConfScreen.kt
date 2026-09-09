@@ -96,6 +96,7 @@ fun GenConfScreen(
                 singleLine = true,
                 enabled = !genViewModel.isSaving,
                 colors = textFieldColors,
+                modifier = Modifier.tutorialAnchor(TutorialStep.GENCONF_NAME),
             )
 
             Row(

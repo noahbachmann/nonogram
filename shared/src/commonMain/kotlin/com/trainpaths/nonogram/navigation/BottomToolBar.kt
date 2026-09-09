@@ -70,6 +70,7 @@ fun BottomToolBar(
     onCheck: (() -> Unit)? = null,
     checkEnabled: Boolean = true,
     checkTint: Color? = null,
+    checkTutorialStep: TutorialStep? = null,
 ) {
     Box(
         modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.secondary),
@@ -165,6 +166,7 @@ fun BottomToolBar(
                                 width = labelledWidth,
                                 enabled = checkEnabled,
                                 tint = checkTint,
+                                tutorialStep = checkTutorialStep,
                             )
                         }
                     }
