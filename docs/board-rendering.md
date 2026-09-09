@@ -122,6 +122,38 @@ halves of the behaviour for free:
 Nothing about it is persisted or synced, and leaving the puzzle drops it: `loadNonogram` rebuilds the
 grid from fresh `Tile`s.
 
+## Struck-out clues
+
+`GameScreen` passes `strikeSolvedClues = true` and every clue the player has **certainly drawn** gets
+a dark-grey diagonal struck through it (`solvedClueMask`, `classes/ClueProgress.kt`). `GenScreen`
+leaves the flag off: its clues are derived from the tiles being drawn, so all of them would be
+struck, always.
+
+The rule is deliberately *not* solver-grade. Asking whether a clue is uniquely placeable given the
+marks hands the player deductions they had not made yet — ruinous on a line full of 1s and 2s. It
+reads only what the player has explicitly marked:
+
+- A filled run is **sealed** when both of its ends are a `CROSSED` cell or the edge of the line. A
+  run with a `NONE` beside it might still grow, so it strikes nothing.
+- Runs match the clue list in order, first match wins: a sealed run takes the earliest unconsumed
+  clue of the same length, an open run the earliest one at least as long. Open runs never strike,
+  but they do consume a clue, so they hold their place in the ordering.
+- A match is rejected when it cannot fit — the clues before it need room to its left, the ones after
+  it room to its right. When nothing fits, the line stops rather than striking a clue the player
+  provably has not placed. On `3 1 3 2` that is what makes a sealed 3 in the middle strike the
+  *second* 3: the first one can no longer be followed by `1 3 2`.
+
+The consequence is that a player who never crosses out blanks sees almost nothing struck — a
+completed line whose gaps are `NONE` strikes nothing, the same line with them `CROSSED` strikes
+everything. That is the price of not doing the player's work for them.
+
+Rendering follows the check mark's lead. `Modifier.clueStrikes` (`Board.kt`) hangs one
+`drawWithContent` on each clue *line* — not on each number — and reads that line's tile states inside
+it, so an edit invalidates one line's draw and the up-to-30 `ClueText` nodes it holds never
+recompose. Undo/redo and `resetBoard` write `Tile.state` as well, so they are covered with no
+`onApply` hook. The strike is drawn in the gutter's own content space and rides its layer transform;
+it deliberately does not read `state.scale`, which would redraw every clue line on every zoom step.
+
 ## Edit history (undo/redo)
 
 `BoardHistory` (`classes/BoardHistory.kt`) is a capped (10-step) undo/redo journal, one instance owned by each of

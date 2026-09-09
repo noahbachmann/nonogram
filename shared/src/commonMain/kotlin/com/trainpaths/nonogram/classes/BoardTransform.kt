@@ -54,6 +54,12 @@ const val BLOCK_LABEL_MIN_DEVICE_PX = 7f
 /** No line ever renders thinner than this, or it antialiases into nothing. */
 const val LINE_MIN_DEVICE_PX = 1f
 
+/** Extent on each axis of the diagonal struck through a solved clue, as a fraction of [CLUE_CELL] */
+const val CLUE_STRIKE_LENGTH_FRACTION = 0.7f
+
+/** Weight of that line, as a fraction of [CLUE_CELL]. */
+const val CLUE_STRIKE_WIDTH_FRACTION = 0.07f
+
 /** Content-space width the divider reserves between the clue gutters and the playing field. */
 val BOARD_SEPARATOR = TILE_BORDER * SEPARATOR_UNITS
 
@@ -468,13 +474,7 @@ class BoardTransformState {
     }
 }
 
-/**
- * Detects locked-mode one-pointer drawing without interfering with taps or pinch zoom.
- *
- * The gesture is not committed until it passes touch slop. A second pointer before that point hands
- * the gesture to [detectTransformGestures]; after commitment all changes are consumed and the stroke
- * owns the gesture until every pointer is up.
- */
+/** Detects locked-mode one-pointer drawing without interfering with taps or pinch zoom */
 internal suspend fun PointerInputScope.detectBoardDrawGestures(
     state: BoardTransformState,
     tiles: () -> List<List<Tile>>,
