@@ -74,9 +74,14 @@ data class Nonogram(
             computeLineClues((0 until height).map { row -> solution[row][col] })
         }
     }
-    val isValid: Boolean by lazy {
-        Solver(this).solveNonogram().map { row -> row.map { if (it == 1) 1 else 0 } } == solution
-    }
+    val isValid: Boolean by lazy { matchesDeduction(Solver(this).solveNonogram()) }
+
+    /**
+     * [isValid]'s verdict against a deduction produced elsewhere — what the app uses, since on web
+     * the Solver runs in a worker rather than here (`solveInBackground`).
+     */
+    fun matchesDeduction(deduced: List<List<Int>>): Boolean =
+        deduced.map { row -> row.map { if (it == 1) 1 else 0 } } == solution
 
     /** Seeded puzzles and puzzles authored elsewhere both carry a blank uid, so "" owns nothing. */
     fun isOwned(uid: String?): Boolean = uid != null && authorUid.isNotEmpty() && authorUid == uid

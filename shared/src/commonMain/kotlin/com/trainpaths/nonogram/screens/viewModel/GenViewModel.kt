@@ -12,16 +12,14 @@ import com.trainpaths.nonogram.classes.MAX_NONOGRAM_SIDE
 import com.trainpaths.nonogram.classes.MIN_NONOGRAM_SIDE
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
-import com.trainpaths.nonogram.classes.Solver
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileState
 import com.trainpaths.nonogram.classes.isWellFormedGrid
+import com.trainpaths.nonogram.classes.solveInBackground
 import com.trainpaths.nonogram.classes.toSolutionInts
 import com.trainpaths.nonogram.sync.SyncService
 import com.trainpaths.nonogram.sync.syncPublicNonograms
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.withContext
 
 internal data class SaveValidationResult(
     val isValid: Boolean?,
@@ -255,7 +253,7 @@ class GenViewModel(
         validationError = null
         launchGuarded {
             try {
-                val deduced = withContext(Dispatchers.Default) { Solver(puzzle).solveNonogram() }
+                val deduced = solveInBackground(puzzle)
                 if (board !== tiles || validationState != ValidationState.CHECKING) {
                     return@launchGuarded
                 }
@@ -294,9 +292,8 @@ class GenViewModel(
         validationError = null
         launchGuarded {
             try {
-                val validation = withContext(Dispatchers.Default) {
-                    validationForSave { nonogram.isValid }
-                }
+                val validation =
+                    validationForSave { nonogram.matchesDeduction(solveInBackground(nonogram)) }
                 validationState = validation.state
                 validationError = validation.error
 

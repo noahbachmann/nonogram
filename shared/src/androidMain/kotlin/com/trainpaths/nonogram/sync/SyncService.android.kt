@@ -8,6 +8,7 @@ import com.trainpaths.nonogram.classes.toSolutionJson
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.firestore
+import kotlinx.coroutines.CancellationException
 import kotlin.time.Clock
 
 private const val LOG_TAG = "FirestoreSync"
@@ -26,10 +27,13 @@ class FirebaseAndroidSyncService(private val sdk: AppSDK) : SyncService {
 
     /**
      * Every Firestore call is best-effort: a failed sync degrades to "not synced yet", never to a
-     * crash, so each one reports [label] and falls back to [fallback].
+     * crash, so each one reports [label] and falls back to [fallback]. Cancellation is not a
+     * failure and is rethrown, so a cancelled sync stops instead of running on with fallbacks.
      */
     private inline fun <T> logged(label: String, fallback: T, block: () -> T): T = try {
         block()
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         println("$LOG_TAG: $label: ${e.message}")
         fallback

@@ -29,6 +29,8 @@ dependencyResolutionManagement {
 }
 
 include(":androidApp")
+include(":core")
 include(":shared")
+include(":solverWorker")
 include(":webApp")
 include(":seedTool")

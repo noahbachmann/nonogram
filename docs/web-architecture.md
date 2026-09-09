@@ -31,6 +31,70 @@ Because `AuthRepository.initialize()` is now async, `MenuViewModel`'s `init { lo
 `LoadingScreen()` until `AuthViewModel.authState != INITIALIZING`, so ViewModels are only constructed once auth has
 resolved.
 
+## One thread, and what that costs
+
+js and wasmJs have a single thread, and it is the one that draws. `Dispatchers.Default` is that
+thread, `Dispatchers.IO` does not exist, and `dbDispatcher` is `EmptyCoroutineContext` for the same
+reason — there is nowhere to hop *to*. A `withContext(Dispatchers.Default)` written for Android's
+benefit therefore buys web nothing, and anything genuinely CPU-bound freezes the UI for as long as
+it runs.
+
+Only three things get off that thread, each into a worker of its own:
+
+| Worker | Script | Runs |
+|---|---|---|
+| database | `webApp/src/webMain/resources/sqlite.worker.js` (hand-written JS) | every SQL statement, one `postMessage` round trip each |
+| solver | `:solverWorker`, a Kotlin executable | `Solver.solveNonogram()`, via `classes/BackgroundSolver.web.kt` |
+| image decode | the browser's own | `<img>` decode + `drawImage` downscale, in `scan/ImageDecode.web.kt` |
+
+What follows from that:
+
+- **The round trip is the cost, not the query.** A loop that reads or writes one row at a time pays
+  a full event-loop hop per row. `mergeRemoteNonograms` and `mergeRemoteProgress`
+  (`sync/SyncService.kt`, `sync/RemoteProgress.kt`) therefore read the local side *once* — nonograms
+  via `selectNonogramStubs`, which carries no solution to decode — and write the winners in one
+  transaction. New merge logic should keep that shape.
+- **Don't decode a grid you will not draw.** Every `solution` and `boardState` is JSON, parsed on
+  the UI thread by `Database`'s row mappers. `selectProgressForUser` selects progress columns only
+  for exactly this reason.
+- **Nothing may pin a spinner.** `kotlinx.coroutines.await` on a JS `Promise` cannot be cancelled,
+  and the Firestore JS SDK retries a failed `getDocs` indefinitely — the promise simply never
+  settles. So `AuthViewModel` bounds every remote pass with `withTimeoutOrNull`, releases its
+  callbacks under `NonCancellable`, and `MenuViewModel.refresh` sets and clears its own
+  `isRefreshing` inside one coroutine rather than trusting a callback to arrive. `gated`
+  (web) and `logged` (Android) rethrow `CancellationException` instead of swallowing it into a
+  fallback. `AppSDK` likewise times out driver creation, which happens under a mutex every other
+  database call waits on.
+
+### The Solver worker
+
+`:solverWorker` is a second Kotlin executable, built for js and wasmJs like the app itself. It
+depends on `:core` — the puzzle model, the Solver and the grid codec, with no Compose and no
+Firebase — because a worker that had to load the app's own bundle would be pulling in Skiko to run
+line logic. `:core` exists only to draw that line.
+
+The protocol is `classes/SolverProtocol.kt`: a JSON `SolveRequest` in, a `SolveResponse` out,
+correlated by id. `webApp/build.gradle.kts` folds `:solverWorker`'s browser distribution into its
+own `processResources`, which is what puts `solverWorker.js` beside `webApp.js` for both the dev
+server and `browserDistribution` — the same place `sqlite.worker.js` arrives from
+`src/webMain/resources`.
+
+`BackgroundSolver.web.kt` falls back to solving inline whenever the worker cannot be used: the
+script missing, a worker `error` event, an unreadable reply. That is exactly the behaviour this
+replaced, so a broken worker costs responsiveness and nothing else.
+
+### Image decode
+
+`scan/ImageDecode.kt` is `expect`, not common code: Compose's `decodeToImageBitmap` + `readPixels`
+is synchronous and would decode a 12 MP photo on the UI thread. The web actual hands the picked
+`File` — which is already a `Blob` — to an `<img>`, lets the browser decode it off-thread, and
+`drawImage`s it into a canvas *already sized to `WORKING_SIDE`*, so only the finished 256×256 pixels
+cross back into Kotlin, in one bulk copy. `PickedImage` exists so the bytes never enter Kotlin at
+all; reading them into a `ByteArray` first was twelve million boundary crossings on the UI thread.
+
+The resample is therefore the browser's rather than `LumaAccumulator`'s box filter, so a web scan is
+not bit-identical to an Android one. Both feed the same interactive threshold.
+
 ## Persistence: OPFS via a custom worker
 
 SQLDelight's documented web worker setup uses `sql.js`, which is in-memory only — a reload wipes all data. Instead,
@@ -45,7 +109,7 @@ built on the official `@sqlite.org/sqlite-wasm` package, using the `opfs-sahpool
 - `webApp/webpack.config.d/sqlite-wasm.js` copies `sqlite3.js`/`sqlite3.wasm` from the npm package next to the compiled
   bundle so the worker's `importScripts("sqlite3.js")` resolves.
 
-`WebDatabaseFactory` (`shared/src/webMain/.../cache/WebDatabaseFactory.kt`) drives the worker through the same
+`WebDatabaseFactory` (`shared/src/webMain/.../cache/DatabaseFactory.web.kt`) drives the worker through the same
 `WebWorkerDriver` SQLDelight uses for its own sql.js reference worker — only the worker script differs.
 
 ## Web sign-in + sync (milestone 2)

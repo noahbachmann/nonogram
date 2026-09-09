@@ -82,6 +82,9 @@ kotlin {
             implementation(libs.gitlive.firebase.firestore)
         }
         commonMain.dependencies {
+            // api: Nonogram and friends are part of what shared hands its callers.
+            api(projects.core)
+
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)

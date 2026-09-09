@@ -20,7 +20,7 @@ import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.classes.Board
 import com.trainpaths.nonogram.classes.BoardTransformState
 import com.trainpaths.nonogram.classes.DrawMode
-import com.trainpaths.nonogram.classes.toSolutionInts
+import com.trainpaths.nonogram.classes.matchesSolution
 import com.trainpaths.nonogram.tutorial.TutorialStep
 import com.trainpaths.nonogram.tutorial.tutorialAnchor
 
@@ -65,7 +65,7 @@ fun GameScreen(
                     drawMode = drawMode,
                     strikeSolvedClues = true,
                     state = boardState,
-                    onTilesChanged = { if (tiles.toSolutionInts() == nonogram.solution) onWin() },
+                    onTilesChanged = { if (tiles.matchesSolution(nonogram.solution)) onWin() },
                     onEdits = viewModel.history::record,
                 )
             }

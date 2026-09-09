@@ -39,6 +39,10 @@ internal class Database(driver: SqlDriver) {
     internal suspend fun getNonogramById(id: Long): Nonogram? =
         dbQuery.selectNonogramById(id, ::mapNonogram).awaitAsOneOrNull()
 
+    /** Keyed by id, so a merge can look every remote puzzle up without a query each. */
+    internal suspend fun getNonogramStubs(): Map<Long, NonogramStub> =
+        dbQuery.selectNonogramStubs(::NonogramStub).awaitAsList().associateBy { it.id }
+
     /**
      * Whether another puzzle already has this grid spoken for: an approved puzzle from anyone, or
      * [authorUid]'s own unlisted or pending copy. Encodes [solution] the same way the rows were
@@ -128,6 +132,14 @@ internal class Database(driver: SqlDriver) {
         dbQuery.reassignAuthor(toUid = toUid, fromUid = fromUid)
     }
 
+    /** One transaction for the whole batch: on web each statement is its own worker round-trip. */
+    internal suspend fun upsertNonograms(nonograms: List<Nonogram>) {
+        if (nonograms.isEmpty()) return
+        dbQuery.transaction {
+            nonograms.forEach { nonogram -> this@Database.upsertNonogram(nonogram) }
+        }
+    }
+
     internal suspend fun upsertNonogram(nonogram: Nonogram) {
         dbQuery.upsertNonogram(
             nonogram.id,
@@ -208,6 +220,21 @@ internal class Database(driver: SqlDriver) {
         )
     }
 
+    /** [upsertNonograms] for progress rows. */
+    internal suspend fun saveProgressBatch(userUid: String, rows: List<ProgressWithTimestamp>) {
+        if (rows.isEmpty()) return
+        dbQuery.transaction {
+            rows.forEach { row ->
+                dbQuery.upsertProgress(
+                    userUid = userUid,
+                    nonogramId = row.nonogramId,
+                    boardState = row.boardState,
+                    updatedAt = row.updatedAt,
+                )
+            }
+        }
+    }
+
     /**
      * A row the app cannot make sense of must not take the whole query down with it: one bad
      * `solution` would otherwise make the menu unopenable. Ragged grids are dropped too, since
@@ -235,34 +262,27 @@ internal class Database(driver: SqlDriver) {
     )
 
     private fun mapProgress(
-        id: Long,
-        difficulty: String,
-        solution: String,
-        authorUid: String,
-        status: Long,
-        updatedAt: Long,
-        name: String?,
+        nonogramId: Long,
         boardState: String?,
-        beat: Long
+        beat: Long,
     ): NonogramProgress = NonogramProgress(
-        nonogram = Nonogram(
-            id = id,
-            difficulty = difficulty.toDifficulty(),
-            solution = decodeSolution(solution),
-            name = name,
-            authorUid = authorUid,
-            updatedAt = updatedAt,
-            publishStatus = status.toPublishStatus(),
-        ),
+        nonogramId = nonogramId,
         board = boardState?.toSolutionOrNull(),
-        beat = beat
+        beat = beat,
     )
 }
 
 data class NonogramProgress(
-    val nonogram: Nonogram,
+    val nonogramId: Long,
     val board: List<List<Int>>?,
     val beat: Long = 0
+)
+
+/** A puzzle row minus its solution — enough to compare, not enough to draw. */
+data class NonogramStub(
+    val id: Long,
+    val authorUid: String,
+    val updatedAt: Long,
 )
 
 data class ProgressWithTimestamp(

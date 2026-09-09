@@ -1,32 +1,21 @@
 package com.trainpaths.nonogram.scan
 
-import androidx.compose.ui.graphics.decodeToImageBitmap
-
-/** Ints per read-back buffer — a 4 MB window, so one band of a very wide image still fits. */
-private const val BAND_BUDGET = 1 shl 20
+/**
+ * A picked image as its platform holds it: the encoded bytes on Android, the browser's own `Blob`
+ * on web.
+ *
+ * Deliberately not a `ByteArray`. On web the bytes would have to be copied out of JS one element at
+ * a time — a 12 MP photo is twelve million boundary crossings on the thread that also draws the UI —
+ * and then handed straight back to a decoder that would rather have had the `Blob`.
+ */
+expect class PickedImage {
+    val sizeBytes: Long
+}
 
 /**
- * Decodes an encoded image and reduces it to a [LumaMap] of at most [maxSide] on its longest side.
+ * Reduces the image to a [LumaMap] of at most [maxSide] on its longest side.
  *
- * Pixels are read back a band of rows at a time into one reused buffer rather than all at once: a
- * 12 MP photo is 48 MB as a single `IntArray`, which is a problem on WASM in particular.
+ * Suspending because on web both the decode and the downscale belong to the browser, which does
+ * them asynchronously and off the main thread; see `docs/web-architecture.md`.
  */
-internal fun ByteArray.decodeToLumaMap(maxSide: Int = WORKING_SIDE): LumaMap {
-    val bitmap = decodeToImageBitmap()
-    val width = bitmap.width
-    val height = bitmap.height
-    require(width > 0 && height > 0) { "decoded image is empty" }
-
-    val accumulator = LumaAccumulator(width, height, maxSide)
-    val bandRows = (BAND_BUDGET / width).coerceIn(1, height)
-    val buffer = IntArray(width * bandRows)
-
-    var y = 0
-    while (y < height) {
-        val rows = minOf(bandRows, height - y)
-        bitmap.readPixels(buffer, startX = 0, startY = y, width = width, height = rows)
-        accumulator.addRows(buffer, startY = y, rowCount = rows, stride = width)
-        y += rows
-    }
-    return accumulator.build()
-}
+internal expect suspend fun PickedImage.decodeToLumaMap(maxSide: Int = WORKING_SIDE): LumaMap

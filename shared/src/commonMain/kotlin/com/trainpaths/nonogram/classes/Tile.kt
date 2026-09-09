@@ -45,6 +45,24 @@ class Tile {
 fun List<List<Tile>>.toSolutionInts(): List<List<Int>> =
     map { row -> row.map { if (it.state == TileState.FILLED) 1 else 0 } }
 
+/**
+ * [toSolutionInts] `== solution`, without building the grid. The win check runs on every step of a
+ * drag, so allocating a 60x60 copy of the board each time is a whole frame's worth of work on web.
+ */
+fun List<List<Tile>>.matchesSolution(solution: List<List<Int>>): Boolean {
+    if (size != solution.size) return false
+    for (row in indices) {
+        val tileRow = this[row]
+        val solutionRow = solution[row]
+        if (tileRow.size != solutionRow.size) return false
+        for (col in tileRow.indices) {
+            val filled = if (tileRow[col].state == TileState.FILLED) 1 else 0
+            if (filled != solutionRow[col]) return false
+        }
+    }
+    return true
+}
+
 fun List<List<Tile>>.toProgressInts(): List<List<Int>> =
     map { row -> row.map { it.state.toProgressInt() } }
 

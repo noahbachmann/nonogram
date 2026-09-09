@@ -3,6 +3,7 @@ package com.trainpaths.nonogram
 import com.trainpaths.nonogram.cache.Database
 import com.trainpaths.nonogram.cache.DatabaseFactory
 import com.trainpaths.nonogram.cache.NonogramProgress
+import com.trainpaths.nonogram.cache.NonogramStub
 import com.trainpaths.nonogram.cache.ProgressWithTimestamp
 import com.trainpaths.nonogram.cache.SEED_PUZZLES
 import com.trainpaths.nonogram.cache.SeedPuzzle
@@ -13,6 +14,15 @@ import com.trainpaths.nonogram.classes.PublishStatus
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlin.time.Duration.Companion.seconds
+
+/**
+ * The mutex in [db] is held across driver creation, so a driver that never comes up — a web worker
+ * that failed to boot, OPFS unavailable — would wedge every database call in the app. Time it out
+ * instead: the failure surfaces at the call site and the next one gets to try again.
+ */
+private val DRIVER_TIMEOUT = 20.seconds
 
 class AppSDK(private val databaseFactory: DatabaseFactory) {
     private val mutex = Mutex()
@@ -20,7 +30,8 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
 
     private suspend fun db(): Database =
         database ?: mutex.withLock {
-            database ?: Database(databaseFactory.createDriver()).also { database = it }
+            database ?: Database(withTimeout(DRIVER_TIMEOUT) { databaseFactory.createDriver() })
+                .also { database = it }
         }
 
     private suspend fun <T> onDb(block: suspend Database.() -> T): T =
@@ -58,6 +69,10 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
     suspend fun getNonogramById(id: Long): Nonogram? =
         onDb { getNonogramById(id) }
 
+    /** Every puzzle's id, author and timestamp in one read — what a sync merge compares against. */
+    suspend fun getNonogramStubs(): Map<Long, NonogramStub> =
+        onDb { getNonogramStubs() }
+
     /** Whether another puzzle already claims this grid for publication. */
     suspend fun hasPublishConflict(
         solution: List<List<Int>>,
@@ -86,6 +101,10 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
 
     suspend fun upsertNonogramFromRemote(nonogram: Nonogram) =
         onDb { upsertNonogram(nonogram) }
+
+    /** One transaction for the batch; prefer it to a loop of [upsertNonogramFromRemote]. */
+    suspend fun upsertNonogramsFromRemote(nonograms: List<Nonogram>) =
+        onDb { upsertNonograms(nonograms) }
 
     /** Moves every puzzle authored under one author key to another, as sign-in does. */
     suspend fun reassignAuthor(fromUid: String, toUid: String) =
@@ -126,4 +145,8 @@ class AppSDK(private val databaseFactory: DatabaseFactory) {
         updatedAt: Long
     ) =
         onDb { saveProgressWithTimestamp(userUid, nonogramId, boardState, updatedAt) }
+
+    /** [upsertNonogramsFromRemote] for progress rows. */
+    suspend fun saveProgressBatch(userUid: String, rows: List<ProgressWithTimestamp>) =
+        onDb { saveProgressBatch(userUid, rows) }
 }

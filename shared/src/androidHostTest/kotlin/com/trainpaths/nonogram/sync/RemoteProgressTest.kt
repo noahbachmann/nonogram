@@ -2,8 +2,6 @@ package com.trainpaths.nonogram.sync
 
 import com.trainpaths.nonogram.AppSDK
 import com.trainpaths.nonogram.TestDatabaseFactory
-import com.trainpaths.nonogram.classes.Difficulty
-import com.trainpaths.nonogram.classes.Nonogram
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -13,7 +11,7 @@ import kotlin.test.assertTrue
 
 /**
  * The progress merge as both platform services run it — they supply only the fetch and the single
- * document write, so a [SyncService] that records its pushes is the whole platform half.
+ * document write, so a [RecordingSyncService] is the whole platform half.
  */
 class RemoteProgressTest {
 
@@ -104,42 +102,4 @@ class RemoteProgressTest {
             service.pushed.toSet(),
         )
     }
-}
-
-private data class Push(
-    val firebaseUid: String,
-    val nonogramId: Long,
-    val boardState: String?,
-    val updatedAt: Long,
-)
-
-/** Records the one write the shared merge is allowed to make; everything else is unreachable. */
-private class RecordingSyncService : SyncService {
-
-    val pushed = mutableListOf<Push>()
-
-    override suspend fun pushProgress(firebaseUid: String, nonogramId: Long, boardState: String?, updatedAt: Long) {
-        pushed += Push(firebaseUid, nonogramId, boardState, updatedAt)
-    }
-
-    override suspend fun hasRemoteProgress(firebaseUid: String) = unused()
-    override suspend fun uploadAllLocalProgress(firebaseUid: String) = unused()
-    override suspend fun pullAllProgress(firebaseUid: String) = unused()
-    override suspend fun pullAndMergeAllProgress(firebaseUid: String) = unused()
-    override suspend fun pushNonogram(firebaseUid: String, nonogram: Nonogram, writePublishStatus: Boolean) = unused()
-    override suspend fun uploadAllLocalNonograms(firebaseUid: String) = unused()
-    override suspend fun pullPublicNonogramsSince(firebaseUid: String?, since: Long) = unused()
-    override suspend fun pullOwnedNonograms(firebaseUid: String, since: Long) = unused()
-    override suspend fun requestPublish(firebaseUid: String, nonogram: Nonogram) = unused()
-    override suspend fun fetchModerationGate(firebaseUid: String) = unused()
-    override suspend fun isAdmin(firebaseUid: String) = unused()
-    override suspend fun pullPendingReviews(firebaseUid: String, limit: Int) = unused()
-    override suspend fun decideReview(
-        firebaseUid: String,
-        nonogram: Nonogram,
-        approve: Boolean,
-        difficulty: Difficulty,
-    ) = unused()
-
-    private fun unused(): Nothing = error("not part of the progress merge")
 }

@@ -2,6 +2,7 @@ package com.trainpaths.nonogram
 
 import com.trainpaths.nonogram.classes.Difficulty
 import com.trainpaths.nonogram.classes.Nonogram
+import com.trainpaths.nonogram.cache.ProgressWithTimestamp
 import com.trainpaths.nonogram.classes.PublishStatus
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
@@ -307,7 +308,7 @@ class AppSDKTest {
 
         val progress = sdk.getProgressForUser("uid-dave")
         assertEquals(1, progress.size)
-        assertEquals(nonogramId, progress[0].nonogram.id)
+        assertEquals(nonogramId, progress[0].nonogramId)
         assertEquals(board, progress[0].board)
     }
 
@@ -431,6 +432,70 @@ class AppSDKTest {
 
         val progress = sdk.getProgressForUserWithTimestamp("uid-heidi")
         assertEquals(2, progress.size)
+    }
+
+    @Test
+    fun getNonogramStubs_carriesAuthorAndTimestampWithoutSolutions() = runTest {
+        val mine = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "uid-stub")
+        val theirs = sdk.addNonogram("HARD", listOf(listOf(0)), authorUid = "uid-other")
+
+        val stubs = sdk.getNonogramStubs()
+
+        assertEquals(setOf(mine, theirs), stubs.keys)
+        assertEquals("uid-stub", stubs.getValue(mine).authorUid)
+        assertEquals(mine, stubs.getValue(mine).id)
+        assertEquals(sdk.getNonogramById(mine)!!.updatedAt, stubs.getValue(mine).updatedAt)
+    }
+
+    @Test
+    fun upsertNonogramsFromRemote_writesTheWholeBatch() = runTest {
+        val existing = sdk.addNonogram("EASY", listOf(listOf(1)), authorUid = "uid-batch")
+        val remotes = listOf(
+            sdk.getNonogramById(existing)!!.copy(name = "Renamed", updatedAt = 500),
+            Nonogram(
+                id = 987_654_321L,
+                difficulty = Difficulty.HARD,
+                solution = listOf(listOf(0, 1), listOf(1, 0)),
+                authorUid = "uid-batch",
+                updatedAt = 600,
+                publishStatus = PublishStatus.APPROVED,
+            ),
+        )
+
+        sdk.upsertNonogramsFromRemote(remotes)
+
+        assertEquals("Renamed", sdk.getNonogramById(existing)!!.name)
+        val added = assertNotNull(sdk.getNonogramById(987_654_321L))
+        assertEquals(listOf(listOf(0, 1), listOf(1, 0)), added.solution)
+        assertEquals(PublishStatus.APPROVED, added.publishStatus)
+    }
+
+    @Test
+    fun upsertNonogramsFromRemote_acceptsAnEmptyBatch() = runTest {
+        sdk.upsertNonogramsFromRemote(emptyList())
+
+        assertTrue(sdk.getAllNonograms().isEmpty())
+    }
+
+    @Test
+    fun saveProgressBatch_writesEveryRowAndKeepsBeatCounts() = runTest {
+        val first = sdk.addNonogram("EASY", listOf(listOf(1)))
+        val second = sdk.addNonogram("HARD", listOf(listOf(0)))
+        sdk.saveProgressAfterWin("uid-batch", first)
+
+        sdk.saveProgressBatch(
+            "uid-batch",
+            listOf(
+                ProgressWithTimestamp(first, "[[1]]", 900),
+                ProgressWithTimestamp(second, null, 950),
+            ),
+        )
+
+        val progress = sdk.getProgressForUser("uid-batch").associateBy { it.nonogramId }
+        assertEquals(listOf(listOf(1)), progress.getValue(first).board)
+        assertEquals(1, progress.getValue(first).beat)
+        assertNull(progress.getValue(second).board)
+        assertEquals(950, sdk.getSingleProgress("uid-batch", second)!!.updatedAt)
     }
 
     @Test

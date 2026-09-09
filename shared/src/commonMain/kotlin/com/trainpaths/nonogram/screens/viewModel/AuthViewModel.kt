@@ -7,11 +7,21 @@ import com.trainpaths.nonogram.sync.SyncService
 import com.trainpaths.nonogram.sync.syncPublicNonograms
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.seconds
 
 enum class GeneratorSyncState { IDLE, SYNCING, ERROR }
+
+/**
+ * How long a remote pass may run before the UI stops waiting on it. A Firestore promise that never
+ * settles cannot be cancelled from Kotlin, so the coroutine has to give up on it instead — see
+ * `docs/web-architecture.md`.
+ */
+private val SYNC_TIMEOUT = 30.seconds
 
 class AuthViewModel(
     private val authRepository: AuthRepository,
@@ -53,30 +63,39 @@ class AuthViewModel(
         ) {
             try {
                 authRepository.linkFirebaseUser(firebaseUid, displayName)
-                if (syncService.hasRemoteProgress(firebaseUid)) {
-                    syncService.pullAllProgress(firebaseUid)
-                } else {
-                    syncService.uploadAllLocalProgress(firebaseUid)
+                withTimeoutOrNull(SYNC_TIMEOUT) {
+                    if (syncService.hasRemoteProgress(firebaseUid)) {
+                        syncService.pullAllProgress(firebaseUid)
+                    } else {
+                        syncService.uploadAllLocalProgress(firebaseUid)
+                    }
+                    syncService.uploadAllLocalNonograms(firebaseUid)
+                    refreshPublishState(firebaseUid)
                 }
-                syncService.uploadAllLocalNonograms(firebaseUid)
-                refreshPublishState(firebaseUid)
             } finally {
                 _signInComplete.value = true
             }
         }
     }
 
+    /** The whole remote pass, awaitable, so a caller can own its own spinner around it. */
+    suspend fun syncAllNow() {
+        withTimeoutOrNull(SYNC_TIMEOUT) {
+            syncService.syncPublicNonograms(authRepository, authRepository.currentFirebaseUid)
+
+            val firebaseUid = authRepository.currentFirebaseUid.orMissing() ?: return@withTimeoutOrNull
+            syncService.pullAndMergeAllProgress(firebaseUid)
+            syncOwnedNonograms(firebaseUid)
+            refreshPublishState(firebaseUid)
+        }
+    }
+
     fun syncAll(onComplete: () -> Unit = {}) {
         launchGuarded(Dispatchers.Default) {
             try {
-                syncService.syncPublicNonograms(authRepository, authRepository.currentFirebaseUid)
-
-                val firebaseUid = authRepository.currentFirebaseUid.orMissing() ?: return@launchGuarded
-                syncService.pullAndMergeAllProgress(firebaseUid)
-                syncOwnedNonograms(firebaseUid)
-                refreshPublishState(firebaseUid)
+                syncAllNow()
             } finally {
-                withContext(Dispatchers.Main) { onComplete() }
+                notifyComplete(onComplete)
             }
         }
     }
@@ -85,11 +104,19 @@ class AuthViewModel(
         launchGuarded(Dispatchers.Default) {
             try {
                 val firebaseUid = authRepository.currentFirebaseUid.orMissing() ?: return@launchGuarded
-                syncOwnedNonograms(firebaseUid)
+                withTimeoutOrNull(SYNC_TIMEOUT) { syncOwnedNonograms(firebaseUid) }
             } finally {
-                withContext(Dispatchers.Main) { onComplete() }
+                notifyComplete(onComplete)
             }
         }
+    }
+
+    /**
+     * [NonCancellable] because these callbacks release the caller's spinner: a plain `withContext`
+     * in a `finally` rethrows on a cancelled job and would leave it spinning forever.
+     */
+    private suspend fun notifyComplete(onComplete: () -> Unit) {
+        withContext(NonCancellable + Dispatchers.Main) { onComplete() }
     }
 
     private suspend fun refreshPublishState(firebaseUid: String) {
@@ -120,6 +147,12 @@ class AuthViewModel(
         } catch (error: Throwable) {
             println("FirestoreSync: owned nonogram sync for Generator failed: ${error.message}")
             _generatorSyncState.value = GeneratorSyncState.ERROR
+        } finally {
+            // A timeout unwinds as cancellation, so without this the Generator would stay SYNCING
+            // and never offer its retry button.
+            if (_generatorSyncState.value == GeneratorSyncState.SYNCING) {
+                _generatorSyncState.value = GeneratorSyncState.ERROR
+            }
         }
     }
 
@@ -143,7 +176,7 @@ class AuthViewModel(
                 _isAdmin.value = false
                 _publishBanned.value = false
             } finally {
-                withContext(Dispatchers.Main) { onComplete() }
+                notifyComplete(onComplete)
             }
         }
     }

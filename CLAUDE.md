@@ -53,7 +53,10 @@ non-obvious *why*).
 
 All shared code lives in `shared/src/commonMain/`, with platform-specific code in `shared/src/androidMain/` and
 `shared/src/webMain/` (shared by the `jsMain`/`wasmJsMain` source sets — see `docs/web-architecture.md`). Platform apps
-(`androidApp/`, `webApp/`, `iosApp/`) are thin shells that initialize Koin DI and host the Compose UI.
+(`androidApp/`, `webApp/`, `iosApp/`) are thin shells that initialize Koin DI and host the Compose UI. Two smaller
+modules sit beside `shared`: `core/` (the puzzle model, the `Solver` and the grid codec, with no Compose and no
+Firebase — `shared` re-exports it with `api`, so nothing else has to know it moved) and `solverWorker/` (a js+wasmJs
+executable that runs the Solver in a web worker). See `docs/web-architecture.md` for why they are split out.
 
 ### Layers
 
@@ -62,8 +65,11 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   so the constructor itself stays synchronous for DI. It also **owns the dispatcher**: every method hops once through
   `dbDispatcher` (`cache/DatabaseFactory.kt`; `Dispatchers.IO` on Android where the driver blocks,
   `EmptyCoroutineContext` on web where `Dispatchers.Default` *is* the main thread), driver creation included. Callers
-  just `suspend` — do not wrap an `AppSDK` call in a `withContext` of your own. The one thing in a ViewModel that still
-  earns its own `Dispatchers.Default` is `GenViewModel`'s Solver run.
+  just `suspend` — do not wrap an `AppSDK` call in a `withContext` of your own. On web there is no other thread to hop
+  to at all, so `Dispatchers.Default` there is the UI thread and the only genuine off-thread work happens in workers —
+  see **docs/web-architecture.md → One thread, and what that costs** before adding anything that loops over rows or
+  burns CPU. `AppSDK` also exposes the bulk forms the sync merges use (`getNonogramStubs`,
+  `upsertNonogramsFromRemote`, `saveProgressBatch`); prefer them to a loop of single-row calls.
 - **`cache/Database`** — internal class wrapping SQLDelight-generated `NonogramDb`. Maps DB rows to domain types. Not
   accessed directly outside `AppSDK`.
 - **`cache/DatabaseFactory`** — `suspend fun createDriver(): SqlDriver`, implemented per platform:
@@ -131,7 +137,10 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   control — Compose hit-testing stops at the topmost sibling, so the anchor itself listens on `PointerEventPass.Initial`
   without consuming.
 - **`classes/Solver`** — line-logic solver; run via `Nonogram.isValid` to check a puzzle is uniquely solvable (gates
-  publishing). **User-owned and actively changing — do not document its internals or modify it.**
+  publishing). **User-owned and actively changing — do not document its internals or modify it.** It lives in the
+  `:core` module, together with `Nonogram` and `SolutionCodec` — everything with no Compose or Firebase in it — so the
+  web Solver worker can link it without dragging the app in. App code always reaches it through
+  `classes/solveInBackground`, never `Solver(...)` directly: on web the direct call would run on the UI thread.
 - **`screens/GoogleSignInSection`** — `expect`/`actual` composable for the Google sign-in button, both actuals built on
   kmpauth's `GoogleSignInButton` + a `SignInState`. Android uses `rememberGoogleAuthState`, which exchanges the
   credential for a Firebase session through kmpauth's own Firebase backend (auto-registered from `kmpauth-firebase`) and
@@ -163,11 +172,17 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
   `currentUserUid` is an anomaly (auth not initialized), a null `currentFirebaseUid` is just a guest.
 
   **When sync runs.** `syncAll` fires once from `AppContent`'s app-start `LaunchedEffect`, and after that only when the
-  user pull-to-refreshes the menu (`MenuScreen`'s
-  `PullToRefreshBox` → `MenuViewModel.refresh`). Entering `MenuRoute` does **not** sync — it calls
-  `MenuViewModel.reload()`, a silent local-DB re-read with no spinner, so puzzles just authored in the generator still
-  appear. `MenuViewModel` therefore has two flags: `isLoading` (full-screen spinner, cold start and sign-in/sign-out
-  only, via `loadAll()`) and `isRefreshing` (the pull-to-refresh indicator).
+  user pull-to-refreshes the menu (`MenuScreen`'s `PullToRefreshBox` → `MenuViewModel.refresh`, which takes the sync
+  itself as a suspend lambda — `authViewModel::syncAllNow` — so the indicator is set and cleared inside one coroutine
+  in one ViewModel; a callback that never arrives used to leave it spinning forever). Entering `MenuRoute` does **not**
+  sync — it calls `MenuViewModel.reload()`, a silent local-DB re-read with no spinner, so puzzles just authored in the
+  generator still appear. `MenuViewModel` therefore has two flags: `isLoading` (full-screen spinner, cold start and
+  sign-in/sign-out only, via `reload(loadAll = true)`) and `isRefreshing` (the pull-to-refresh indicator).
+
+  **Every remote pass is bounded.** `syncAllNow` wraps its work in `withTimeoutOrNull(SYNC_TIMEOUT)` and the
+  fire-and-forget `syncAll`/`retryOwnNonograms`/`signOut` release their `onComplete` under
+  `NonCancellable + Dispatchers.Main`. Both exist because a Firestore promise can neither be cancelled nor be relied on
+  to settle; see `docs/web-architecture.md`.
 
 ### Navigation
 
@@ -252,7 +267,8 @@ silently disappears. Icons come from the hand-built `icons/` package of `ImageVe
   grid failing `isWellFormedGrid()` in `parseNonograms` (ragged grids crash `colClues`), and the DB mapper falls back
   to an empty solution for one already stored — keep `MAX_NONOGRAM_SIDE` in step with the 20 000-character cap
   the Firestore rules put on the encoded `solution`.
-- **`Tile`** — mutable Compose state. Cycles: NONE → FILLED → CROSSED → NONE.
+- **`Tile`** — mutable Compose state. Cycles: NONE → FILLED → CROSSED → NONE. `matchesSolution(solution)` is the win
+  check: it compares in place, because `toSolutionInts() == solution` rebuilt the whole grid on every step of a drag.
 - Grids are serialized as `List<List<Int>>` (JSON, `classes/SolutionCodec.kt`), but in **two different
   encodings**, and `Tile.kt` names them apart. A puzzle `solution` is 0/1 — `toSolutionInts()`, which collapses
   `CROSSED` to 0; that is what the win check (`GameScreen`) and the generator (`GenViewModel`) want, and

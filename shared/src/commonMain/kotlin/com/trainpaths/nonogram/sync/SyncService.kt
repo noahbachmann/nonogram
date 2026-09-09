@@ -55,6 +55,10 @@ interface SyncService {
  * upsert locally, local newer and locally authored → push back. Returns the newest received
  * `updatedAt` timestamp for the next incremental fetch. A null [firebaseUid] is a guest's
  * unauthenticated public pull: merge in, never push back.
+ *
+ * The local side comes from one stub read and the winners go back in one batch, rather than a query
+ * and a write per puzzle: on web every one of those is a round-trip to the database worker, and the
+ * stubs carry no solution to decode.
  */
 internal suspend fun SyncService.mergeRemoteNonograms(
     sdk: AppSDK,
@@ -62,21 +66,33 @@ internal suspend fun SyncService.mergeRemoteNonograms(
     lastSyncedAt: Long,
     remotes: List<Nonogram>,
 ): Long {
+    if (remotes.isEmpty()) return lastSyncedAt
     var newestReceivedAt = lastSyncedAt
     val now = Clock.System.now().toEpochMilliseconds()
+    val locals = sdk.getNonogramStubs()
+    val incoming = mutableListOf<Nonogram>()
+    val outgoing = mutableListOf<Long>()
     for (remote in remotes) {
         if (remote.updatedAt in (newestReceivedAt + 1)..now) newestReceivedAt = remote.updatedAt
-        val local = sdk.getNonogramById(remote.id)
+        val local = locals[remote.id]
         if (local != null && local.authorUid.isNotEmpty() && local.authorUid != remote.authorUid) {
             continue
         }
         if (local == null || local.updatedAt < remote.updatedAt) {
-            sdk.upsertNonogramFromRemote(remote)
+            incoming += remote
         } else if (
             firebaseUid != null &&
             local.updatedAt > remote.updatedAt &&
             local.authorUid == firebaseUid
         ) {
+            outgoing += local.id
+        }
+    }
+    sdk.upsertNonogramsFromRemote(incoming)
+    if (firebaseUid != null) {
+        for (id in outgoing) {
+            // Read late: only the puzzles being pushed back need their full solution.
+            val local = sdk.getNonogramById(id) ?: continue
             pushNonogram(firebaseUid, local)
         }
     }

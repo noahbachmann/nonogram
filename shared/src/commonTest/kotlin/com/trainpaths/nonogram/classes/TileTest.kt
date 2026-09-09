@@ -2,6 +2,8 @@ package com.trainpaths.nonogram.classes
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class TileTest {
 
@@ -61,6 +63,23 @@ class TileTest {
             listOf(listOf(0, 0), listOf(0)),
             listOf(List(2) { Tile() }, List(1) { Tile() }).toSolutionInts(),
         )
+    }
+
+    @Test
+    fun matchesSolution_agreesWithToSolutionInts() {
+        val board = mixedBoard()
+
+        assertTrue(board.matchesSolution(board.toSolutionInts()))
+        assertFalse(board.matchesSolution(listOf(listOf(1, 1, 0), listOf(0, 1, 0))))
+    }
+
+    @Test
+    fun matchesSolution_rejectsAMismatchedShape() {
+        val board = mixedBoard()
+
+        assertFalse(board.matchesSolution(listOf(listOf(1, 0, 0))))
+        assertFalse(board.matchesSolution(listOf(listOf(1, 0), listOf(0, 1, 0))))
+        assertFalse(emptyList<List<Tile>>().matchesSolution(listOf(listOf(0))))
     }
 
     @Test
