@@ -125,8 +125,9 @@ changing tools mid-board must not tear down and restart the detectors. It is per
 
 `GameScreen`'s bottom-bar **Check** button (`GameViewModel.checkBoard`) marks every tile that
 contradicts the solution — `FILLED` where the solution is 0, `CROSSED` where it is 1; a blank tile is
-unfinished, not wrong. The mark is a second Compose state on `Tile` (`wrong`), which buys both
-halves of the behaviour for free:
+unfinished, not wrong. It also calls `reset()` on the transform, so the whole board is back on screen to
+read the marks off; that is why `GameScreen` hoists its `BoardTransformState` and `GenScreen` does not.
+The mark is a second Compose state on `Tile` (`wrong`), which buys both halves of the behaviour for free:
 
 - `drawTiles` reads `tile.wrong` in the same draw lambda it reads `tile.state`, so marking a tile
   invalidates one node's draw exactly like filling one does. It is painted as a final pass, after the

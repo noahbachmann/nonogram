@@ -33,11 +33,11 @@ import androidx.compose.ui.unit.dp
 import com.trainpaths.nonogram.MAX_CONTENT_WIDTH
 import com.trainpaths.nonogram.classes.BoardHistory
 import com.trainpaths.nonogram.classes.DrawMode
-import com.trainpaths.nonogram.icons.check
 import com.trainpaths.nonogram.icons.lockClosed
 import com.trainpaths.nonogram.icons.lockOpen
 import com.trainpaths.nonogram.icons.redo
 import com.trainpaths.nonogram.icons.save
+import com.trainpaths.nonogram.icons.searchCheck
 import com.trainpaths.nonogram.icons.tileCross
 import com.trainpaths.nonogram.icons.tileErase
 import com.trainpaths.nonogram.icons.tileFill
@@ -157,7 +157,7 @@ fun BottomToolBar(
                         if (onCheck != null) {
                             BottomBarItem(
                                 label = "Check",
-                                imageVector = check,
+                                imageVector = searchCheck,
                                 contentDescription = "Check board for mistakes",
                                 onClick = onCheck,
                                 width = labelledWidth,

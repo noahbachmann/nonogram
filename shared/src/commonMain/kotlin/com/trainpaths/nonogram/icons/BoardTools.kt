@@ -97,19 +97,45 @@ val save: ImageVector
     }
 
 @Suppress("CheckReturnValue")
-val check: ImageVector
+val searchCheck: ImageVector
     get() {
-        if (_check != null) return _check!!
-        _check = toolIcon("check") {
-            moveTo(9.55f, 18f)
-            lineTo(3.85f, 12.3f)
-            lineTo(5.27f, 10.88f)
-            lineTo(9.55f, 15.16f)
-            lineTo(18.73f, 5.98f)
-            lineTo(20.15f, 7.4f)
+        if (_searchCheck != null) return _searchCheck!!
+        _searchCheck = toolIcon("search_check") {
+            moveTo(8.95f, 11.8f)
+            lineTo(6.53f, 9.4f)
+            lineTo(7.58f, 8.35f)
+            lineTo(8.93f, 9.7f)
+            lineToRelative(2.5f, -2.5f)
+            lineToRelative(1.05f, 1.05f)
+            lineTo(8.95f, 11.8f)
+            close()
+            moveTo(19.6f, 21f)
+            lineTo(13.3f, 14.7f)
+            quadToRelative(-0.75f, 0.6f, -1.72f, 0.95f)
+            reflectiveQuadTo(9.5f, 16f)
+            quadTo(6.78f, 16f, 4.89f, 14.11f)
+            quadTo(3f, 12.23f, 3f, 9.5f)
+            quadTo(3f, 6.77f, 4.89f, 4.89f)
+            reflectiveQuadTo(9.5f, 3f)
+            reflectiveQuadToRelative(4.61f, 1.89f)
+            reflectiveQuadTo(16f, 9.5f)
+            quadToRelative(0f, 1.1f, -0.35f, 2.07f)
+            reflectiveQuadTo(14.7f, 13.3f)
+            lineTo(21f, 19.6f)
+            lineTo(19.6f, 21f)
+            close()
+            moveTo(9.5f, 14f)
+            quadToRelative(1.88f, 0f, 3.19f, -1.31f)
+            reflectiveQuadTo(14f, 9.5f)
+            reflectiveQuadTo(12.69f, 6.31f)
+            reflectiveQuadTo(9.5f, 5f)
+            reflectiveQuadTo(6.31f, 6.31f)
+            reflectiveQuadTo(5f, 9.5f)
+            reflectiveQuadToRelative(1.31f, 3.19f)
+            reflectiveQuadTo(9.5f, 14f)
             close()
         }
-        return _check!!
+        return _searchCheck!!
     }
 
 @Suppress("CheckReturnValue")
@@ -254,7 +280,7 @@ private fun PathBuilder.squareOutline(inset: Float = 3f, thickness: Float = 2f) 
     close()
 }
 
-private var _check: ImageVector? = null
+private var _searchCheck: ImageVector? = null
 private var _lockClosed: ImageVector? = null
 private var _lockOpen: ImageVector? = null
 private var _save: ImageVector? = null
