@@ -18,6 +18,7 @@ import com.trainpaths.nonogram.navigation.BottomToolBar
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.screens.viewModel.GameViewModel
 import com.trainpaths.nonogram.classes.Board
+import com.trainpaths.nonogram.classes.BoardTransformState
 import com.trainpaths.nonogram.classes.DrawMode
 import com.trainpaths.nonogram.classes.toSolutionInts
 import com.trainpaths.nonogram.tutorial.TutorialStep
@@ -35,6 +36,8 @@ fun GameScreen(
 
     val nonogram = viewModel.nonogram
     val tiles = viewModel.tiles
+    // Hoisted so Check can fit the board again alongside marking mistakes.
+    val boardState = remember(nonogram?.width, nonogram?.height) { BoardTransformState() }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -61,6 +64,7 @@ fun GameScreen(
                     modifier = Modifier.fillMaxSize(),
                     drawMode = drawMode,
                     strikeSolvedClues = true,
+                    state = boardState,
                     onTilesChanged = { if (tiles.toSolutionInts() == nonogram.solution) onWin() },
                     onEdits = viewModel.history::record,
                 )
@@ -73,7 +77,10 @@ fun GameScreen(
             drawMode = drawMode,
             onDrawModeSelect = { drawMode = it },
             history = viewModel.history,
-            onCheck = viewModel::checkBoard,
+            onCheck = {
+                viewModel.checkBoard()
+                boardState.reset()
+            },
         )
     }
 }

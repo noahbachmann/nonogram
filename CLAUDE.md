@@ -205,9 +205,9 @@ gap the parent `Row` spaces them by rather than any divider or container. The **
 `DrawMode` (Fill / Cross / Erase), the active one highlighted; there is no cycling tool button and no Toggle mode —
 every mode writes its state idempotently. The **history** group is undo/redo. The **board** group is the
 **lock/unlock** toggle (locked = one-finger drag draws, unlocked = drag pans — see `docs/board-rendering.md`), the
-(GenScreen) **Save** icon (enabled only for a new or dirty puzzle) and the (GameScreen) **Check** icon. Rezoom is
-*not* here — it lives in the board's own top-left corner (see `classes/` above), where it can be hidden whenever the
-board is already fitted.
+(GenScreen) **Save** icon (enabled only for a new or dirty puzzle) and the (GameScreen) **Check** icon (a magnifying
+glass, and it fits the board back on screen as well as marking mistakes). Rezoom is *not* here — it floats over the
+board's own top-left (see `classes/` above), where it can be hidden whenever the board is already fitted.
 
 A `ToolGroup` with a `title` labels the cluster as a whole and its buttons carry no labels of their own — that is what
 the drawing and history groups use ("Pencil", "History"), since their buttons are options of one setting rather than

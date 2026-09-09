@@ -95,7 +95,7 @@ fun Board(
 
     // The transform keys on *dimensions*: in GenScreen the nonogram identity changes on every tap
     // while the size does not, and re-fitting the view mid-drawing would snap the board around. Both
-    // screens take the default — the only control that resets it is the rezoom button below.
+    // GenScreen takes the default; GameScreen hoists it so Check can fit the board as well as mark it.
     val currentTiles = rememberUpdatedState(tiles)
     val currentIsEditable = rememberUpdatedState(isEditable)
     val currentDrawMode = rememberUpdatedState(drawMode)
