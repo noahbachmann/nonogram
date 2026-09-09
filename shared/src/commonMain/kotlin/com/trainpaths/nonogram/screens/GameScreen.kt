@@ -62,6 +62,7 @@ fun GameScreen(
                     isLocked = isLocked,
                     modifier = Modifier.fillMaxSize(),
                     drawMode = drawMode,
+                    strikeSolvedClues = true,
                     state = boardState,
                     onTilesChanged = { if (tiles.toSolutionInts() == nonogram.solution) onWin() },
                     onEdits = viewModel.history::record,

@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import com.trainpaths.nonogram.BOARD_SEPARATOR_COLOR
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.pow
 
 @Composable
@@ -55,6 +56,7 @@ fun Board(
     modifier: Modifier = Modifier,
     isEditable: Boolean = true,
     drawMode: DrawMode = DrawMode.FILL,
+    strikeSolvedClues: Boolean = false,
     state: BoardTransformState = remember(nonogram.width, nonogram.height) { BoardTransformState() },
     onTilesChanged: () -> Unit = {},
     onEdits: (List<TileEdit>) -> Unit = {},
@@ -68,6 +70,15 @@ fun Board(
     val maxColClues = remember(colClues) { colClues.maxOfOrNull { it.size } ?: 1 }
     // cacheSize 32: the default of 8 thrashes on a board with more than a handful of block labels.
     val labelMeasurer = rememberTextMeasurer(cacheSize = 32)
+
+    // The tiles each clue line reads to decide which of its clues are struck out. Collecting the
+    // Tile *objects* reads no snapshot state, so it belongs in composition; the states themselves
+    // are read in the draw phase (see clueStrikes).
+    val rowLines = if (strikeSolvedClues) tiles else null
+    val colLines = remember(tiles, strikeSolvedClues) {
+        if (!strikeSolvedClues) null
+        else (0 until (tiles.firstOrNull()?.size ?: 0)).map { col -> tiles.map { it[col] } }
+    }
 
     // The transform keys on *dimensions*: in GenScreen the nonogram identity changes on every tap
     // while the size does not, and re-fitting the view mid-drawing would snap the board around. The
@@ -149,6 +160,7 @@ fun Board(
             RowClueGutter(
                 state = state,
                 clues = rowClues,
+                lines = rowLines,
                 slots = maxRowClues,
                 gutterW = gutterW,
                 gridH = gridH,
@@ -157,6 +169,7 @@ fun Board(
             ColClueGutter(
                 state = state,
                 clues = colClues,
+                lines = colLines,
                 slots = maxColClues,
                 gridW = gridW,
                 gutterH = gutterH,
@@ -266,6 +279,7 @@ private fun Modifier.oversized(width: Dp, height: Dp): Modifier =
 private fun RowClueGutter(
     state: BoardTransformState,
     clues: List<List<Int>>,
+    lines: List<List<Tile>>?,
     slots: Int,
     gutterW: Dp,
     gridH: Dp,
@@ -292,8 +306,13 @@ private fun RowClueGutter(
                 },
         ) {
             // One tile tall, so clue lines stay flush with the rows they label.
-            for (line in clues) {
-                RowClueLine(clues = line, slots = slots, gutterW = gutterW)
+            clues.forEachIndexed { index, line ->
+                RowClueLine(
+                    clues = line,
+                    cells = lines?.getOrNull(index),
+                    slots = slots,
+                    gutterW = gutterW,
+                )
             }
         }
     }
@@ -304,6 +323,7 @@ private fun RowClueGutter(
 private fun ColClueGutter(
     state: BoardTransformState,
     clues: List<List<Int>>,
+    lines: List<List<Tile>>?,
     slots: Int,
     gridW: Dp,
     gutterH: Dp,
@@ -330,8 +350,13 @@ private fun ColClueGutter(
                 },
         ) {
             // One tile wide, so clue lines stay flush with the columns they label.
-            for (line in clues) {
-                ColClueLine(clues = line, slots = slots, gutterH = gutterH)
+            clues.forEachIndexed { index, line ->
+                ColClueLine(
+                    clues = line,
+                    cells = lines?.getOrNull(index),
+                    slots = slots,
+                    gutterH = gutterH,
+                )
             }
         }
     }
@@ -345,11 +370,12 @@ private fun ColClueGutter(
  * padded with empty slots at the start, which right-aligns row clues against the grid.
  */
 @Composable
-private fun RowClueLine(clues: List<Int>, slots: Int, gutterW: Dp) {
+private fun RowClueLine(clues: List<Int>, cells: List<Tile>?, slots: Int, gutterW: Dp) {
     Row(
         modifier = Modifier
             .requiredSize(gutterW, CELL)
-            .background(Color.White),
+            .background(Color.White)
+            .clueStrikes(clues, cells, slots, vertical = false),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         repeat(slots - clues.size) { Spacer(Modifier.weight(1f)) }
@@ -362,11 +388,12 @@ private fun RowClueLine(clues: List<Int>, slots: Int, gutterW: Dp) {
 }
 
 @Composable
-private fun ColClueLine(clues: List<Int>, slots: Int, gutterH: Dp) {
+private fun ColClueLine(clues: List<Int>, cells: List<Tile>?, slots: Int, gutterH: Dp) {
     Column(
         modifier = Modifier
             .requiredSize(CELL, gutterH)
-            .background(Color.White),
+            .background(Color.White)
+            .clueStrikes(clues, cells, slots, vertical = true),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         repeat(slots - clues.size) { Spacer(Modifier.weight(1f)) }
@@ -374,6 +401,42 @@ private fun ColClueLine(clues: List<Int>, slots: Int, gutterH: Dp) {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 ClueText(clue)
             }
+        }
+    }
+}
+
+/** Strikes through the clues of one line that the player has certainly drawn ([solvedClueMask]).*/
+private fun Modifier.clueStrikes(
+    clues: List<Int>,
+    cells: List<Tile>?,
+    slots: Int,
+    vertical: Boolean,
+): Modifier {
+    if (cells == null || clues.isEmpty()) return this
+    return drawWithContent {
+        drawContent()
+        val mask = solvedClueMask(clues, cells.map { it.state })
+        if (mask == 0L) return@drawWithContent
+
+        val slotW = if (vertical) size.width else size.width / slots
+        val slotH = if (vertical) size.height / slots else size.height
+        // The short side is CLUE_CELL in either gutter, so one fraction fits both axes.
+        val minor = min(slotW, slotH)
+        val half = minor * CLUE_STRIKE_LENGTH_FRACTION / 2f
+        val strokeWidth = minor * CLUE_STRIKE_WIDTH_FRACTION
+        for (index in clues.indices) {
+            if ((mask and (1L shl index)) == 0L) continue
+            // Short lines are padded with leading Spacers, so clue i sits in slot slots - size + i.
+            val slot = slots - clues.size + index
+            val cx = if (vertical) slotW / 2f else (slot + 0.5f) * slotW
+            val cy = if (vertical) (slot + 0.5f) * slotH else slotH / 2f
+            // Struck off diagonally, bottom-left to top-right.
+            drawLine(
+                color = Color.DarkGray,
+                start = Offset(cx - half, cy + half),
+                end = Offset(cx + half, cy - half),
+                strokeWidth = strokeWidth,
+            )
         }
     }
 }
