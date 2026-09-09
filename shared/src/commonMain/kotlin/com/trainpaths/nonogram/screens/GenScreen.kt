@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,10 +18,12 @@ import com.trainpaths.nonogram.navigation.AppBarMode
 import com.trainpaths.nonogram.navigation.BottomToolBar
 import com.trainpaths.nonogram.navigation.TopAppBar
 import com.trainpaths.nonogram.classes.Board
+import com.trainpaths.nonogram.classes.BoardTransformState
 import com.trainpaths.nonogram.classes.DrawMode
 import com.trainpaths.nonogram.dialogs.GenSaveConfirmDialog
 import com.trainpaths.nonogram.dialogs.PublicEditConfirmDialog
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
+import com.trainpaths.nonogram.screens.viewModel.ValidationState
 
 @Composable
 fun GenScreen(
@@ -32,6 +35,7 @@ fun GenScreen(
     var pendingPublicSave by remember { mutableStateOf<(() -> Unit)?>(null) }
     var isLocked by remember { mutableStateOf(true) }
     var drawMode by remember { mutableStateOf(DrawMode.FILL) }
+    val boardState = remember(genViewModel.width, genViewModel.height) { BoardTransformState() }
 
     fun requestSave(save: () -> Unit) {
         if (genViewModel.needsPublicEditConfirmation()) {
@@ -67,6 +71,7 @@ fun GenScreen(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 isEditable = !genViewModel.isSaving,
                 drawMode = drawMode,
+                state = boardState,
                 onTilesChanged = { genViewModel.updateNonogram() },
                 onEdits = genViewModel.history::record,
             )
@@ -83,6 +88,17 @@ fun GenScreen(
             history = genViewModel.history,
             saveEnabled = genViewModel.canSave,
             onSave = { requestSave { genViewModel.onSave() } },
+            onCheck = {
+                genViewModel.checkBoard()
+                boardState.reset()
+            },
+            checkEnabled = !genViewModel.isSaving &&
+                    genViewModel.validationState != ValidationState.CHECKING,
+            checkTint = when (genViewModel.validationState) {
+                ValidationState.VALID -> MaterialTheme.colorScheme.onTertiary
+                ValidationState.INVALID -> MaterialTheme.colorScheme.tertiaryFixed
+                else -> null
+            },
         )
     }
 

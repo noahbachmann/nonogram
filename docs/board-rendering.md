@@ -123,10 +123,17 @@ changing tools mid-board must not tear down and restart the detectors. It is per
 
 ## The check mark
 
-`GameScreen`'s bottom-bar **Check** button (`GameViewModel.checkBoard`) marks every tile that
-contradicts the solution — `FILLED` where the solution is 0, `CROSSED` where it is 1; a blank tile is
-unfinished, not wrong. It also calls `reset()` on the transform, so the whole board is back on screen to
-read the marks off; that is why `GameScreen` hoists its `BoardTransformState` and `GenScreen` does not.
+Both boards have a bottom-bar **Check** button, and they ask different questions of the same mark.
+`GameViewModel.checkBoard` marks every tile that contradicts the known solution — `FILLED` where the
+solution is 0, `CROSSED` where it is 1; a blank tile is unfinished, not wrong. `GenViewModel.checkBoard`
+has no solution to compare against, so it runs the `Solver` on the drawn grid and marks every cell line
+logic cannot pin down: `solveNonogram()` reports 0 for a cell it never determined, 1 filled and 2 proven
+empty, and a cell is wrong when it came back 0 or disagrees with what is drawn. That is advisory only —
+it persists nothing and leaves `publishStatus` alone; it just moves `GenViewModel.validationState`, which
+tints the Check icon green or red so a *solvable* puzzle gets an answer too.
+
+Both also call `reset()` on the transform, so the whole board is back on screen to read the marks off,
+which is why both screens hoist their `BoardTransformState` rather than letting `Board` remember it.
 The mark is a second Compose state on `Tile` (`wrong`), which buys both halves of the behaviour for free:
 
 - `drawTiles` reads `tile.wrong` in the same draw lambda it reads `tile.state`, so marking a tile
@@ -136,6 +143,11 @@ The mark is a second Compose state on `Tile` (`wrong`), which buys both halves o
   the tap, `TileStroke.paint`, undo/redo, `resetBoard` — writes `state`, so no gesture, history or
   screen code participates in clearing. Re-writing the same state is not an edit and leaves the mark
   standing.
+
+The generator is the one place that clears more than the edited cell: `GenViewModel.updateNonogram`
+blanks every `wrong` flag, because one edit can resolve a whole ambiguous region and leave the rest of
+the marks describing a grid that no longer exists. GameScreen's marks are independent per-cell truths,
+so there the per-tile clear is the right amount.
 
 Nothing about it is persisted or synced, and leaving the puzzle drops it: `loadNonogram` rebuilds the
 grid from fresh `Tile`s.

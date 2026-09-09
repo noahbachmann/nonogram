@@ -68,6 +68,8 @@ fun BottomToolBar(
     onSave: (() -> Unit)? = null,
     saveEnabled: Boolean = true,
     onCheck: (() -> Unit)? = null,
+    checkEnabled: Boolean = true,
+    checkTint: Color? = null,
 ) {
     Box(
         modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.secondary),
@@ -81,8 +83,8 @@ fun BottomToolBar(
         ) {
             val iconOnlyCount = DrawMode.entries.size + (if (history != null) 2 else 0)
             val labelledCount = 1 + // lock
-                (if (onSave != null) 1 else 0) +
-                (if (onCheck != null) 1 else 0)
+                    (if (onSave != null) 1 else 0) +
+                    (if (onCheck != null) 1 else 0)
 
             val groupCount = if (history != null) 3 else 2
             val gapCount = groupCount - 1
@@ -161,6 +163,8 @@ fun BottomToolBar(
                                 contentDescription = "Check board for mistakes",
                                 onClick = onCheck,
                                 width = labelledWidth,
+                                enabled = checkEnabled,
+                                tint = checkTint,
                             )
                         }
                     }
@@ -220,11 +224,13 @@ private fun BottomBarItem(
     enabled: Boolean = true,
     /** null for a plain action; true/false marks the item as one option of a selectable group. */
     selected: Boolean? = null,
+    /** Replaces the normal content colour while enabled */
+    tint: Color? = null,
     tutorialStep: TutorialStep? = null,
 ) {
     val contentColor = when {
         !enabled -> MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.50f)
-        else -> MaterialTheme.colorScheme.onSecondary
+        else -> tint ?: MaterialTheme.colorScheme.onSecondary
     }
     val highlight = if (selected == true) {
         Color.White.copy(alpha = 0.28f)

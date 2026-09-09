@@ -12,6 +12,7 @@ import com.trainpaths.nonogram.classes.MAX_NONOGRAM_SIDE
 import com.trainpaths.nonogram.classes.MIN_NONOGRAM_SIDE
 import com.trainpaths.nonogram.classes.Nonogram
 import com.trainpaths.nonogram.classes.PublishStatus
+import com.trainpaths.nonogram.classes.Solver
 import com.trainpaths.nonogram.classes.Tile
 import com.trainpaths.nonogram.classes.TileState
 import com.trainpaths.nonogram.classes.isWellFormedGrid
@@ -203,7 +204,7 @@ class GenViewModel(
         history.reset(tiles)
         updateNonogram()
     }
-    
+
     fun loadScanned(grid: List<List<Int>>, name: String? = null) {
         if (!grid.isWellFormedGrid()) return
         nonogram = Nonogram(0, Difficulty.EASY, emptyList(), name = name)
@@ -236,6 +237,47 @@ class GenViewModel(
         validationState = ValidationState.UNCHECKED
         saveError = null
         validationError = null
+        for (row in tiles) {
+            for (tile in row) tile.wrong = false
+        }
+    }
+
+    /**
+     * Runs the Solver on the drawn grid and outlines every cell it cannot pin down — undetermined, or
+     * deduced differently from what is drawn. Advisory only: nothing is saved and no status changes.
+     */
+    fun checkBoard() {
+        if (isSaving || validationState == ValidationState.CHECKING) return
+        val puzzle = nonogram.copy(solution = tiles.toSolutionInts())
+        if (puzzle.solution.isEmpty()) return
+        val board = tiles
+        validationState = ValidationState.CHECKING
+        validationError = null
+        launchGuarded {
+            try {
+                val deduced = withContext(Dispatchers.Default) { Solver(puzzle).solveNonogram() }
+                if (board !== tiles || validationState != ValidationState.CHECKING) {
+                    return@launchGuarded
+                }
+                var solvable = true
+                for ((row, tileRow) in board.withIndex()) {
+                    for ((col, tile) in tileRow.withIndex()) {
+                        val state = deduced[row][col]
+                        val wrong =
+                            state == 0 || (if (state == 1) 1 else 0) != puzzle.solution[row][col]
+                        tile.wrong = wrong
+                        if (wrong) solvable = false
+                    }
+                }
+                validationState =
+                    if (solvable) ValidationState.VALID else ValidationState.INVALID
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                validationState = ValidationState.UNAVAILABLE
+                validationError = error.message ?: "Unable to validate this nonogram."
+            }
+        }
     }
 
     fun onSave(onDone: () -> Unit = {}) {
