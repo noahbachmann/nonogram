@@ -203,14 +203,36 @@ class NonogramTest {
     fun solveNonogram_returnsExpectedSolutions() {
         nonogramData.filter { it.verifySolver }.forEach { data ->
             val solver = Solver(data.nonogram)
-            val actualSolution = solver.solveNonogram()
+            val deduced = solver.solveNonogram()
 
+            assertTrue(
+                deduced.none { row -> row.contains(0) },
+                "Left a cell undetermined for ${data.desc}",
+            )
             assertEquals(
                 expected = data.nonogram.solution,
-                actual = actualSolution,
+                actual = deduced.map { row -> row.map { if (it == 1) 1 else 0 } },
                 message = "Unexpected solution for ${data.desc}",
             )
         }
+    }
+
+    /** The Solver reports what it could not pin down as 0, which is what the generator's Check draws. */
+    @Test
+    fun solveNonogram_leavesAmbiguousCellsUndetermined() {
+        val ambiguous = Nonogram(
+            id = 13,
+            difficulty = Difficulty.EASY,
+            solution = listOf(
+                listOf(1, 0),
+                listOf(0, 1),
+            ),
+        )
+
+        assertEquals(
+            expected = listOf(listOf(0, 0), listOf(0, 0)),
+            actual = Solver(ambiguous).solveNonogram(),
+        )
     }
 
     @Test

@@ -205,8 +205,9 @@ gap the parent `Row` spaces them by rather than any divider or container. The **
 `DrawMode` (Fill / Cross / Erase), the active one highlighted; there is no cycling tool button and no Toggle mode —
 every mode writes its state idempotently. The **history** group is undo/redo. The **board** group is the
 **lock/unlock** toggle (locked = one-finger drag draws, unlocked = drag pans — see `docs/board-rendering.md`), the
-(GenScreen) **Save** icon (enabled only for a new or dirty puzzle) and the (GameScreen) **Check** icon (a magnifying
-glass, and it fits the board back on screen as well as marking mistakes). Rezoom is *not* here — it floats over the
+(GenScreen) **Save** icon (enabled only for a new or dirty puzzle) and the **Check** icon (a magnifying glass, on both
+screens, and it fits the board back on screen as well as marking cells — mistakes in GameScreen, cells the Solver
+cannot pin down in GenScreen, where the icon itself is tinted green/red with the verdict). Rezoom is *not* here — it floats over the
 board's own top-left (see `classes/` above), where it can be hidden whenever the board is already fitted.
 
 A `ToolGroup` with a `title` labels the cluster as a whole and its buttons carry no labels of their own — that is what
@@ -384,8 +385,10 @@ grid size, `GenScreen` is the tile-drawing board, all driven by the shared `GenV
 and edit existing ones (with non-destructive resize). See **Navigation → Generator flow** above. On save, `GenViewModel`
 runs `Nonogram.isValid` (the `Solver`) to check the puzzle is uniquely solvable — validation is *advisory* (the puzzle
 still saves if it fails or the check throws) and only gates whether the author may *request* publication. That is the
-**only** place the Solver runs for the generator: the verdict is then persisted into `publishStatus` (see **Data
-Model**), so the list screen and the config screen both read it rather than recomputing it. Publishing
+**only** place the Solver's verdict is *persisted* — into `publishStatus` (see **Data Model**), so the list screen and
+the config screen both read it rather than recomputing it. `GenViewModel.checkBoard`, behind `GenScreen`'s bottom-bar
+**Check** button, runs the Solver a second time but purely for the author's benefit: it outlines the cells line logic
+cannot pin down and moves `validationState` only, writing nothing (see `docs/board-rendering.md`). Publishing
 itself is admin-moderated: the generator's config screen offers a "Request publish" button, an admin accepts or denies
 in `AdminScreen` (reachable from Settings), and five denials in a row ban a user from requesting. Editing a puzzle that
 is currently public un-publishes it, so every save path first confirms via `PublicEditConfirmDialog`. A request is also

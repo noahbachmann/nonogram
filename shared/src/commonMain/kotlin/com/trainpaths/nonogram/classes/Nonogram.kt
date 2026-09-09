@@ -75,7 +75,7 @@ data class Nonogram(
         }
     }
     val isValid: Boolean by lazy {
-        Solver(this).solveNonogram() == solution
+        Solver(this).solveNonogram().map { row -> row.map { if (it == 1) 1 else 0 } } == solution
     }
 
     /** Seeded puzzles and puzzles authored elsewhere both carry a blank uid, so "" owns nothing. */
