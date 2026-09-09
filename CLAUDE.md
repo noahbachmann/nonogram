@@ -111,7 +111,9 @@ All shared code lives in `shared/src/commonMain/`, with platform-specific code i
 - **`classes/` board + game** — the interactive grid (clues, tiles, pan/zoom, drag-to-draw) is a self-contained Compose
   engine: `Board`/`BoardTransform` (one Canvas for all tiles + a layer-transform pan/zoom model),
   `Game` (win check), `Tile`/`TileState`, `ClueProgress` (which clues the player has certainly drawn,
-  struck out in the game screen's gutters). Performance-critical and gesture-heavy — see `docs/board-rendering.md`.
+  struck out in the game screen's gutters), and `RezoomButton` — fit-to-screen, floating over the board's top-left
+  on a translucent scrim and shown only while the board is zoomed in (`BoardTransformState.canReset`).
+  Performance-critical and gesture-heavy — see `docs/board-rendering.md`.
 - **Desktop widths** — `MAX_CONTENT_WIDTH = 1000.dp` lives in `AppTheme.kt` alongside the palettes, applied as
   `Modifier.widthIn(max = …)` ahead of any `fillMax*` and centred by the screen root's `horizontalAlignment`. App bars
   stay full-bleed with capped content, the Board is deliberately exempt, and `NonogramGrid` picks its column count from
@@ -198,23 +200,24 @@ puzzle; the leave dialog's Save action remains save-and-exit.
 pass `backArrow = true` to force a plain back arrow (used in `GenConf`).
 
 `navigation/BottomToolBar.kt` is the board's bottom bar (GameScreen + GenScreen). Its buttons sit in **three groups** —
-drawing, history, board, in that order — each a `ToolGroup` of adjacent items, the separation coming from the parent
-`Row`'s `SpaceBetween` rather than any divider or container. The **drawing** group is one button per `DrawMode`
-(Fill / Cross / Erase), the active one highlighted; there is no cycling tool button and no Toggle mode — every mode
-writes its state idempotently. The **history** group is undo/redo. The **board** group is the optional **rezoom**
-button, the **lock/unlock** toggle (locked = one-finger drag draws, unlocked = drag pans — see
-`docs/board-rendering.md`), the (GenScreen) **Save** icon (enabled only for a new or dirty puzzle) and the (GameScreen)
-**Check** icon.
+drawing, history, board, in that order — each a `ToolGroup` of adjacent items, the separation coming from the computed
+gap the parent `Row` spaces them by rather than any divider or container. The **drawing** group is one button per
+`DrawMode` (Fill / Cross / Erase), the active one highlighted; there is no cycling tool button and no Toggle mode —
+every mode writes its state idempotently. The **history** group is undo/redo. The **board** group is the
+**lock/unlock** toggle (locked = one-finger drag draws, unlocked = drag pans — see `docs/board-rendering.md`), the
+(GenScreen) **Save** icon (enabled only for a new or dirty puzzle) and the (GameScreen) **Check** icon. Rezoom is
+*not* here — it lives in the board's own top-left corner (see `classes/` above), where it can be hidden whenever the
+board is already fitted.
 
 A `ToolGroup` with a `title` labels the cluster as a whole and its buttons carry no labels of their own — that is what
-the drawing and history groups use ("Draw", "History"), since their buttons are options of one setting rather than
+the drawing and history groups use ("Pencil", "History"), since their buttons are options of one setting rather than
 separate actions. The board group passes no title, so each of its buttons labels itself. Both shapes come out the same
 height (pill + one text line), which is what keeps every icon on one line.
 
-Both screens render 8 buttons, which does not fit a phone at a fixed width, so `BoxWithConstraints` sizes them: the
+Both screens render 7 buttons, which does not fit a phone at a fixed width, so `BoxWithConstraints` sizes them: the
 icon-only buttons take a fixed `ICON_ITEM_WIDTH`, the labelled ones split what is left and ellipsize rather than
 overflow, and the group gap absorbs the remainder (clamped, with the row centred) — **the gaps are subtracted before
-the items are sized**, because handing the items the full width leaves `SpaceBetween` no slack and the grouping
+the items are sized**, because handing the items the full width leaves the arrangement no slack and the grouping
 silently disappears. Icons come from the hand-built `icons/` package of `ImageVector`s.
 
 ### DI (Koin)
