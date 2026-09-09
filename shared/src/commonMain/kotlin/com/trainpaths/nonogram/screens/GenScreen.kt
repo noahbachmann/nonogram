@@ -24,6 +24,7 @@ import com.trainpaths.nonogram.dialogs.GenSaveConfirmDialog
 import com.trainpaths.nonogram.dialogs.PublicEditConfirmDialog
 import com.trainpaths.nonogram.screens.viewModel.GenViewModel
 import com.trainpaths.nonogram.screens.viewModel.ValidationState
+import com.trainpaths.nonogram.tutorial.TutorialStep
 
 @Composable
 fun GenScreen(
@@ -99,6 +100,7 @@ fun GenScreen(
                 ValidationState.INVALID -> MaterialTheme.colorScheme.tertiaryFixed
                 else -> null
             },
+            checkTutorialStep = TutorialStep.GEN_CHECK,
         )
     }
 

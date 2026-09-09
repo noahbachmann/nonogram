@@ -74,7 +74,9 @@ fun GenListScreen(
                 AppButton(
                     text = "Scan image",
                     onClick = onScanClick,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .tutorialAnchor(TutorialStep.GENLIST_SCAN),
                 )
             }
 

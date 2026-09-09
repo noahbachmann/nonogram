@@ -109,12 +109,18 @@ private fun ScanIntro(scanViewModel: ScanViewModel, onPick: () -> Unit) {
         text = "Pick an image and it becomes a nonogram you can edit.",
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onPrimary,
-        modifier = Modifier.padding(vertical = 24.dp),
+        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp),
+    )
+    Text(
+        text = "Tip: black-and-white images work much better with this tool.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSecondary,
+        modifier = Modifier.padding(bottom = 24.dp),
     )
     SizeField(
         value = scanViewModel.sideInput,
         onValueChange = scanViewModel::updateSide,
-        label = "Size",
+        label = "Nonogram Size",
         colors = outlinedFieldColors(),
         enabled = !scanViewModel.isProcessing,
         modifier = Modifier
@@ -126,7 +132,7 @@ private fun ScanIntro(scanViewModel: ScanViewModel, onPick: () -> Unit) {
         text = if (scanViewModel.isProcessing) "Reading..." else "Choose image",
         onClick = onPick,
         enabled = !scanViewModel.isProcessing,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.width(280.dp),
     )
 }
 

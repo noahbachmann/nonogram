@@ -81,6 +81,7 @@ fun GameScreen(
                 viewModel.checkBoard()
                 boardState.reset()
             },
+            checkTutorialStep = TutorialStep.BOARD_CHECK,
         )
     }
 }
